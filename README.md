@@ -1,135 +1,175 @@
-# Turborepo starter
+# Nostalgia
 
-This Turborepo starter is maintained by the Turborepo core team.
+An encrypted, intelligent, open-source photo management platform. Your memories, your privacy.
 
-## Using this example
+## Features
 
-Run the following command:
+- **Client-Side Encryption** — Photos are encrypted in the browser before upload. The server never sees plaintext.
+- **AI-Powered Organization** — Automatic tagging, descriptions, face detection, and semantic search via embeddings.
+- **Map View** — Browse photos by location with clustering and interactive maps.
+- **Memories** — Auto-generated "On This Day" memories and themed collections.
+- **Albums** — Create, share, and organize photos into albums with granular permissions.
+- **Search** — Full-text search on descriptions, semantic/vector search on embeddings, and tag-based filtering.
+- **Archive & Trash** — Soft-delete with 30-day auto-cleanup via scheduled cron jobs.
+- **Dark Theme** — Beautiful, minimal dark UI by default.
+- **Self-Hostable** — Bring your own MinIO (S3-compatible) storage and Convex backend.
 
-```sh
-npx create-turbo@latest
-```
+## Tech Stack
 
-## What's inside?
+| Layer         | Technology                            |
+| ------------- | ------------------------------------- |
+| Frontend      | Next.js 16, React 19, Tailwind CSS v4 |
+| Backend       | Convex (real-time, serverless)        |
+| Auth          | Better Auth                           |
+| Storage       | MinIO (S3-compatible)                 |
+| Encryption    | Web Crypto API (AES-256-GCM)          |
+| Monorepo      | Turborepo + pnpm                      |
+| AI (optional) | OpenAI (embeddings, analysis)         |
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## Project Structure
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+nostalgia/
+├── apps/
+│   └── web/                    # Next.js frontend
+│       ├── app/                # App Router pages
+│       │   ├── (app)/          # Authenticated app pages
+│       │   │   ├── photos/     # Main photo grid
+│       │   │   ├── favorites/  # Favorited photos
+│       │   │   ├── albums/     # Album management
+│       │   │   ├── map/        # Map view
+│       │   │   ├── memories/   # Auto-generated memories
+│       │   │   ├── search/     # Search interface
+│       │   │   ├── archive/    # Archived photos
+│       │   │   └── trash/      # Trashed photos (30-day retention)
+│       │   ├── (auth)/         # Login / Register
+│       │   └── api/            # API routes (auth, storage)
+│       ├── components/         # UI components
+│       │   ├── ui/             # Base components (Button, Input, Dialog, etc.)
+│       │   ├── layout/         # Sidebar, AppShell, PageHeader
+│       │   ├── photos/         # PhotoGrid, Lightbox
+│       │   ├── upload/         # UploadDialog
+│       │   ├── map/            # PhotoMap
+│       │   ├── search/         # SearchBar
+│       │   ├── albums/         # AlbumCard
+│       │   └── providers/      # Convex, Encryption, root Providers
+│       └── lib/                # Utilities (encryption, minio, auth, utils)
+├── packages/
+│   ├── backend/                # Convex backend
+│   │   └── convex/             # Schema, queries, mutations, cron jobs
+│   ├── ui/                     # Shared UI package
+│   ├── typescript-config/      # Shared TS configs
+│   └── eslint-config/          # Shared ESLint configs
+├── docker-compose.yml          # MinIO for local development
+├── turbo.json                  # Turborepo config
+└── pnpm-workspace.yaml         # Workspace definition
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Prerequisites
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+- **Node.js** >= 22
+- **pnpm** >= 10.29.2
+- **Docker** (for MinIO local dev)
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## Getting Started
 
-### Develop
+### 1. Install dependencies
 
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+```bash
+pnpm install
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### 2. Start MinIO
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+docker compose up -d
 ```
 
-### Remote Caching
+This starts MinIO on `localhost:9000` (API) and `localhost:9001` (Console). Default credentials: `minioadmin` / `minioadmin`.
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+The init container automatically creates the `nostalgia-photos` and `nostalgia-thumbnails` buckets.
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+### 3. Set up Convex
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+cd packages/backend
+npx convex dev
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+This will prompt you to create a Convex project and generate the deployment URL. Copy the URL into your env file.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+### 4. Configure environment
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
+Copy the example env file and fill in the values:
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+```bash
+cp apps/web/.env.example apps/web/.env.local
 ```
 
-## Useful Links
+Required variables:
 
-Learn more about the power of Turborepo:
+| Variable                 | Description                                        |
+| ------------------------ | -------------------------------------------------- |
+| `NEXT_PUBLIC_CONVEX_URL` | Your Convex deployment URL (from step 3)           |
+| `BETTER_AUTH_SECRET`     | Random secret for auth sessions                    |
+| `BETTER_AUTH_URL`        | Your app URL (e.g. `http://localhost:3000`)        |
+| `NEXT_PUBLIC_APP_URL`    | Same as BETTER_AUTH_URL                            |
+| `MINIO_ENDPOINT`         | MinIO host (default: `localhost`)                  |
+| `MINIO_PORT`             | MinIO port (default: `9000`)                       |
+| `MINIO_ACCESS_KEY`       | MinIO access key (default: `minioadmin`)           |
+| `MINIO_SECRET_KEY`       | MinIO secret key (default: `minioadmin`)           |
+| `OPENAI_API_KEY`         | Optional — enables AI analysis and semantic search |
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+### 5. Start the development server
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### 6. Set up authentication
+
+Better Auth is scaffolded and ready. Configure your auth providers in `apps/web/lib/auth.ts`. See the [Better Auth docs](https://www.better-auth.com/docs) for provider setup.
+
+## Building for Production
+
+```bash
+pnpm build
+```
+
+## Convex Backend
+
+The Convex schema includes the following tables:
+
+- **users** — User profiles with storage quotas and encryption key hashes
+- **photos** — Photo metadata, EXIF data, AI tags, embeddings, location data
+- **albums** / **albumPhotos** — Album management with ordering
+- **sharedAlbumAccess** — Granular album sharing permissions
+- **people** / **photoPeople** — Face recognition groups
+- **places** — Named locations with geo coordinates
+- **uploadSessions** — Upload progress tracking
+- **aiProcessingQueue** — Async AI analysis job queue
+- **memories** — Auto-generated "On This Day" collections
+
+### Cron Jobs
+
+| Job                  | Schedule    | Description                                     |
+| -------------------- | ----------- | ----------------------------------------------- |
+| Trash cleanup        | Every 6 hrs | Permanently deletes photos trashed 30+ days ago |
+| On This Day memories | Daily 6am   | Generates memory collections from past years    |
+| AI processing retry  | Every 1 hr  | Retries failed AI analysis jobs (max 3 retries) |
+
+## Encryption
+
+All encryption happens client-side using the Web Crypto API:
+
+1. A 256-bit AES-GCM key is generated per user
+2. The key is stored in IndexedDB (never sent to the server)
+3. Photos are encrypted in the browser before upload
+4. The server only stores encrypted blobs
+5. Key recovery is supported via PBKDF2 password derivation (600,000 iterations)
+
+## License
+
+MIT

@@ -1,5 +1,5 @@
 {
-  "name": "nostalgia-temp",
+  "name": "nostalgia",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -13,8 +13,17 @@
     "turbo": "^2.8.9",
     "typescript": "5.9.2"
   },
-  "packageManager": "pnpm@9.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  },
+  "packageManager": "pnpm@10.29.2",
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
+  },
+  "dependencies": {
+    "convex": "^1.31.7"
   }
 }

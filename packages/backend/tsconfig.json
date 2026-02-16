@@ -1,0 +1,13 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["convex/**/*.ts", "src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
