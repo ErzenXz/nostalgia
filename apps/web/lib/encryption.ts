@@ -4,6 +4,40 @@
 const ALGORITHM = "AES-GCM";
 const KEY_LENGTH = 256;
 const IV_LENGTH = 12;
+const RECOVERY_KDF_ITERATIONS = 900000;
+const RECOVERY_SALT_LENGTH = 16;
+const RECOVERY_IV_LENGTH = 12;
+
+interface RecoveryPackageV1 {
+  version: 1;
+  kdf: {
+    name: "PBKDF2";
+    hash: "SHA-512";
+    iterations: number;
+    salt: string;
+  };
+  cipher: {
+    name: "AES-GCM";
+    iv: string;
+  };
+  encryptedKey: string;
+  createdAt: number;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
+}
 
 export async function generateEncryptionKey(): Promise<CryptoKey> {
   return await crypto.subtle.generateKey(
@@ -15,14 +49,18 @@ export async function generateEncryptionKey(): Promise<CryptoKey> {
 
 export async function exportKey(key: CryptoKey): Promise<string> {
   const exported = await crypto.subtle.exportKey("raw", key);
-  return btoa(String.fromCharCode(...new Uint8Array(exported)));
+  return bytesToBase64(new Uint8Array(exported));
 }
 
 export async function importKey(keyString: string): Promise<CryptoKey> {
-  const keyData = Uint8Array.from(atob(keyString), (c) => c.charCodeAt(0));
+  const keyData = base64ToBytes(keyString);
+  const rawKey = keyData.buffer.slice(
+    keyData.byteOffset,
+    keyData.byteOffset + keyData.byteLength,
+  ) as ArrayBuffer;
   return await crypto.subtle.importKey(
     "raw",
-    keyData,
+    rawKey,
     { name: ALGORITHM, length: KEY_LENGTH },
     true,
     ["encrypt", "decrypt"],
@@ -32,7 +70,7 @@ export async function importKey(keyString: string): Promise<CryptoKey> {
 export async function hashKey(key: CryptoKey): Promise<string> {
   const exported = await crypto.subtle.exportKey("raw", key);
   const hash = await crypto.subtle.digest("SHA-256", exported);
-  return btoa(String.fromCharCode(...new Uint8Array(hash)));
+  return bytesToBase64(new Uint8Array(hash));
 }
 
 export async function encryptData(
@@ -76,7 +114,7 @@ export async function encryptFile(
     encryptedBlob: new Blob([combined], {
       type: "application/octet-stream",
     }),
-    iv: btoa(String.fromCharCode(...iv)),
+    iv: bytesToBase64(iv),
   };
 }
 
@@ -109,8 +147,125 @@ export async function encryptBlob(
     encryptedBlob: new Blob([combined], {
       type: "application/octet-stream",
     }),
-    iv: btoa(String.fromCharCode(...iv)),
+    iv: bytesToBase64(iv),
   };
+}
+
+async function deriveRecoveryWrappingKey(
+  passphrase: string,
+  salt: Uint8Array,
+  iterations: number,
+): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(passphrase),
+    "PBKDF2",
+    false,
+    ["deriveKey"],
+  );
+
+  return await crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt as unknown as Uint8Array<ArrayBuffer>,
+      iterations,
+      hash: "SHA-512",
+    },
+    keyMaterial,
+    { name: ALGORITHM, length: KEY_LENGTH },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+export async function createRecoveryPackage(
+  key: CryptoKey,
+  passphrase: string,
+): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(RECOVERY_SALT_LENGTH));
+  const iv = crypto.getRandomValues(new Uint8Array(RECOVERY_IV_LENGTH));
+  const wrappingKey = await deriveRecoveryWrappingKey(
+    passphrase,
+    salt,
+    RECOVERY_KDF_ITERATIONS,
+  );
+  const rawKey = await crypto.subtle.exportKey("raw", key);
+  const encryptedKey = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv: iv as unknown as Uint8Array<ArrayBuffer> },
+    wrappingKey,
+    rawKey,
+  );
+
+  const pkg: RecoveryPackageV1 = {
+    version: 1,
+    kdf: {
+      name: "PBKDF2",
+      hash: "SHA-512",
+      iterations: RECOVERY_KDF_ITERATIONS,
+      salt: bytesToBase64(salt),
+    },
+    cipher: {
+      name: "AES-GCM",
+      iv: bytesToBase64(iv),
+    },
+    encryptedKey: bytesToBase64(new Uint8Array(encryptedKey)),
+    createdAt: Date.now(),
+  };
+
+  return JSON.stringify(pkg);
+}
+
+export async function importKeyFromRecoveryPackage(
+  packageJson: string,
+  passphrase: string,
+): Promise<CryptoKey> {
+  let parsed: RecoveryPackageV1;
+  try {
+    parsed = JSON.parse(packageJson) as RecoveryPackageV1;
+  } catch {
+    throw new Error("Recovery package is not valid JSON");
+  }
+
+  if (
+    parsed.version !== 1 ||
+    parsed.kdf?.name !== "PBKDF2" ||
+    parsed.kdf?.hash !== "SHA-512" ||
+    parsed.cipher?.name !== "AES-GCM" ||
+    !parsed.kdf?.salt ||
+    !parsed.cipher?.iv ||
+    !parsed.encryptedKey
+  ) {
+    throw new Error("Unsupported or invalid recovery package format");
+  }
+
+  const salt = base64ToBytes(parsed.kdf.salt);
+  const iv = base64ToBytes(parsed.cipher.iv);
+  const encryptedKey = base64ToBytes(parsed.encryptedKey);
+  const wrappingKey = await deriveRecoveryWrappingKey(
+    passphrase,
+    salt,
+    parsed.kdf.iterations,
+  );
+
+  let decryptedKey: ArrayBuffer;
+  try {
+    decryptedKey = await crypto.subtle.decrypt(
+      { name: ALGORITHM, iv: iv as unknown as Uint8Array<ArrayBuffer> },
+      wrappingKey,
+      toArrayBuffer(encryptedKey),
+    );
+  } catch {
+    throw new Error("Invalid passphrase or corrupted recovery package");
+  }
+
+  return await crypto.subtle.importKey(
+    "raw",
+    decryptedKey,
+    { name: ALGORITHM, length: KEY_LENGTH },
+    true,
+    ["encrypt", "decrypt"],
+  );
 }
 
 // Key derivation from password (for key recovery)
@@ -186,5 +341,15 @@ export async function getStoredEncryptionKey(
       }
     };
     request.onerror = () => reject(request.error);
+  });
+}
+
+export async function deleteStoredEncryptionKey(userId: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(userId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
