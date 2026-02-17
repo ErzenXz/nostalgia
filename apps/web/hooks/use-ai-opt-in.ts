@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCallback, useState } from "react";
+import type { Id } from "@repo/backend/convex/_generated/dataModel";
 
 /**
  * Hook to read and toggle the user's AI Intelligence opt-in preference.
@@ -13,9 +14,7 @@ import { useCallback, useState } from "react";
  *  - isLoading: true while the preference is loading
  *  - setAiOptIn: function to update the preference
  */
-export function useAiOptIn() {
-  const { userId } = useCurrentUser();
-
+export function useAiOptInForUserId(userId: Id<"users"> | null) {
   const aiOptIn = useQuery(api.users.getAiOptIn, userId ? { userId } : "skip");
 
   const setAiOptInMutation = useMutation(api.users.setAiOptIn);
@@ -38,9 +37,15 @@ export function useAiOptIn() {
   );
 
   return {
-    aiOptIn: aiOptIn ?? false,
+    // `null` means "unknown/loading" (prevents UI flicker from `false -> true`).
+    aiOptIn: aiOptIn ?? null,
     isLoading: userId !== null && aiOptIn === undefined,
     isUpdating,
     setAiOptIn,
   };
+}
+
+export function useAiOptIn() {
+  const { userId } = useCurrentUser();
+  return useAiOptInForUserId(userId as Id<"users"> | null);
 }

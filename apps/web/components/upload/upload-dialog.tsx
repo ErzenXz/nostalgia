@@ -18,7 +18,7 @@ import { encryptBlob, encryptFile } from "@/lib/encryption";
 import { createImageThumbnailBlob } from "@/lib/thumbnails";
 import { useEncryption } from "@/components/providers/encryption-provider";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useAiOptIn } from "@/hooks/use-ai-opt-in";
+import { useAiOptInForUserId } from "@/hooks/use-ai-opt-in";
 import { toast } from "sonner";
 import {
   Upload,
@@ -78,7 +78,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
     createRecoveryBundle,
   } = useEncryption();
   const { userId } = useCurrentUser();
-  const { aiOptIn } = useAiOptIn();
+  const { aiOptIn } = useAiOptInForUserId(userId as any);
   const createPhoto = useMutation(api.photos.create);
   const generateAnalysisUploadUrl = useMutation(
     api.ai.uploads.generateAnalysisUploadUrl,

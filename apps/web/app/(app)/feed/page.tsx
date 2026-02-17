@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useAiOptIn } from "@/hooks/use-ai-opt-in";
+import { useAiOptInForUserId } from "@/hooks/use-ai-opt-in";
 import { PageHeader } from "@/components/layout/page-header";
 import { usePhotoUrl } from "@/hooks/use-photo-url";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
@@ -284,19 +284,35 @@ export default function FeedPage() {
     () => new Date().getFullYear() - 1,
   );
   const { userId, isLoading: userLoading } = useCurrentUser();
-  const { aiOptIn } = useAiOptIn();
+  const { aiOptIn, isLoading: aiOptInLoading } = useAiOptInForUserId(userId as any);
   const observerRef = useRef<HTMLDivElement>(null);
+  const nextCursorRef = useRef<string | null>(null);
+  const isLoadingRef = useRef(false);
 
   const getNostalgiaFeed = useAction(api.feed.nostalgia.getNostalgiaFeed);
   const toggleFavorite = useMutation(api.photos.toggleFavorite);
 
+  const mergeUnique = useCallback((prev: FeedItem[], next: FeedItem[]) => {
+    const seen = new Set(prev.map((i) => i.photoId));
+    const out = [...prev];
+    for (const item of next) {
+      if (!seen.has(item.photoId)) {
+        seen.add(item.photoId);
+        out.push(item);
+      }
+    }
+    return out;
+  }, []);
+
   const loadMore = useCallback(
     async (reset = false) => {
-      if (isLoading) return;
+      if (userLoading || aiOptInLoading || !userId || aiOptIn !== true) return;
+      if (isLoadingRef.current) return;
+      isLoadingRef.current = true;
       setIsLoading(true);
       setHasError(false);
       try {
-        const cursor = reset ? undefined : (nextCursor ?? undefined);
+        const cursor = reset ? undefined : (nextCursorRef.current ?? undefined);
         const res = await getNostalgiaFeed({
           mode,
           limit: 15,
@@ -306,25 +322,40 @@ export default function FeedPage() {
         });
 
         const newItems: FeedItem[] = res.items ?? [];
-        setItems((prev) => (reset ? newItems : [...prev, ...newItems]));
-        setNextCursor(res.nextCursor);
+        setItems((prev) => (reset ? newItems : mergeUnique(prev, newItems)));
+        nextCursorRef.current = res.nextCursor ?? null;
+        setNextCursor(nextCursorRef.current);
       } catch {
         setHasError(true);
       } finally {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
-    [isLoading, nextCursor, getNostalgiaFeed, mode, seed, deepDiveYear],
+    [
+      aiOptIn,
+      aiOptInLoading,
+      deepDiveYear,
+      getNostalgiaFeed,
+      mergeUnique,
+      mode,
+      seed,
+      userId,
+      userLoading,
+    ],
   );
 
   // Load on mount and mode change
   useEffect(() => {
+    if (userLoading || aiOptInLoading || !userId) return;
     setItems([]);
     setNextCursor(null);
+    nextCursorRef.current = null;
     setHasError(false);
-    loadMore(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, deepDiveYear]);
+    if (aiOptIn === true) {
+      void loadMore(true);
+    }
+  }, [mode, deepDiveYear, aiOptIn, aiOptInLoading, loadMore, userId, userLoading]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -343,7 +374,7 @@ export default function FeedPage() {
     return () => observer.disconnect();
   }, [nextCursor, isLoading, hasError, loadMore]);
 
-  if (userLoading) {
+  if (userLoading || aiOptInLoading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -351,7 +382,31 @@ export default function FeedPage() {
     );
   }
 
-  if (!aiOptIn) {
+  if (!userId) {
+    return (
+      <>
+        <PageHeader
+          title="Nostalgia Feed"
+          description="A story of your life, told through photos"
+        />
+        <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Sign in to view your feed
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-6">
+            Your feed is personalized to your account.
+          </p>
+          <Link href="/login">
+            <Button variant="outline" size="sm">
+              Go to Login
+            </Button>
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  if (aiOptIn !== true) {
     return (
       <>
         <PageHeader
@@ -495,9 +550,9 @@ export default function FeedPage() {
         {/* Feed items */}
         {items.length > 0 && (
           <div className="mx-auto max-w-2xl space-y-6">
-            {items.map((item, idx) => (
+            {items.map((item) => (
               <FeedCardWithPhoto
-                key={`${item.photoId}-${idx}`}
+                key={item.photoId}
                 item={item}
                 onFavorite={(id) =>
                   toggleFavorite({ photoId: id as any })

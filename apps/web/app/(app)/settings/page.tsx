@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { aiOptIn, isLoading, isUpdating, setAiOptIn } = useAiOptIn();
+  const aiEnabled = aiOptIn === true;
+  const aiKnown = aiOptIn !== null;
   const {
     hasEncryptionKey,
     isLoading: encryptionLoading,
@@ -113,7 +115,7 @@ export default function SettingsPage() {
         <section
           className={cn(
             "rounded-2xl border overflow-hidden transition-all duration-300",
-            aiOptIn
+            aiEnabled
               ? "border-purple-500/20 bg-gradient-to-br from-purple-500/[0.04] via-white/[0.02] to-blue-500/[0.02]"
               : "border-white/5 bg-white/[0.02]",
           )}
@@ -123,7 +125,7 @@ export default function SettingsPage() {
               <div
                 className={cn(
                   "flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300",
-                  aiOptIn
+                  aiEnabled
                     ? "bg-purple-500/15 shadow-[0_0_20px_rgba(168,85,247,0.1)]"
                     : "bg-white/5",
                 )}
@@ -131,7 +133,7 @@ export default function SettingsPage() {
                 <Sparkles
                   className={cn(
                     "h-5 w-5 transition-colors duration-300",
-                    aiOptIn ? "text-purple-400" : "text-white/40",
+                    aiEnabled ? "text-purple-400" : "text-white/40",
                   )}
                 />
               </div>
@@ -143,12 +145,12 @@ export default function SettingsPage() {
                   <span
                     className={cn(
                       "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-light tracking-wide transition-all duration-300",
-                      aiOptIn
+                      aiEnabled
                         ? "bg-purple-500/15 text-purple-400"
                         : "bg-white/5 text-white/40",
                     )}
                   >
-                    {aiOptIn ? "Enabled" : "Disabled"}
+                    {isLoading ? "Loading" : aiEnabled ? "Enabled" : "Disabled"}
                   </span>
                 </div>
                 <p className="text-xs font-light text-white/40 mt-0.5">
@@ -157,18 +159,21 @@ export default function SettingsPage() {
               </div>
             </div>
             <button
-              onClick={() => setAiOptIn(!aiOptIn)}
-              disabled={isLoading || isUpdating}
+              onClick={() => {
+                if (!aiKnown) return;
+                void setAiOptIn(!aiEnabled);
+              }}
+              disabled={!aiKnown || isLoading || isUpdating}
               aria-label="Toggle AI Intelligence"
               className={cn(
                 "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40",
-                aiOptIn ? "bg-purple-500/60" : "bg-white/10",
+                aiEnabled ? "bg-purple-500/60" : "bg-white/10",
               )}
             >
               <span
                 className={cn(
                   "pointer-events-none inline-block h-[22px] w-[22px] rounded-full bg-white/90 shadow-lg transition-transform duration-300 ease-in-out",
-                  aiOptIn ? "translate-x-[22px]" : "translate-x-0",
+                  aiEnabled ? "translate-x-[22px]" : "translate-x-0",
                 )}
               />
             </button>
@@ -182,28 +187,28 @@ export default function SettingsPage() {
                 iconColor="text-blue-400"
                 title="Semantic Search"
                 description="Find photos by describing what you remember"
-                active={aiOptIn}
+                active={aiEnabled}
               />
               <FeatureCard
                 icon={Brain}
                 iconColor="text-purple-400"
                 title="Auto Captions"
                 description="AI writes descriptions for every photo"
-                active={aiOptIn}
+                active={aiEnabled}
               />
               <FeatureCard
                 icon={Tag}
                 iconColor="text-amber-400"
                 title="Smart Tags"
                 description="Auto-generated labels for people, places &amp; things"
-                active={aiOptIn}
+                active={aiEnabled}
               />
               <FeatureCard
                 icon={Clapperboard}
                 iconColor="text-pink-400"
                 title="Nostalgia Feed"
                 description="Resurface your most meaningful memories"
-                active={aiOptIn}
+                active={aiEnabled}
               />
             </div>
           </div>

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { SearchBar } from "@/components/search/search-bar";
 import { PhotoGrid } from "@/components/photos/photo-grid";
 import { Lightbox } from "@/components/photos/lightbox";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Search as SearchIcon,
@@ -45,7 +46,7 @@ export default function SearchPage() {
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const { userId, isLoading: userLoading } = useCurrentUser();
-  const { aiOptIn } = useAiOptIn();
+  const { aiOptIn, isLoading: aiOptInLoading } = useAiOptIn();
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const semanticSearch = useAction(api.ai.search.semanticSearch);
@@ -60,6 +61,11 @@ export default function SearchPage() {
         setHasSearched(false);
         return;
       }
+      if (aiOptIn !== true) {
+        setResults([]);
+        setHasSearched(true);
+        return;
+      }
       setIsSearching(true);
       try {
         const res = await semanticSearch({ query: q.trim(), limit: 30 });
@@ -72,7 +78,7 @@ export default function SearchPage() {
         setIsSearching(false);
       }
     },
-    [semanticSearch],
+    [aiOptIn, semanticSearch],
   );
 
   const handleSearch = useCallback(
@@ -116,11 +122,32 @@ export default function SearchPage() {
     .map((r: any) => r.photo)
     .filter(Boolean);
 
-  if (userLoading) {
+  if (userLoading || aiOptInLoading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <>
+        <PageHeader title="Search" description="Find any photo with AI" />
+        <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Sign in to search your photos
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-6">
+            Search is personalized to your account.
+          </p>
+          <Link href="/login">
+            <Button variant="outline" size="sm">
+              Go to Login
+            </Button>
+          </Link>
+        </div>
+      </>
     );
   }
 
@@ -159,7 +186,7 @@ export default function SearchPage() {
             <div
               className={cn(
                 "rounded-xl border p-5",
-                aiOptIn
+                aiOptIn === true
                   ? "border-purple-500/20 bg-gradient-to-r from-purple-500/[0.06] to-blue-500/[0.04]"
                   : "border-border bg-card",
               )}
@@ -167,11 +194,16 @@ export default function SearchPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <Sparkles className={cn("h-4.5 w-4.5", aiOptIn ? "text-purple-400" : "text-muted-foreground")} />
+                    <Sparkles
+                      className={cn(
+                        "h-4.5 w-4.5",
+                        aiOptIn === true ? "text-purple-400" : "text-muted-foreground",
+                      )}
+                    />
                     <h3 className="text-sm font-semibold text-foreground">
                       AI-Powered Search
                     </h3>
-                    {aiOptIn && (
+                    {aiOptIn === true && (
                       <span className="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-medium text-purple-400">
                         Active
                       </span>
@@ -183,7 +215,7 @@ export default function SearchPage() {
                     understands context, objects, scenes, and emotions.
                   </p>
                 </div>
-                {!aiOptIn && (
+                {aiOptIn !== true && (
                   <Link
                     href="/settings"
                     className="shrink-0 ml-4 flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
