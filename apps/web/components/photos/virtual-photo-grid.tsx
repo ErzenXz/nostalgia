@@ -39,15 +39,17 @@ interface VirtualPhotoGridProps {
   columns?: number;
 }
 
-interface RowData {
-  type: "header";
-  dateKey: string;
-  label: string;
-} | {
-  type: "photos";
-  photos: Photo[];
-  startIndex: number;
-}
+type RowData =
+  | {
+      type: "header";
+      dateKey: string;
+      label: string;
+    }
+  | {
+      type: "photos";
+      photos: Photo[];
+      startIndex: number;
+    };
 
 export function VirtualPhotoGrid({
   photos,
