@@ -6,6 +6,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@repo/ui", "@repo/backend"],
+  // Enable React Compiler (Next.js will wire up the Babel plugin internally).
+  reactCompiler: true,
   images: {
     remotePatterns: [
       {

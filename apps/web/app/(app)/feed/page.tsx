@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sparkles,
-  Clock,
   Calendar,
   Shuffle,
   Telescope,
@@ -278,7 +277,6 @@ export default function FeedPage() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [seed] = useState(() => crypto.randomUUID());
   const [deepDiveYear, setDeepDiveYear] = useState(
     () => new Date().getFullYear() - 1,
@@ -288,9 +286,15 @@ export default function FeedPage() {
   const observerRef = useRef<HTMLDivElement>(null);
   const nextCursorRef = useRef<string | null>(null);
   const isLoadingRef = useRef(false);
+  const itemsRef = useRef<FeedItem[]>([]);
+  const feedTokenRef = useRef(0);
 
   const getNostalgiaFeed = useAction(api.feed.nostalgia.getNostalgiaFeed);
   const toggleFavorite = useMutation(api.photos.toggleFavorite);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const mergeUnique = useCallback((prev: FeedItem[], next: FeedItem[]) => {
     const seen = new Set(prev.map((i) => i.photoId));
@@ -306,11 +310,15 @@ export default function FeedPage() {
 
   const loadMore = useCallback(
     async (reset = false) => {
+      const token = feedTokenRef.current;
       if (userLoading || aiOptInLoading || !userId || aiOptIn !== true) return;
+      if (!reset && nextCursorRef.current === null) return;
       if (isLoadingRef.current) return;
       isLoadingRef.current = true;
-      setIsLoading(true);
-      setHasError(false);
+      if (token === feedTokenRef.current) {
+        setIsLoading(true);
+        setHasError(false);
+      }
       try {
         const cursor = reset ? undefined : (nextCursorRef.current ?? undefined);
         const res = await getNostalgiaFeed({
@@ -322,14 +330,24 @@ export default function FeedPage() {
         });
 
         const newItems: FeedItem[] = res.items ?? [];
-        setItems((prev) => (reset ? newItems : mergeUnique(prev, newItems)));
-        nextCursorRef.current = res.nextCursor ?? null;
-        setNextCursor(nextCursorRef.current);
+        const prev = reset ? [] : itemsRef.current;
+        const merged = reset ? newItems : mergeUnique(prev, newItems);
+
+        // If we didn't add anything new, stop paging to avoid infinite loops
+        // when the backend returns empty/duplicate pages (common with small libraries).
+        const added = merged.length - prev.length;
+        const shouldContinue = added > 0 && newItems.length > 0;
+
+        if (token === feedTokenRef.current) {
+          itemsRef.current = merged;
+          setItems(merged);
+          nextCursorRef.current = shouldContinue ? (res.nextCursor ?? null) : null;
+        }
       } catch {
-        setHasError(true);
+        if (token === feedTokenRef.current) setHasError(true);
       } finally {
-        setIsLoading(false);
         isLoadingRef.current = false;
+        if (token === feedTokenRef.current) setIsLoading(false);
       }
     },
     [
@@ -348,8 +366,13 @@ export default function FeedPage() {
   // Load on mount and mode change
   useEffect(() => {
     if (userLoading || aiOptInLoading || !userId) return;
+    // Invalidate any in-flight request from the previous mode/year.
+    feedTokenRef.current += 1;
+    // Allow a fresh request for the new mode immediately.
+    isLoadingRef.current = false;
+    setIsLoading(false);
+    itemsRef.current = [];
     setItems([]);
-    setNextCursor(null);
     nextCursorRef.current = null;
     setHasError(false);
     if (aiOptIn === true) {
@@ -364,15 +387,16 @@ export default function FeedPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && nextCursor && !isLoading && !hasError) {
-          loadMore();
-        }
+        if (!entries[0]?.isIntersecting) return;
+        if (!nextCursorRef.current) return;
+        if (isLoadingRef.current || hasError) return;
+        void loadMore();
       },
       { rootMargin: "400px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [nextCursor, isLoading, hasError, loadMore]);
+  }, [hasError, loadMore]);
 
   if (userLoading || aiOptInLoading) {
     return (
