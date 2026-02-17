@@ -1,34 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dark Shadows - Deep, moody, atmospheric */
-  --color-background: #050507;
-  --color-foreground: #e8e8ed;
-  --color-card: #0a0a0d;
-  --color-card-foreground: #e8e8ed;
-  --color-popover: #0a0a0d;
-  --color-popover-foreground: #e8e8ed;
-  --color-primary: #c9a87c;
-  --color-primary-foreground: #0a0a0d;
-  --color-secondary: #12121a;
-  --color-secondary-foreground: #e8e8ed;
-  --color-muted: #12121a;
-  --color-muted-foreground: #6b6b7a;
-  --color-accent: #1a1a24;
-  --color-accent-foreground: #e8e8ed;
-  --color-destructive: #7a3a3a;
-  --color-destructive-foreground: #e8e8ed;
-  --color-border: #1a1a22;
-  --color-input: #1a1a22;
-  --color-ring: #3a3a4a;
-  --color-sidebar: #08080a;
-  --color-sidebar-foreground: #e8e8ed;
+  /* Minimal Dark - Clean, cool, understated */
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #0c0c0f;
+  --color-card-foreground: #fafafa;
+  --color-popover: #0c0c0f;
+  --color-popover-foreground: #fafafa;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #fafafa;
+  --color-secondary: #18181b;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #18181b;
+  --color-muted-foreground: #71717a;
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
+  --color-destructive: #7f1d1d;
+  --color-destructive-foreground: #fafafa;
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #52525b;
+  --color-sidebar: #09090b;
+  --color-sidebar-foreground: #fafafa;
 
-  /* Atmospheric accent colors */
-  --color-shadow-purple: #2a1a3a;
-  --color-shadow-blue: #1a1a2a;
-  --color-glow-amber: #c9a87c;
-  --color-glow-rose: #8a5a6a;
+  /* Subtle accent colors */
+  --color-accent-blue: #1e3a5f;
+  --color-accent-indigo: #312e81;
+  --color-glow-subtle: #60a5fa;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "GeistMono", ui-monospace, monospace;
@@ -51,15 +50,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Atmospheric background gradient */
+/* Subtle atmospheric background */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(42, 26, 58, 0.15), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(26, 26, 42, 0.1), transparent),
-    radial-gradient(ellipse 50% 30% at 0% 80%, rgba(58, 26, 42, 0.08), transparent);
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(30, 58, 95, 0.08), transparent),
+    radial-gradient(ellipse 40% 30% at 100% 50%, rgba(49, 46, 129, 0.05), transparent);
   pointer-events: none;
   z-index: -1;
 }

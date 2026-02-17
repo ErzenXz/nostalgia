@@ -401,10 +401,10 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
       <DialogContent className="max-w-2xl overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10">
-              <Shield className="h-4 w-4 text-amber-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+              <Shield className="h-4 w-4 text-blue-400" />
             </div>
-            <span className="font-light tracking-wide">Upload Photos</span>
+            <span>Upload Photos</span>
           </DialogTitle>
           <DialogDescription>
             Your photos are encrypted before upload. Only you can see them.
@@ -414,19 +414,16 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
         {!hasEncryptionKey && (
           <div className="mt-2 space-y-4">
             {/* Key requirement banner */}
-            <div className="relative overflow-hidden rounded-xl border border-amber-400/20 bg-gradient-to-br from-amber-400/[0.03] via-transparent to-transparent p-5">
-              {/* Ambient glow */}
-              <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl" />
-              
-              <div className="relative flex items-start gap-4">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10 ring-1 ring-amber-400/20">
-                  <KeyRound className="h-5 w-5 text-amber-400/80" />
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+                  <KeyRound className="h-4 w-4 text-blue-400" />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <h3 className="text-sm font-light tracking-wide text-white/90">
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-zinc-100">
                     Set your encryption key
                   </h3>
-                  <p className="text-xs font-light leading-relaxed text-white/40">
+                  <p className="text-xs text-zinc-500 mt-1">
                     We never store your plaintext key on the server. Save your key and recovery bundle to USB or offline storage.
                   </p>
                 </div>
@@ -434,17 +431,17 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             </div>
 
             {/* Create new key section */}
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
-              <div className="mb-4 flex items-center gap-2.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400/60" />
-                <h4 className="text-xs font-light uppercase tracking-widest text-white/50">
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                <h4 className="text-xs font-medium text-zinc-400">
                   Create New Key
                 </h4>
               </div>
               
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-light text-white/40">
+                  <label className="mb-1.5 block text-xs text-zinc-500">
                     Recovery passphrase
                   </label>
                   <Input
@@ -473,14 +470,14 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
               {/* Fresh key download section */}
               {freshKey && (
-                <div className="mt-4 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.03] p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    <span className="text-xs font-light text-emerald-400/90">
+                <div className="mt-4 rounded-lg border border-green-500/20 bg-green-500/5 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <span className="text-xs text-green-400">
                       Key created successfully
                     </span>
                   </div>
-                  <p className="mb-3 text-[11px] font-light leading-relaxed text-white/50">
+                  <p className="mb-3 text-xs text-zinc-500">
                     Save these files now. If lost, your encrypted photos cannot be decrypted.
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -512,12 +509,12 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             </div>
 
             {/* Import/Recover section */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               {/* Import existing key */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <div className="mb-3 flex items-center gap-2.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400/60" />
-                  <h4 className="text-xs font-light uppercase tracking-widest text-white/50">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                  <h4 className="text-xs font-medium text-zinc-400">
                     Import Key
                   </h4>
                 </div>
@@ -541,10 +538,10 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
               </div>
 
               {/* Recover from bundle */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <div className="mb-3 flex items-center gap-2.5">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-400/60" />
-                  <h4 className="text-xs font-light uppercase tracking-widest text-white/50">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                  <h4 className="text-xs font-medium text-zinc-400">
                     Recover Key
                   </h4>
                 </div>
@@ -553,7 +550,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                     value={recoveryPackageInput}
                     onChange={(e) => setRecoveryPackageInput(e.target.value)}
                     placeholder="Paste recovery bundle JSON"
-                    className="min-h-[60px] w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-light text-white/90 placeholder:text-white/30 focus:border-amber-400/30 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+                    className="min-h-[60px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
                   />
                   <Input
                     type="password"
@@ -581,34 +578,29 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             {/* Drop zone */}
             <div
               className={cn(
-                "group relative mt-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-all duration-300 cursor-pointer",
+                "group relative mt-2 flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition-colors cursor-pointer",
                 isDragging
-                  ? "border-amber-400/40 bg-amber-400/5"
-                  : "border-white/10 hover:border-white/20 hover:bg-white/[0.01]",
+                  ? "border-blue-500/40 bg-blue-500/5"
+                  : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900/50",
               )}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              {/* Ambient glow on hover */}
-              <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(ellipse 50% 50% at 50% 50%, rgba(201, 168, 124, 0.05), transparent)" }} />
-              </div>
-              
-              <div className="relative z-10 flex flex-col items-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10 transition-all duration-300 group-hover:bg-amber-400/10 group-hover:ring-amber-400/20">
+              <div className="flex flex-col items-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-800 transition-colors group-hover:bg-blue-500/10">
                   <Upload
                     className={cn(
-                      "h-6 w-6 transition-colors duration-300",
-                      isDragging ? "text-amber-400" : "text-white/40 group-hover:text-amber-400/80",
+                      "h-6 w-6 transition-colors",
+                      isDragging ? "text-blue-400" : "text-zinc-500 group-hover:text-blue-400",
                     )}
                   />
                 </div>
-                <p className="text-sm font-light tracking-wide text-white/80">
+                <p className="text-sm text-zinc-200">
                   Drop photos here or click to browse
                 </p>
-                <p className="mt-1.5 text-xs font-light text-white/30">
+                <p className="mt-1.5 text-xs text-zinc-500">
                   JPG, PNG, HEIC, WebP, RAW, Video
                 </p>
               </div>
@@ -626,28 +618,28 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             {files.length > 0 && (
               <div
                 className={cn(
-                  "mt-3 flex items-center gap-2.5 rounded-lg border px-4 py-3 text-xs font-light",
+                  "mt-3 flex items-center gap-2.5 rounded-lg border px-4 py-3 text-xs",
                   aiOptIn
-                    ? "border-purple-400/20 bg-purple-400/[0.03] text-purple-300/80"
-                    : "border-white/5 bg-white/[0.02] text-white/40",
+                    ? "border-purple-500/20 bg-purple-500/5 text-purple-300"
+                    : "border-zinc-800 bg-zinc-900 text-zinc-500",
                 )}
               >
                 {aiOptIn ? (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-purple-400/80 shrink-0" />
+                    <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
                     <span>
-                      <span className="text-purple-400/90">AI Intelligence on</span>
+                      <span className="text-purple-400">AI Intelligence on</span>
                       {" — "}analysis thumbnails will be created for smart search, captions &amp; tags
                     </span>
                   </>
                 ) : (
                   <>
-                    <Brain className="h-3.5 w-3.5 text-white/40 shrink-0" />
+                    <Brain className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
                     <span>
                       AI Intelligence off — enable in{" "}
                       <a
                         href="/settings"
-                        className="text-amber-400/70 underline underline-offset-2 hover:text-amber-400 transition-colors"
+                        className="text-blue-400 underline underline-offset-2 hover:text-blue-300 transition-colors"
                       >
                         Settings
                       </a>{" "}
@@ -662,40 +654,40 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
         {/* File list */}
         {hasEncryptionKey && files.length > 0 && (
-          <div className="mt-4 max-h-60 space-y-2 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+          <div className="mt-4 max-h-60 space-y-2 overflow-y-auto">
             {files.map((uploadFile) => (
               <div
                 key={uploadFile.id}
-                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3"
+                className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
               >
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/5">
-                  <FileImage className="h-4 w-4 text-white/40" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-800">
+                  <FileImage className="h-4 w-4 text-zinc-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-light text-white/80">
+                  <p className="truncate text-sm text-zinc-200">
                     {uploadFile.file.name}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] font-light text-white/30">
+                    <span className="text-xs text-zinc-500">
                       {formatBytes(uploadFile.file.size)}
                     </span>
                     {uploadFile.status !== "pending" &&
                       uploadFile.status !== "completed" &&
                       uploadFile.status !== "failed" && (
                         <>
-                          <span className="text-[11px] font-light text-amber-400/70">
+                          <span className="text-xs text-blue-400">
                             {statusLabel(uploadFile.status)}
                           </span>
-                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/5">
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-amber-400/60 to-amber-400/40 transition-all duration-300"
+                              className="h-full rounded-full bg-blue-500 transition-all"
                               style={{ width: `${uploadFile.progress}%` }}
                             />
                           </div>
                         </>
                       )}
                     {uploadFile.error && (
-                      <span className="text-[11px] font-light text-rose-400/80">
+                      <span className="text-xs text-red-400">
                         {uploadFile.error}
                       </span>
                     )}
@@ -703,19 +695,19 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                 </div>
                 <div className="flex-shrink-0">
                   {uploadFile.status === "completed" && (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-400/10">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500/10">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
                     </div>
                   )}
                   {uploadFile.status === "failed" && (
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-400/10">
-                      <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/10">
+                      <AlertCircle className="h-3.5 w-3.5 text-red-400" />
                     </div>
                   )}
                   {(uploadFile.status === "encrypting" ||
                     uploadFile.status === "uploading" ||
                     uploadFile.status === "saving") && (
-                    <Loader2 className="h-4 w-4 animate-spin text-amber-400/60" />
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
                   )}
                   {uploadFile.status === "pending" && (
                     <button
@@ -723,7 +715,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                         e.stopPropagation();
                         removeFile(uploadFile.id);
                       }}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-white/30 transition-colors hover:bg-white/5 hover:text-white/60"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -736,8 +728,8 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
         {/* Footer */}
         {hasEncryptionKey && files.length > 0 && (
-          <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4">
-            <p className="text-xs font-light text-white/40">
+          <div className="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
+            <p className="text-xs text-zinc-500">
               {files.length} file{files.length !== 1 ? "s" : ""} ·{" "}
               {formatBytes(totalSize)}
               {isUploading && ` · ${completedCount}/${files.length} uploaded`}

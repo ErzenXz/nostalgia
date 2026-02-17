@@ -35,7 +35,7 @@ export default function PhotosPage() {
   );
 }
 
-/** Horizontal scrollable thumbnail for feed sections */
+/** Horizontal scrollable thumbnail for feed sections - YouTube style */
 function FeedThumbnail({ photo }: { photo: any }) {
   const imageKey = photo.thumbnailStorageKey || photo.storageKey;
   const signedUrl = usePhotoUrl(imageKey);
@@ -53,81 +53,75 @@ function FeedThumbnail({ photo }: { photo: any }) {
   return (
     <Link
       href={`/photos/${photo._id}`}
-      className="group relative flex-shrink-0 aspect-square w-40 sm:w-44 md:w-48 overflow-hidden rounded-xl bg-secondary transition-all duration-300 hover:shadow-2xl hover:shadow-black/30"
+      className="group relative flex-shrink-0 w-[220px] overflow-hidden rounded-lg bg-zinc-900 transition-all duration-200 hover:ring-1 hover:ring-zinc-700"
     >
-      {url ? (
-        isVideo ? (
-          <video
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            src={url}
-            muted
-            playsInline
-            preload="metadata"
-          />
+      {/* Thumbnail */}
+      <div className="relative aspect-video">
+        {url ? (
+          isVideo ? (
+            <video
+              className="absolute inset-0 h-full w-full object-cover"
+              src={url}
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <Image
+              src={url}
+              alt={photo.description || photo.fileName}
+              fill
+              className="object-cover"
+              sizes="220px"
+              unoptimized
+            />
+          )
         ) : (
-          <Image
-            src={url}
-            alt={photo.description || photo.fileName}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="200px"
-            unoptimized
-          />
-        )
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted animate-pulse" />
-      )}
-
-      {/* Vignette overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40 transition-opacity duration-300 group-hover:opacity-70"
-        style={{
-          background: "radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.6) 100%)",
-        }}
-      />
-
-      {/* Warm color tint on hover */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-15"
-        style={{
-          background: "linear-gradient(135deg, rgba(255,200,150,0.5) 0%, rgba(200,150,100,0.3) 100%)",
-        }}
-      />
-
-      {/* Favorite badge */}
-      {photo.isFavorite && (
-        <div className="absolute top-2 right-2 z-10">
-          <Heart className="h-3.5 w-3.5 fill-rose-400/90 text-rose-400/90 drop-shadow-sm" />
-        </div>
-      )}
-
-      {/* Bottom gradient with location */}
-      {photo.locationName && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-2 pt-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <span className="flex items-center gap-1 text-[10px] font-light tracking-wide text-white/90">
-            <MapPin className="h-2.5 w-2.5" />
+          <div className="absolute inset-0 bg-zinc-800 animate-pulse" />
+        )}
+        
+        {/* Duration badge for videos */}
+        {isVideo && (
+          <div className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[10px] text-white">
+            Video
+          </div>
+        )}
+        
+        {/* Favorite badge */}
+        {photo.isFavorite && (
+          <div className="absolute top-1.5 right-1.5">
+            <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+          </div>
+        )}
+      </div>
+      
+      {/* Info under thumbnail */}
+      <div className="p-2.5">
+        <h3 className="text-sm font-medium text-zinc-200 line-clamp-2 leading-snug">
+          {photo.description || photo.fileName}
+        </h3>
+        {photo.locationName && (
+          <p className="mt-1 text-xs text-zinc-500 flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
             <span className="truncate">{photo.locationName}</span>
-          </span>
-        </div>
-      )}
-
-      {/* Film strip edge effect */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          </p>
+        )}
+        <p className="mt-0.5 text-xs text-zinc-600">
+          {new Date(photo.takenAt || photo._creationTime).toLocaleDateString()}
+        </p>
+      </div>
     </Link>
   );
 }
 
-/** A horizontal scroll section in the feed */
+/** A horizontal scroll section in the feed - YouTube style */
 function FeedSection({
   title,
-  icon,
   photos,
   linkHref,
   linkLabel,
 }: {
   title: string;
-  icon: React.ReactNode;
   photos: any[];
   linkHref?: string;
   linkLabel?: string;
@@ -135,25 +129,21 @@ function FeedSection({
   if (photos.length === 0) return null;
 
   return (
-    <div>
-      <div className="flex items-center justify-between px-8 mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="text-amber-400/70">{icon}</div>
-          <h2 className="text-sm font-light tracking-wide text-white/80">{title}</h2>
-          <span className="text-xs font-light text-white/30">{photos.length}</span>
-        </div>
+    <div className="py-4">
+      <div className="flex items-center justify-between px-8 mb-3">
+        <h2 className="text-base font-medium text-zinc-100">{title}</h2>
         {linkHref && (
           <Link
             href={linkHref}
-            className="group flex items-center gap-1 text-xs font-light text-white/40 transition-colors hover:text-white/70"
+            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
             {linkLabel ?? "See all"}
-            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            <ChevronRight className="h-3 w-3" />
           </Link>
         )}
       </div>
-      <div className="flex gap-3 overflow-x-auto px-8 pb-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-        {photos.slice(0, 20).map((photo: any) => (
+      <div className="flex gap-3 overflow-x-auto px-8 pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+        {photos.slice(0, 12).map((photo: any) => (
           <FeedThumbnail key={photo._id} photo={photo} />
         ))}
       </div>
@@ -336,18 +326,16 @@ function PhotosContent() {
         </div>
       ) : viewMode === "feed" ? (
         /* ──── Feed View ──── */
-        <div className="space-y-8 py-6">
+        <div className="space-y-2 py-4">
           {feedSections && (
             <>
               <FeedSection
                 title="Recent"
-                icon={<Clock className="h-4 w-4 text-blue-400" />}
                 photos={feedSections.recent}
               />
 
               <FeedSection
                 title="On This Day"
-                icon={<Sparkles className="h-4 w-4 text-amber-400" />}
                 photos={feedSections.onThisDay}
                 linkHref="/memories"
                 linkLabel="Memories"
@@ -355,7 +343,6 @@ function PhotosContent() {
 
               <FeedSection
                 title="Favorites"
-                icon={<Heart className="h-4 w-4 text-red-400" />}
                 photos={feedSections.favorites}
                 linkHref="/favorites"
               />
@@ -364,7 +351,6 @@ function PhotosContent() {
                 <FeedSection
                   key={location}
                   title={location}
-                  icon={<MapPin className="h-4 w-4 text-green-400" />}
                   photos={locPhotos}
                   linkHref="/map"
                   linkLabel="Map"
@@ -373,16 +359,15 @@ function PhotosContent() {
 
               <FeedSection
                 title="Older Photos"
-                icon={<Images className="h-4 w-4 text-muted-foreground" />}
                 photos={feedSections.older}
               />
             </>
           )}
 
           {/* All photos grid below the feed sections */}
-          <div className="px-8 pt-4 border-t border-border">
+          <div className="px-8 pt-6 border-t border-zinc-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-foreground">
+              <h2 className="text-base font-medium text-zinc-100">
                 All Photos
               </h2>
               <Button

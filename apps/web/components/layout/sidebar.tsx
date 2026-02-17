@@ -53,19 +53,19 @@ function SidebarStorageStats() {
   const percentUsed = storageStats?.percentUsed ?? 0;
 
   return (
-    <div className="border-t border-white/5 p-4">
+    <div className="border-t border-zinc-800 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HardDrive className="h-3.5 w-3.5 text-amber-400/60" />
-        <span className="text-xs font-light tracking-wide text-white/40">Storage</span>
+        <HardDrive className="h-3.5 w-3.5 text-zinc-500" />
+        <span className="text-xs text-zinc-500">Storage</span>
       </div>
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/5">
+      <div className="mb-2 h-1 overflow-hidden rounded-full bg-zinc-800">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-amber-400/60 to-amber-400/30 transition-all duration-500"
+          className="h-full rounded-full bg-blue-500 transition-all duration-500"
           style={{ width: `${Math.min(percentUsed, 100)}%` }}
         />
       </div>
-      <p className="text-[11px] font-light text-white/30">
-        {formatBytes(usedBytes)} <span className="text-white/20">of</span> {formatBytes(quotaBytes)}
+      <p className="text-[11px] text-zinc-600">
+        {formatBytes(usedBytes)} <span className="text-zinc-700">of</span> {formatBytes(quotaBytes)}
       </p>
     </div>
   );
@@ -76,16 +76,16 @@ function SidebarStorageStats() {
  */
 function SidebarStorageFallback() {
   return (
-    <div className="border-t border-white/5 p-4">
+    <div className="border-t border-zinc-800 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HardDrive className="h-3.5 w-3.5 text-amber-400/60" />
-        <span className="text-xs font-light tracking-wide text-white/40">Storage</span>
+        <HardDrive className="h-3.5 w-3.5 text-zinc-500" />
+        <span className="text-xs text-zinc-500">Storage</span>
       </div>
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/5">
-        <div className="h-full w-0 rounded-full bg-gradient-to-r from-amber-400/60 to-amber-400/30" />
+      <div className="mb-2 h-1 overflow-hidden rounded-full bg-zinc-800">
+        <div className="h-full w-0 rounded-full bg-blue-500" />
       </div>
-      <p className="text-[11px] font-light text-white/30">
-        0 B <span className="text-white/20">of</span> 15 GB
+      <p className="text-[11px] text-zinc-600">
+        0 B <span className="text-zinc-700">of</span> 15 GB
       </p>
     </div>
   );
@@ -96,55 +96,35 @@ export function Sidebar() {
   const convexAvailable = useConvexAvailable();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/5 bg-sidebar">
-      {/* Atmospheric gradient overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 100% 50% at 0% 0%, rgba(42, 26, 58, 0.15), transparent 50%),
-            radial-gradient(ellipse 80% 40% at 0% 100%, rgba(58, 26, 42, 0.1), transparent 40%)
-          `,
-        }}
-      />
-
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-zinc-800 bg-sidebar">
       {/* Logo */}
-      <div className="relative z-10 flex h-16 items-center gap-3 border-b border-white/5 px-6">
-        <div className="relative flex h-9 w-9 items-center justify-center">
-          {/* Glow effect */}
-          <div className="absolute inset-0 rounded-lg bg-amber-400/20 blur-md" />
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400/90 to-amber-600/80">
-            <Lock className="h-4 w-4 text-black/70" />
-          </div>
+      <div className="flex h-16 items-center gap-3 border-b border-zinc-800 px-6">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500">
+          <Lock className="h-4 w-4 text-white" />
         </div>
         <div>
-          <h1 className="text-base font-light tracking-wide text-white/90">
+          <h1 className="text-base font-medium text-zinc-100">
             Nostalgia
           </h1>
-          <p className="text-[10px] font-light tracking-widest text-white/30">
+          <p className="text-[10px] text-zinc-600">
             ENCRYPTED PHOTOS
           </p>
         </div>
       </div>
 
       {/* Upload Button */}
-      <div className="relative z-10 px-4 py-4">
+      <div className="px-4 py-4">
         <Link
           href="/photos?upload=true"
-          className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg px-4 py-2.5 text-sm font-light tracking-wide transition-all"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-600"
         >
-          {/* Button background with glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 via-amber-400/10 to-amber-400/20 opacity-50 transition-opacity group-hover:opacity-80" />
-          <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-amber-400/30 group-hover:ring-amber-400/50" />
-          <Upload className="relative z-10 h-4 w-4 text-amber-400/80 group-hover:text-amber-400 transition-colors" />
-          <span className="relative z-10 text-amber-400/80 group-hover:text-amber-400 transition-colors">
-            Upload Photos
-          </span>
+          <Upload className="h-4 w-4" />
+          Upload Photos
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 flex-1 space-y-0.5 overflow-y-auto px-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
         {navigation.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
@@ -153,31 +133,17 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200",
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                 isActive
-                  ? "text-white/90"
-                  : "text-white/40 hover:text-white/70",
+                  ? "bg-zinc-800 text-zinc-100"
+                  : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300",
               )}
             >
-              {/* Active indicator glow */}
               {isActive && (
-                <div
-                  className="absolute inset-0 rounded-lg"
-                  style={{
-                    background: "linear-gradient(90deg, rgba(201, 168, 124, 0.08) 0%, transparent 100%)",
-                  }}
-                />
+                <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-blue-500" />
               )}
-              {isActive && (
-                <div className="absolute left-0 top-1/2 h-6 w-0.5 -translate-y-1/2 rounded-full bg-amber-400/60" />
-              )}
-              <item.icon
-                className={cn(
-                  "relative z-10 h-4 w-4 flex-shrink-0 transition-colors duration-200",
-                  isActive ? "text-amber-400/80" : "text-white/40 group-hover:text-white/60",
-                )}
-              />
-              <span className="relative z-10 font-light tracking-wide">{item.name}</span>
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              <span>{item.name}</span>
             </Link>
           );
         })}
@@ -189,13 +155,13 @@ export function Sidebar() {
       </div>
 
       {/* Settings */}
-      <div className="relative z-10 border-t border-white/5 p-3">
+      <div className="border-t border-zinc-800 p-3">
         <Link
           href="/settings"
-          className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/40 transition-all duration-200 hover:text-white/70"
+          className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
         >
-          <Settings className="h-4 w-4 transition-colors group-hover:text-white/60" />
-          <span className="font-light tracking-wide">Settings</span>
+          <Settings className="h-4 w-4" />
+          <span>Settings</span>
         </Link>
       </div>
     </aside>

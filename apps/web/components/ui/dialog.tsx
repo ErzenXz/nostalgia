@@ -26,17 +26,9 @@ export function Dialog({ open, onClose, children }: DialogProps) {
   return (
     <DialogContext.Provider value={{ open, onClose }}>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* Atmospheric backdrop */}
         <div
-          className="absolute inset-0 bg-black/80 backdrop-blur-md"
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           onClick={onClose}
-        />
-        {/* Ambient glow */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(201, 168, 124, 0.05), transparent)",
-          }}
         />
         <div className="relative z-10 w-full max-w-lg mx-4">{children}</div>
       </div>
@@ -51,7 +43,7 @@ export const DialogContent = forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-white/10 bg-[#0a0a0d]/95 p-6 shadow-2xl shadow-black/50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200",
+      "rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200",
       className,
     )}
     {...props}
@@ -73,7 +65,7 @@ export const DialogTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn("text-lg font-light tracking-wide text-white/90", className)}
+    className={cn("text-lg font-medium text-zinc-100", className)}
     {...props}
   />
 ));
@@ -85,7 +77,7 @@ export const DialogDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm font-light text-white/50", className)}
+    className={cn("text-sm text-zinc-500", className)}
     {...props}
   />
 ));

@@ -11,12 +11,12 @@ const Badge = forwardRef<
     <span
       ref={ref}
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-light tracking-wide transition-colors",
+        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
         {
-          "bg-amber-400/20 text-amber-400/90": variant === "default",
-          "bg-white/5 text-white/60": variant === "secondary",
-          "border border-white/10 text-white/70": variant === "outline",
-          "bg-rose-500/20 text-rose-400/90": variant === "destructive",
+          "bg-blue-500/20 text-blue-400": variant === "default",
+          "bg-zinc-800 text-zinc-400": variant === "secondary",
+          "border border-zinc-700 text-zinc-300": variant === "outline",
+          "bg-red-500/20 text-red-400": variant === "destructive",
         },
         className,
       )}
