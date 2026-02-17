@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, Suspense } from "react";
+import { useState, useCallback, useMemo, Suspense, memo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -36,7 +36,7 @@ export default function PhotosPage() {
 }
 
 /** Horizontal scrollable thumbnail for feed sections - YouTube style */
-function FeedThumbnail({ photo }: { photo: any }) {
+const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
   const imageKey = photo.thumbnailStorageKey || photo.storageKey;
   const signedUrl = usePhotoUrl(imageKey);
   const isThumb = !!photo.thumbnailStorageKey && imageKey === photo.thumbnailStorageKey;
@@ -112,10 +112,10 @@ function FeedThumbnail({ photo }: { photo: any }) {
       </div>
     </Link>
   );
-}
+});
 
 /** A horizontal scroll section in the feed - YouTube style */
-function FeedSection({
+const FeedSection = memo(function FeedSection({
   title,
   photos,
   linkHref,
@@ -149,7 +149,7 @@ function FeedSection({
       </div>
     </div>
   );
-}
+});
 
 function PhotosContent() {
   const searchParams = useSearchParams();
@@ -178,12 +178,13 @@ function PhotosContent() {
   const archivePhoto = useMutation(api.photos.archive);
   const trashPhoto = useMutation(api.photos.trash);
 
-  const photos = photosResult?.photos ?? [];
+  // Stabilize photos array reference
+  const photos = useMemo(() => photosResult?.photos ?? [], [photosResult]);
   const isLoading = userLoading || (userId && photosResult === undefined);
 
-  // Compute feed sections
+  // Compute feed sections - memoize with stable dependencies
   const feedSections = useMemo(() => {
-    if (photos.length === 0) return null;
+    if (!photos || photos.length === 0) return null;
 
     const now = Date.now();
     const dayMs = 86400000;
@@ -272,7 +273,7 @@ function PhotosContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-400/50" />
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
       </div>
     );
   }
