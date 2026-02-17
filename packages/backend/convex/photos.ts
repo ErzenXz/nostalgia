@@ -215,6 +215,13 @@ export const create = mutation({
       providerMeta: undefined,
     });
 
+    await ctx.runMutation(internal.users.incrementTotalPhotoCount, {
+      userId: args.userId,
+    });
+    await ctx.runMutation(internal.users.incrementPendingAiCount, {
+      userId: args.userId,
+    });
+
     // Update storage usage
     await ctx.runMutation(internal.users.updateStorageUsage, {
       userId: args.userId,
@@ -290,6 +297,26 @@ export const deletePermanently = mutation({
     const photo = await ctx.db.get(args.photoId);
     if (!photo) return null;
 
+    const queueJob = await ctx.db
+      .query("aiProcessingQueue")
+      .withIndex("by_photo", (q) => q.eq("photoId", args.photoId))
+      .unique();
+    if (queueJob) {
+      await ctx.db.delete(queueJob._id);
+      await ctx.runMutation(internal.users.decrementPendingAiCount, {
+        userId: photo.userId,
+      });
+    }
+
+    await ctx.runMutation(internal.users.decrementTotalPhotoCount, {
+      userId: photo.userId,
+    });
+    if (photo.aiProcessedAt != null) {
+      await ctx.runMutation(internal.users.decrementProcessedPhotoCount, {
+        userId: photo.userId,
+      });
+    }
+
     // Remove from albums
     const albumPhotos = await ctx.db
       .query("albumPhotos")
@@ -349,6 +376,14 @@ export const updateAiAnalysis = internalMutation({
     );
     if (Object.keys(cleanUpdates).length > 0) {
       await ctx.db.patch(photoId, cleanUpdates);
+    }
+    if (args.aiProcessedAt != null) {
+      const photo = await ctx.db.get(photoId);
+      if (photo) {
+        await ctx.runMutation(internal.users.incrementProcessedPhotoCount, {
+          userId: photo.userId,
+        });
+      }
     }
     return null;
   },

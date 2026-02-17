@@ -8,6 +8,11 @@ function requireEnv(name: string): string {
   return v;
 }
 
+const CAPTION_PROMPT =
+  "Describe what's happening in this photo in 1–2 short, concrete sentences. " +
+  "Mention people (e.g. 'two people at a table'), place, activity, mood, or objects. " +
+  "Use a warm, nostalgic tone when appropriate. Do not guess names. If unclear, say so briefly.\n\nContext: ";
+
 export async function captionImageShort({
   imageUrl,
   hintText,
@@ -15,31 +20,34 @@ export async function captionImageShort({
   imageUrl: string;
   hintText: string;
 }): Promise<string> {
-  // Fail fast at call time (Convex codegen/analyze shouldn't require secrets).
   requireEnv("OPENAI_API_KEY");
-  const { text } = await generateText({
-    model: openai("gpt-5-nano"),
-    temperature: 0,
-    messages: [
-      {
-        role: "user",
-        content: [
+  const models = ["gpt-5-nano", "gpt-4o-mini"] as const;
+  let lastErr: unknown;
+  for (const modelId of models) {
+    try {
+      const { text } = await generateText({
+        model: openai(modelId),
+        temperature: 0.2,
+        messages: [
           {
-            type: "text",
-            text:
-              "Write 1-2 short sentences describing what's happening in the photo. " +
-              "Be concrete. Avoid guessing names. If unsure, say so.\n\n" +
-              `Context: ${hintText}`,
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: CAPTION_PROMPT + hintText,
+              },
+              { type: "image", image: imageUrl },
+            ],
           },
-          { type: "image", image: imageUrl },
         ],
-      },
-    ],
-    // Avoid retaining large request/response bodies (image URLs or base64) in memory.
-    experimental_include: { requestBody: false, responseBody: false },
-  });
-
-  return text.trim();
+        experimental_include: { requestBody: false, responseBody: false },
+      });
+      return (text ?? "").trim();
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error("Caption generation failed");
 }
 
 const TagsSchema = z.object({
@@ -58,20 +66,27 @@ export async function generateTags({
   hintText: string;
 }): Promise<string[]> {
   requireEnv("OPENAI_API_KEY");
-  const { object } = await generateObject({
-    model: openai("gpt-5-nano"),
-    temperature: 0,
-    schema: TagsSchema,
-    prompt:
-      "Generate up to 24 short lowercase tags for this photo. " +
-      "Prefer concrete nouns and activities. Avoid duplicates.\n\n" +
-      `Caption: ${captionShort}\n` +
-      `Context: ${hintText}`,
-  });
-
-  const normalized = object.tags
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean);
-
-  return Array.from(new Set(normalized)).slice(0, 24);
+  const models = ["gpt-5-nano", "gpt-4o-mini"] as const;
+  let lastErr: unknown;
+  for (const modelId of models) {
+    try {
+      const { object } = await generateObject({
+        model: openai(modelId),
+        temperature: 0,
+        schema: TagsSchema,
+        prompt:
+          "Generate up to 24 short lowercase tags for this photo. " +
+          "Prefer concrete nouns and activities (e.g. beach, birthday, sunset). Avoid duplicates.\n\n" +
+          `Caption: ${captionShort}\n` +
+          `Context: ${hintText}`,
+      });
+      const normalized = (object.tags ?? [])
+        .map((t) => String(t).trim().toLowerCase())
+        .filter(Boolean);
+      return Array.from(new Set(normalized)).slice(0, 24);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr ?? new Error("Tag generation failed");
 }

@@ -2,6 +2,10 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 
+function ensureNum(n: number | undefined): number {
+  return typeof n === "number" && n >= 0 ? n : 0;
+}
+
 export const getByBetterAuthId = query({
   args: { betterAuthUserId: v.string() },
   returns: v.union(
@@ -87,6 +91,9 @@ export const createOrUpdate = mutation({
       betterAuthUserId: args.betterAuthUserId,
       storageQuotaBytes: 15 * 1024 * 1024 * 1024, // 15GB default
       usedStorageBytes: 0,
+      totalPhotoCount: 0,
+      processedPhotoCount: 0,
+      pendingAiCount: 0,
       createdAt: Date.now(),
     });
   },
@@ -162,6 +169,110 @@ export const getStorageStats = query({
       usedStorageBytes: user.usedStorageBytes,
       storageQuotaBytes: user.storageQuotaBytes,
       percentUsed: (user.usedStorageBytes / user.storageQuotaBytes) * 100,
+    };
+  },
+});
+
+// ─── AI indexing progress (scalable counts) ─────────────────
+
+export const incrementTotalPhotoCount = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const n = ensureNum((user as any).totalPhotoCount) + 1;
+    await ctx.db.patch(args.userId, { totalPhotoCount: n });
+    return null;
+  },
+});
+
+export const decrementTotalPhotoCount = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const n = Math.max(0, ensureNum((user as any).totalPhotoCount) - 1);
+    await ctx.db.patch(args.userId, { totalPhotoCount: n });
+    return null;
+  },
+});
+
+export const incrementProcessedPhotoCount = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const n = ensureNum((user as any).processedPhotoCount) + 1;
+    await ctx.db.patch(args.userId, { processedPhotoCount: n });
+    return null;
+  },
+});
+
+export const decrementProcessedPhotoCount = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const n = Math.max(0, ensureNum((user as any).processedPhotoCount) - 1);
+    await ctx.db.patch(args.userId, { processedPhotoCount: n });
+    return null;
+  },
+});
+
+export const incrementPendingAiCount = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const n = ensureNum((user as any).pendingAiCount) + 1;
+    await ctx.db.patch(args.userId, { pendingAiCount: n });
+    return null;
+  },
+});
+
+export const decrementPendingAiCount = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const n = Math.max(0, ensureNum((user as any).pendingAiCount) - 1);
+    await ctx.db.patch(args.userId, { pendingAiCount: n });
+    return null;
+  },
+});
+
+export const getAiProgress = query({
+  args: { userId: v.id("users") },
+  returns: v.union(
+    v.object({
+      total: v.number(),
+      processed: v.number(),
+      pending: v.number(),
+      percent: v.number(),
+      isComplete: v.boolean(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    const u = user as any;
+    const total = ensureNum(u.totalPhotoCount);
+    const processed = ensureNum(u.processedPhotoCount);
+    const pending = ensureNum(u.pendingAiCount);
+    const percent = total > 0 ? Math.round((processed / total) * 100) : 100;
+    return {
+      total,
+      processed,
+      pending,
+      percent: Math.min(100, percent),
+      isComplete: pending === 0,
     };
   },
 });

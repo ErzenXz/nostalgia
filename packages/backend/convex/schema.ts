@@ -13,6 +13,10 @@ export default defineSchema({
     storageQuotaBytes: v.number(),
     usedStorageBytes: v.number(),
     createdAt: v.number(),
+    // AI indexing progress (updated on photo create/delete and AI complete)
+    totalPhotoCount: v.optional(v.number()),
+    processedPhotoCount: v.optional(v.number()),
+    pendingAiCount: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_better_auth_id", ["betterAuthUserId"]),
@@ -239,7 +243,8 @@ export default defineSchema({
     processedAt: v.optional(v.number()),
   })
     .index("by_status", ["status"])
-    .index("by_photo", ["photoId"]),
+    .index("by_photo", ["photoId"])
+    .index("by_user_status", ["userId", "status"]),
 
   // ─── Feed Sessions (Nostalgia Feed state) ──────────────
   feedSessions: defineTable({

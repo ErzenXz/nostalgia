@@ -9,7 +9,7 @@ import { captionImageShort, generateTags } from "./openai";
 import type { Id } from "../_generated/dataModel";
 
 const LEASE_MS = 2 * 60 * 1000; // 2 minutes (must match worker_db lease)
-const DEFAULT_LIMIT = 5;
+const DEFAULT_LIMIT = 15;
 
 function isRateLimitError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;

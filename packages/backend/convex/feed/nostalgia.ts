@@ -232,12 +232,20 @@ export const getNostalgiaFeed = action({
 
     const pool = Array.from(dedup.values());
 
+    // Prefer processed photos (have embeddings + captions) so the feed looks good
+    const processedPool = pool.filter(
+      (p) => Array.isArray(p.embeddingClipV2) && p.embeddingClipV2.length > 0,
+    );
+    const unprocessedPool = pool.filter(
+      (p) => !Array.isArray(p.embeddingClipV2) || p.embeddingClipV2.length === 0,
+    );
+
     // Enhanced scoring with time-of-day, seasonal, face, and quality factors.
     const nowDate = new Date(now);
     const currentHour = nowDate.getHours();
     const currentMonth = nowDate.getMonth();
 
-    const scored = pool.map((p) => {
+    const scored = processedPool.map((p) => {
       const t = p.takenAt ?? p.uploadedAt;
       const ageDays = Math.max(0, (now - t) / DAY_MS);
 
@@ -351,6 +359,38 @@ export const getNostalgiaFeed = action({
         detectedFaces: p.detectedFaces ?? null,
       });
       if (Array.isArray(p.embeddingClipV2)) selectedVecs.push(p.embeddingClipV2);
+    }
+
+    // If we need more items, add unprocessed photos (no caption/embedding yet) so feed isn't empty
+    const selectedIdsSet = new Set(selected.map((i) => i.photoId));
+    if (selected.length < limit && unprocessedPool.length > 0) {
+      const unprocessedScored = unprocessedPool
+        .filter((p) => !selectedIdsSet.has(p._id))
+        .map((p) => {
+          const t = p.takenAt ?? p.uploadedAt;
+          const ageDays = Math.max(0, (now - t) / DAY_MS);
+          const nostalgiaScore = Math.log1p(ageDays / 365);
+          const favBoost = p.isFavorite ? 0.5 : 0;
+          return { photo: p, total: nostalgiaScore + favBoost };
+        });
+      unprocessedScored.sort((a, b) => b.total - a.total);
+      for (const s of unprocessedScored) {
+        if (selected.length >= limit) break;
+        const p = s.photo;
+        selected.push({
+          photoId: p._id,
+          takenAt: p.takenAt ?? null,
+          uploadedAt: p.uploadedAt,
+          mimeType: p.mimeType ?? "image/jpeg",
+          reason: pickReason(mode, p.takenAt, now),
+          score: s.total,
+          scoreBreakdown: { nostalgia: s.total, coherence: 0 },
+          captionShort: p.captionShort ?? null,
+          aiTagsV2: p.aiTagsV2 ?? null,
+          locationName: p.locationName ?? null,
+          detectedFaces: p.detectedFaces ?? null,
+        });
+      }
     }
 
     const newRecent = [...recentIds, ...selected.map((i) => i.photoId)].slice(-50);

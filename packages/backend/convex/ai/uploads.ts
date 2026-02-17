@@ -1,4 +1,5 @@
 import { mutation } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { getAuthedUserId } from "./auth_util";
@@ -108,6 +109,9 @@ export const attachAnalysisThumbnail = mutation({
         error: undefined,
         providerMeta: undefined,
         createdAt: now,
+      });
+      await ctx.runMutation(internal.users.incrementPendingAiCount, {
+        userId,
       });
     }
 

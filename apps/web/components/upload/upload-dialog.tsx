@@ -17,6 +17,19 @@ import { cn, formatBytes } from "@/lib/utils";
 import { encryptBlob, encryptFile } from "@/lib/encryption";
 import { createImageThumbnailBlob } from "@/lib/thumbnails";
 import { createVideoThumbnailBlob } from "@/lib/video-thumbnails";
+
+/** Parse Convex storage upload response: can be JSON { storageId } or raw storageId string */
+async function parseConvexStorageId(res: Response): Promise<string | null> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    const json = JSON.parse(text) as { storageId?: string };
+    if (json?.storageId) return json.storageId;
+  } catch {
+    // Response may be the raw storage ID string
+  }
+  return text.trim() || null;
+}
 import { useEncryption } from "@/components/providers/encryption-provider";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAiOptInForUserId } from "@/hooks/use-ai-opt-in";
@@ -241,39 +254,43 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
         takenAt: uploadFile.file.lastModified || Date.now(),
       });
 
-      // Step 5: Upload plaintext analysis thumbnail to Convex (opt-in AI)
-      if (aiOptIn && uploadFile.file.type.startsWith("image/")) {
+      // Step 5: Upload plaintext analysis thumbnail to Convex (opt-in AI) for images and videos
+      if (aiOptIn && (uploadFile.file.type.startsWith("image/") || uploadFile.file.type.startsWith("video/"))) {
         try {
-          const analysisThumbnail = await createImageThumbnailBlob(
-            uploadFile.file,
-            {
+          let analysisThumbnail: Blob;
+          if (uploadFile.file.type.startsWith("video/")) {
+            analysisThumbnail = await createVideoThumbnailBlob(uploadFile.file, {
+              maxSize: 512,
+              quality: 0.8,
+            });
+          } else {
+            analysisThumbnail = await createImageThumbnailBlob(uploadFile.file, {
               maxSize: 512,
               mimeType: "image/jpeg",
               quality: 0.8,
-            },
-          );
+            });
+          }
 
-          // Get a Convex upload URL + token bound to this photo
           const { uploadUrl: analysisUploadUrl, analysisToken } =
             await generateAnalysisUploadUrl({ photoId });
 
-          // POST the plaintext thumbnail to Convex file storage
           const analysisRes = await fetch(analysisUploadUrl, {
             method: "POST",
             headers: { "Content-Type": "image/jpeg" },
             body: analysisThumbnail,
           });
           if (analysisRes.ok) {
-            const { storageId } = await analysisRes.json();
-            // Attach thumbnail and enqueue AI processing
-            await attachAnalysisThumbnail({
-              photoId,
-              storageId,
-              analysisToken,
-              width: undefined,
-              height: undefined,
-              mimeType: "image/jpeg",
-            });
+            const storageId = await parseConvexStorageId(analysisRes);
+            if (storageId) {
+              await attachAnalysisThumbnail({
+                photoId,
+                storageId,
+                analysisToken,
+                width: undefined,
+                height: undefined,
+                mimeType: "image/jpeg",
+              });
+            }
           }
         } catch {
           // Analysis thumbnail is best-effort; don't fail the upload.

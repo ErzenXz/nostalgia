@@ -165,7 +165,7 @@ crons.interval(
   "process ai queue",
   { minutes: 1 },
   internal.ai.worker.processPending,
-  { limit: 5 },
+  { limit: 15 },
 );
 
 export default crons;

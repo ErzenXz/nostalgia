@@ -383,6 +383,10 @@ export default function FeedPage() {
   );
   const { userId, isLoading: userLoading } = useCurrentUser();
   const { aiOptIn, isLoading: aiOptInLoading } = useAiOptInForUserId(userId as any);
+  const aiProgress = useQuery(
+    api.users.getAiProgress,
+    userId && aiOptIn === true ? { userId } : "skip",
+  );
   const observerRef = useRef<HTMLDivElement>(null);
   const nextCursorRef = useRef<string | null>(null);
   const isLoadingRef = useRef(false);
@@ -554,12 +558,41 @@ export default function FeedPage() {
 
   const currentMode = modeConfig[mode];
 
+  const showIndexingBanner =
+    aiProgress &&
+    aiProgress.total > 0 &&
+    !aiProgress.isComplete &&
+    aiProgress.pending > 0;
+
   return (
     <>
       <PageHeader
         title="Nostalgia Feed"
         description="A story of your life, told through photos"
       />
+
+      {showIndexingBanner && (
+        <div className="mx-4 md:mx-8 mt-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="h-1.5 rounded-full bg-amber-500/20 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                style={{ width: `${aiProgress.percent}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              <span className="text-foreground font-medium">{aiProgress.processed}</span>
+              {" of "}
+              <span className="text-foreground font-medium">{aiProgress.total}</span>
+              {" indexed ("}
+              <span className="text-foreground font-medium">{aiProgress.percent}%</span>
+              {") — "}
+              <span className="text-foreground font-medium">{aiProgress.pending}</span>
+              {" left"}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="px-4 md:px-8 py-6">
         {/* Mode tabs */}
@@ -661,6 +694,9 @@ export default function FeedPage() {
             </p>
             <p className="text-xs text-muted-foreground max-w-sm text-center">
               {currentMode.emptyHint}
+            </p>
+            <p className="text-[11px] text-muted-foreground/70 mt-3 max-w-xs text-center">
+              New uploads get AI descriptions and tags within a few minutes. Refresh to see them.
             </p>
           </div>
         )}

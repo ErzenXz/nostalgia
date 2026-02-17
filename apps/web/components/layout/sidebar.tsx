@@ -8,6 +8,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useConvexAvailable } from "@/components/providers/convex-provider";
 import { useSidebarStore } from "@/store/sidebar";
 import { TimelineWidget } from "@/components/layout/timeline-widget";
+import { AiIndexingProgress } from "@/components/ai-indexing-progress";
 import { cn, formatBytes } from "@/lib/utils";
 import {
   Images,
@@ -219,6 +220,11 @@ export function Sidebar() {
       {/* Timeline widget (only when expanded) */}
       {!collapsed && convexAvailable && <TimelineWidget />}
 
+      {/* AI indexing progress (when opted in and there is pending work) */}
+      {convexAvailable && (
+        <AiIndexingProgress collapsed={collapsed} />
+      )}
+
       {/* Storage */}
       <div className="relative z-10">
         {convexAvailable ? (
@@ -364,6 +370,11 @@ export function MobileDrawer() {
             );
           })}
         </nav>
+
+        {/* AI indexing progress */}
+        {convexAvailable && (
+          <AiIndexingProgress collapsed={false} />
+        )}
 
         {/* Storage */}
         <div className="relative z-10">
