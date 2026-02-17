@@ -27,16 +27,15 @@ export const authComponent = createClient<DataModel, typeof schema>(
 
 // Better Auth Options
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
+  // IMPORTANT: Don't throw when this is missing.
+  // Convex deploy evaluates modules during push, and env may not be fully set in CI.
+  // Better Auth will warn if baseURL is not valid for callbacks; the app should
+  // still be deployable.
   const baseURL =
     process.env.BETTER_AUTH_URL ??
     process.env.SITE_URL ??
-    process.env.NEXT_PUBLIC_APP_URL;
-
-  if (!baseURL) {
-    throw new Error(
-      "Missing BETTER_AUTH_URL (or SITE_URL / NEXT_PUBLIC_APP_URL) for Better Auth baseURL",
-    );
-  }
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3000";
 
   const passkeyRpId =
     process.env.PASSKEY_RP_ID ?? new URL(baseURL).hostname ?? "localhost";
