@@ -89,6 +89,85 @@ function DetailImage({
   );
 }
 
+function RelatedPhotoCard({ photo }: { photo: any }) {
+  const imageKey = photo.thumbnailStorageKey || photo.storageKey;
+  const signedUrl = usePhotoUrl(imageKey);
+  const isThumb =
+    !!photo.thumbnailStorageKey && imageKey === photo.thumbnailStorageKey;
+  const decryptedUrl = useDecryptedBlobUrl({
+    cacheKey: imageKey,
+    signedUrl,
+    mimeType: isThumb ? "image/jpeg" : photo.mimeType,
+    enabled: !!photo.isEncrypted,
+  });
+  const url = photo.isEncrypted ? decryptedUrl : signedUrl;
+  const isVideo =
+    typeof photo.mimeType === "string" && photo.mimeType.startsWith("video/");
+
+  return (
+    <Link
+      href={`/photos/${photo._id}`}
+      className="group flex gap-3 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-muted-foreground/25 transition-all p-2"
+    >
+      {/* Thumbnail */}
+      <div className="relative w-[140px] sm:w-[160px] shrink-0 aspect-video rounded-lg overflow-hidden bg-secondary">
+        {url ? (
+          isVideo ? (
+            <video
+              className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+              src={url}
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <Image
+              src={url}
+              alt={photo.description || photo.fileName}
+              fill
+              className="object-cover transition-transform group-hover:scale-105"
+              sizes="160px"
+              unoptimized
+            />
+          )
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted animate-pulse" />
+        )}
+        {photo.isFavorite && (
+          <div className="absolute top-1.5 right-1.5">
+            <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 py-1">
+        <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-tight">
+          {photo.description || photo.fileName}
+        </h4>
+        <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">
+          {formatDate(photo.takenAt ?? photo.uploadedAt)}
+        </p>
+        {photo.locationName && (
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 flex items-center gap-1">
+            <MapPin className="h-3 w-3 shrink-0" />
+            {photo.locationName}
+          </p>
+        )}
+        {photo.aiTags && photo.aiTags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {photo.aiTags.slice(0, 3).map((tag: string) => (
+              <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0.5 rounded">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 function RelatedPhotoThumbnail({ photo }: { photo: any }) {
   const imageKey = photo.thumbnailStorageKey || photo.storageKey;
   const signedUrl = usePhotoUrl(imageKey);
@@ -255,9 +334,9 @@ export default function PhotoDetailPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       {/* Top navigation bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-sm px-6 py-3">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 backdrop-blur-sm px-4 py-3 lg:px-6">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -266,13 +345,10 @@ export default function PhotoDetailPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-sm font-medium text-foreground truncate max-w-[300px]">
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-medium text-foreground truncate max-w-[200px] sm:max-w-[300px]">
               {photo.fileName}
             </h1>
-            <p className="text-xs text-muted-foreground">
-              {formatDate(photo.takenAt ?? photo.uploadedAt)}
-            </p>
           </div>
         </div>
 
@@ -317,55 +393,101 @@ export default function PhotoDetailPage() {
         </div>
       </div>
 
-      {/* Main photo display */}
-      <div className="relative bg-black">
-        <div className="relative h-[60vh] md:h-[70vh]">
-          <DetailImage
-            storageKey={photo.storageKey}
-            alt={photo.description || photo.fileName}
-            mimeType={photo.mimeType}
-            isEncrypted={photo.isEncrypted}
-          />
-        </div>
+      {/* Main content area - YouTube style */}
+      <div className="flex flex-col lg:flex-row gap-6 p-4 lg:p-6 max-w-[1800px] mx-auto">
+        {/* Left: Photo and info */}
+        <div className="flex-1 min-w-0">
+          {/* Photo container */}
+          <div className="relative bg-black rounded-xl overflow-hidden shadow-2xl shadow-black/40">
+            <div className="relative aspect-[4/3] sm:aspect-[16/10] lg:aspect-[16/9]">
+              <DetailImage
+                storageKey={photo.storageKey}
+                alt={photo.description || photo.fileName}
+                mimeType={photo.mimeType}
+                isEncrypted={photo.isEncrypted}
+              />
+            </div>
 
-        {/* Previous / Next navigation arrows */}
-        {prevPhoto && (
-          <Link
-            href={`/photos/${prevPhoto._id}`}
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white/80 hover:bg-black/60 hover:text-white transition-colors"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Link>
-        )}
-        {nextPhoto && (
-          <Link
-            href={`/photos/${nextPhoto._id}`}
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white/80 hover:bg-black/60 hover:text-white transition-colors"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Link>
-        )}
+            {/* Previous / Next navigation arrows */}
+            {prevPhoto && (
+              <Link
+                href={`/photos/${prevPhoto._id}`}
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white/80 hover:bg-black/70 hover:text-white transition-colors backdrop-blur-sm"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Link>
+            )}
+            {nextPhoto && (
+              <Link
+                href={`/photos/${nextPhoto._id}`}
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white/80 hover:bg-black/70 hover:text-white transition-colors backdrop-blur-sm"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </Link>
+            )}
 
-        {/* Photo counter */}
-        {currentIndex >= 0 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white/70 backdrop-blur-sm">
-            {currentIndex + 1} / {allPhotos.length}
+            {/* Photo counter */}
+            {currentIndex >= 0 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white/70 backdrop-blur-sm">
+                {currentIndex + 1} / {allPhotos.length}
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Info section below the photo */}
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {/* Photo metadata grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* AI Description */}
-          {photo.description && (
-            <div className="col-span-full rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  AI Description
+          {/* Photo title and meta - YouTube video title style */}
+          <div className="mt-4 space-y-3">
+            <h2 className="text-lg sm:text-xl font-medium text-foreground leading-tight">
+              {photo.description || photo.fileName}
+            </h2>
+            
+            {/* Quick stats row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              {photo.locationName && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" />
+                  {photo.locationName}
                 </span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                {formatDate(photo.takenAt ?? photo.uploadedAt)}
+              </span>
+              {(photo.cameraMake || photo.cameraModel) && (
+                <span className="flex items-center gap-1.5">
+                  <Camera className="h-4 w-4" />
+                  {[photo.cameraMake, photo.cameraModel].filter(Boolean).join(" ")}
+                </span>
+              )}
+            </div>
+
+            {/* Tags row */}
+            {photo.aiTags && photo.aiTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {photo.aiTags.slice(0, 10).map((tag: string) => (
+                  <Badge key={tag} variant="secondary" className="text-xs px-2.5 py-1 rounded-full">
+                    {tag}
+                  </Badge>
+                ))}
+                {photo.aiTags.length > 10 && (
+                  <span className="text-xs text-muted-foreground self-center">
+                    +{photo.aiTags.length - 10} more
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* AI Description - YouTube description style */}
+          {photo.description && (
+            <div className="mt-4 rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-foreground">AI Description</span>
+                  <p className="text-xs text-muted-foreground">Auto-generated caption</p>
+                </div>
               </div>
               <p className="text-sm text-foreground/90 leading-relaxed">
                 {photo.description}
@@ -373,143 +495,86 @@ export default function PhotoDetailPage() {
             </div>
           )}
 
-          {/* Tags */}
-          {photo.aiTags && photo.aiTags.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Tag className="h-4 w-4 text-blue-400" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Tags
-                </span>
+          {/* Details section - collapsible style */}
+          <div className="mt-4 rounded-xl border border-border bg-card overflow-hidden">
+            <details className="group">
+              <summary className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/30 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Photo Details</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90" />
+              </summary>
+              <div className="border-t border-border p-4 space-y-4">
+                {/* Metadata grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-xs text-muted-foreground block mb-1">Date Taken</span>
+                    <p className="text-foreground">{formatDate(photo.takenAt ?? photo.uploadedAt)}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground block mb-1">Uploaded</span>
+                    <p className="text-foreground">{formatDate(photo.uploadedAt)}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground block mb-1">File Size</span>
+                    <p className="text-foreground">{formatBytes(photo.sizeBytes)}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground block mb-1">Type</span>
+                    <p className="text-foreground">{photo.mimeType}</p>
+                  </div>
+                  {(photo.cameraMake || photo.cameraModel) && (
+                    <>
+                      <div>
+                        <span className="text-xs text-muted-foreground block mb-1">Camera</span>
+                        <p className="text-foreground">{[photo.cameraMake, photo.cameraModel].filter(Boolean).join(" ")}</p>
+                      </div>
+                      {(photo.focalLength || photo.aperture || photo.iso) && (
+                        <div>
+                          <span className="text-xs text-muted-foreground block mb-1">Settings</span>
+                          <p className="text-foreground">
+                            {[photo.focalLength, photo.aperture && `f/${photo.aperture}`, photo.iso && `ISO ${photo.iso}`].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {photo.dominantColors && photo.dominantColors.length > 0 && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-2">Colors</span>
+                      <div className="flex gap-1.5">
+                        {photo.dominantColors.slice(0, 5).map((color: string, i: number) => (
+                          <div
+                            key={i}
+                            className="h-6 w-6 rounded-full border border-border shadow-sm"
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {photo.aiTags.map((tag: string) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Date & Time */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4 text-green-400" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Date
-              </span>
-            </div>
-            <p className="text-sm text-foreground/80">
-              {formatDate(photo.takenAt ?? photo.uploadedAt)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Uploaded {formatDate(photo.uploadedAt)}
-            </p>
+            </details>
           </div>
-
-          {/* Location */}
-          {photo.locationName && (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <MapPin className="h-4 w-4 text-red-400" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Location
-                </span>
-              </div>
-              <p className="text-sm text-foreground/80">{photo.locationName}</p>
-              {photo.latitude !== undefined &&
-                photo.longitude !== undefined && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {photo.latitude.toFixed(6)}, {photo.longitude.toFixed(6)}
-                  </p>
-                )}
-            </div>
-          )}
-
-          {/* Camera */}
-          {(photo.cameraMake || photo.cameraModel) && (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Camera className="h-4 w-4 text-amber-400" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Camera
-                </span>
-              </div>
-              <p className="text-sm text-foreground/80">
-                {[photo.cameraMake, photo.cameraModel]
-                  .filter(Boolean)
-                  .join(" ")}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                {photo.focalLength && <span>{photo.focalLength}</span>}
-                {photo.aperture && <span>f/{photo.aperture}</span>}
-                {photo.iso && <span>ISO {photo.iso}</span>}
-                {photo.exposureTime && <span>{photo.exposureTime}s</span>}
-              </div>
-            </div>
-          )}
-
-          {/* File Details */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Info className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                File Details
-              </span>
-            </div>
-            <div className="space-y-1 text-sm text-foreground/80">
-              {photo.width && photo.height && (
-                <p>
-                  {photo.width} x {photo.height}
-                </p>
-              )}
-              <p>{formatBytes(photo.sizeBytes)}</p>
-              <p className="text-xs text-muted-foreground">{photo.mimeType}</p>
-            </div>
-          </div>
-
-          {/* Colors */}
-          {photo.dominantColors && photo.dominantColors.length > 0 && (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Dominant Colors
-              </span>
-              <div className="mt-3 flex gap-2">
-                {photo.dominantColors.map((color: string, i: number) => (
-                  <div
-                    key={i}
-                    className="h-8 w-8 rounded-full border border-white/10 shadow-sm"
-                    style={{ backgroundColor: color }}
-                    title={color}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Related Photos */}
-        {relatedPhotos.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">
-                Related Photos
-              </h2>
-              <Link
-                href="/photos"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                View all
-              </Link>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-              {relatedPhotos.map((rPhoto: any) => (
-                <RelatedPhotoThumbnail key={rPhoto._id} photo={rPhoto} />
-              ))}
-            </div>
+        {/* Right sidebar: Related Photos - YouTube suggestions style */}
+        <div className="w-full lg:w-[400px] xl:w-[440px] shrink-0">
+          <h3 className="text-sm font-medium text-foreground mb-3 px-1">Related Photos</h3>
+          <div className="space-y-3">
+            {relatedPhotos.slice(0, 12).map((rPhoto: any) => (
+              <RelatedPhotoCard key={rPhoto._id} photo={rPhoto} />
+            ))}
+            {relatedPhotos.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Images className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No related photos</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

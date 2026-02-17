@@ -401,8 +401,8 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
       <DialogContent className="max-w-2xl overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-              <Shield className="h-4 w-4 text-blue-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Shield className="h-4 w-4 text-primary" />
             </div>
             <span>Upload Photos</span>
           </DialogTitle>
@@ -414,16 +414,16 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
         {!hasEncryptionKey && (
           <div className="mt-2 space-y-4">
             {/* Key requirement banner */}
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-                  <KeyRound className="h-4 w-4 text-blue-400" />
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <KeyRound className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-zinc-100">
+                  <h3 className="text-sm font-medium text-foreground">
                     Set your encryption key
                   </h3>
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     We never store your plaintext key on the server. Save your key and recovery bundle to USB or offline storage.
                   </p>
                 </div>
@@ -431,17 +431,17 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             </div>
 
             {/* Create new key section */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <div className="mb-3 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                <h4 className="text-xs font-medium text-zinc-400">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                <h4 className="text-xs font-medium text-muted-foreground">
                   Create New Key
                 </h4>
               </div>
               
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1.5 block text-xs text-zinc-500">
+                  <label className="mb-1.5 block text-xs text-muted-foreground">
                     Recovery passphrase
                   </label>
                   <Input
@@ -511,10 +511,10 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             {/* Import/Recover section */}
             <div className="grid gap-3 md:grid-cols-2">
               {/* Import existing key */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <div className="rounded-lg border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                  <h4 className="text-xs font-medium text-zinc-400">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <h4 className="text-xs font-medium text-muted-foreground">
                     Import Key
                   </h4>
                 </div>
@@ -538,10 +538,10 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
               </div>
 
               {/* Recover from bundle */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <div className="rounded-lg border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-                  <h4 className="text-xs font-medium text-zinc-400">
+                  <h4 className="text-xs font-medium text-muted-foreground">
                     Recover Key
                   </h4>
                 </div>
@@ -550,7 +550,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                     value={recoveryPackageInput}
                     onChange={(e) => setRecoveryPackageInput(e.target.value)}
                     placeholder="Paste recovery bundle JSON"
-                    className="min-h-[60px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                    className="min-h-[60px] w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   />
                   <Input
                     type="password"
@@ -580,8 +580,8 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
               className={cn(
                 "group relative mt-2 flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition-colors cursor-pointer",
                 isDragging
-                  ? "border-blue-500/40 bg-blue-500/5"
-                  : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900/50",
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-border hover:border-primary/30 hover:bg-card/50",
               )}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -589,18 +589,18 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
               onClick={() => fileInputRef.current?.click()}
             >
               <div className="flex flex-col items-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-zinc-800 transition-colors group-hover:bg-blue-500/10">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-secondary transition-colors group-hover:bg-primary/10">
                   <Upload
                     className={cn(
                       "h-6 w-6 transition-colors",
-                      isDragging ? "text-blue-400" : "text-zinc-500 group-hover:text-blue-400",
+                      isDragging ? "text-primary" : "text-muted-foreground group-hover:text-primary",
                     )}
                   />
                 </div>
-                <p className="text-sm text-zinc-200">
+                <p className="text-sm text-foreground">
                   Drop photos here or click to browse
                 </p>
-                <p className="mt-1.5 text-xs text-zinc-500">
+                <p className="mt-1.5 text-xs text-muted-foreground">
                   JPG, PNG, HEIC, WebP, RAW, Video
                 </p>
               </div>
@@ -621,7 +621,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                   "mt-3 flex items-center gap-2.5 rounded-lg border px-4 py-3 text-xs",
                   aiOptIn
                     ? "border-purple-500/20 bg-purple-500/5 text-purple-300"
-                    : "border-zinc-800 bg-zinc-900 text-zinc-500",
+                    : "border-border bg-card text-muted-foreground",
                 )}
               >
                 {aiOptIn ? (
@@ -634,12 +634,12 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                   </>
                 ) : (
                   <>
-                    <Brain className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                    <Brain className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span>
                       AI Intelligence off — enable in{" "}
                       <a
                         href="/settings"
-                        className="text-blue-400 underline underline-offset-2 hover:text-blue-300 transition-colors"
+                        className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
                       >
                         Settings
                       </a>{" "}
@@ -658,29 +658,29 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             {files.map((uploadFile) => (
               <div
                 key={uploadFile.id}
-                className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3"
+                className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
               >
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-zinc-800">
-                  <FileImage className="h-4 w-4 text-zinc-500" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-secondary">
+                  <FileImage className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm text-zinc-200">
+                  <p className="truncate text-sm text-foreground">
                     {uploadFile.file.name}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       {formatBytes(uploadFile.file.size)}
                     </span>
                     {uploadFile.status !== "pending" &&
                       uploadFile.status !== "completed" &&
                       uploadFile.status !== "failed" && (
                         <>
-                          <span className="text-xs text-blue-400">
+                          <span className="text-xs text-primary">
                             {statusLabel(uploadFile.status)}
                           </span>
-                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-secondary">
                             <div
-                              className="h-full rounded-full bg-blue-500 transition-all"
+                              className="h-full rounded-full bg-primary transition-all"
                               style={{ width: `${uploadFile.progress}%` }}
                             />
                           </div>
@@ -707,7 +707,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                   {(uploadFile.status === "encrypting" ||
                     uploadFile.status === "uploading" ||
                     uploadFile.status === "saving") && (
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   )}
                   {uploadFile.status === "pending" && (
                     <button
@@ -715,7 +715,7 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                         e.stopPropagation();
                         removeFile(uploadFile.id);
                       }}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -728,8 +728,8 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
         {/* Footer */}
         {hasEncryptionKey && files.length > 0 && (
-          <div className="mt-4 flex items-center justify-between border-t border-zinc-800 pt-4">
-            <p className="text-xs text-zinc-500">
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">
               {files.length} file{files.length !== 1 ? "s" : ""} ·{" "}
               {formatBytes(totalSize)}
               {isUploading && ` · ${completedCount}/${files.length} uploaded`}

@@ -187,7 +187,7 @@ export default function SearchPage() {
               className={cn(
                 "rounded-xl border p-5",
                 aiOptIn === true
-                  ? "border-purple-500/20 bg-gradient-to-r from-purple-500/[0.06] to-blue-500/[0.04]"
+                  ? "border-purple-500/20 bg-gradient-to-r from-purple-500/[0.06] to-primary/[0.04]"
                   : "border-border bg-card",
               )}
             >

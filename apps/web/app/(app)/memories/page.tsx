@@ -8,7 +8,7 @@ import { cn, formatDate } from "@/lib/utils";
 import { Sparkles, ChevronRight, Calendar, Loader2 } from "lucide-react";
 
 const typeColors: Record<string, string> = {
-  on_this_day: "from-amber-500/20 to-orange-500/20",
+  on_this_day: "from-primary/20 to-orange-500/20",
   trip: "from-blue-500/20 to-cyan-500/20",
   people: "from-pink-500/20 to-rose-500/20",
   theme: "from-purple-500/20 to-violet-500/20",

@@ -1,33 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  /* Minimal Dark - Clean, cool, understated */
-  --color-background: #09090b;
-  --color-foreground: #fafafa;
-  --color-card: #0c0c0f;
-  --color-card-foreground: #fafafa;
-  --color-popover: #0c0c0f;
-  --color-popover-foreground: #fafafa;
-  --color-primary: #3b82f6;
-  --color-primary-foreground: #fafafa;
-  --color-secondary: #18181b;
-  --color-secondary-foreground: #fafafa;
-  --color-muted: #18181b;
-  --color-muted-foreground: #71717a;
-  --color-accent: #27272a;
-  --color-accent-foreground: #fafafa;
-  --color-destructive: #7f1d1d;
-  --color-destructive-foreground: #fafafa;
-  --color-border: #27272a;
-  --color-input: #27272a;
-  --color-ring: #52525b;
-  --color-sidebar: #09090b;
-  --color-sidebar-foreground: #fafafa;
+  /* Nostalgic Dark - Skeuomorphic, warm shadows, film-like */
+  --color-background: #0d0d0d;
+  --color-foreground: #e8e4dc;
+  --color-card: #141414;
+  --color-card-foreground: #e8e4dc;
+  --color-popover: #1a1a1a;
+  --color-popover-foreground: #e8e4dc;
+  --color-primary: #c9a66b;
+  --color-primary-foreground: #0d0d0d;
+  --color-secondary: #1f1f1f;
+  --color-secondary-foreground: #e8e4dc;
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #8a8578;
+  --color-accent: #2a2520;
+  --color-accent-foreground: #e8e4dc;
+  --color-destructive: #4a2020;
+  --color-destructive-foreground: #e8e4dc;
+  --color-border: #2a2825;
+  --color-input: #2a2825;
+  --color-ring: #c9a66b;
+  --color-sidebar: #0d0d0d;
+  --color-sidebar-foreground: #e8e4dc;
 
-  /* Subtle accent colors */
-  --color-accent-blue: #1e3a5f;
-  --color-accent-indigo: #312e81;
-  --color-glow-subtle: #60a5fa;
+  /* Warm accent colors for skeuomorphic feel */
+  --color-accent-warm: #3d3530;
+  --color-accent-gold: #c9a66b;
+  --color-accent-amber: #b8860b;
+  --color-shadow-warm: rgba(201, 166, 107, 0.08);
+  --color-glow-warm: rgba(201, 166, 107, 0.15);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "GeistMono", ui-monospace, monospace;
@@ -50,19 +52,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Subtle atmospheric background */
+/* Warm atmospheric background with subtle vignette */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(30, 58, 95, 0.08), transparent),
-    radial-gradient(ellipse 40% 30% at 100% 50%, rgba(49, 46, 129, 0.05), transparent);
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201, 166, 107, 0.03), transparent),
+    radial-gradient(ellipse 60% 40% at 0% 50%, rgba(139, 90, 43, 0.02), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(139, 90, 43, 0.02), transparent);
   pointer-events: none;
   z-index: -1;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - warm tinted */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -73,12 +76,12 @@ body::before {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: #3d3530;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted-foreground);
+  background: #c9a66b;
 }
 
 /* Photo grid selection */
@@ -90,7 +93,7 @@ body::before {
 
 .photo-grid-item:hover {
   transform: scale(1.02);
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(201, 166, 107, 0.1);
 }
 
 /* Nostalgic fade-in animation */
@@ -156,16 +159,26 @@ body::before {
   }
 }
 
-/* Map markers */
+/* Map markers - warm tinted */
 .map-cluster-marker {
-  background: rgba(228, 228, 231, 0.9);
-  color: #09090b;
+  background: rgba(201, 166, 107, 0.9);
+  color: #0d0d0d;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(4px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Skeuomorphic card styling */
+.skeuo-card {
+  background: linear-gradient(145deg, #1a1a1a, #141414);
+  border: 1px solid #2a2825;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
 }

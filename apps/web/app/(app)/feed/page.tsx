@@ -414,7 +414,7 @@ export default function FeedPage() {
           description="A story of your life, told through photos"
         />
         <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 mb-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-primary/20 mb-4">
             <Sparkles className="h-8 w-8 text-purple-400" />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">

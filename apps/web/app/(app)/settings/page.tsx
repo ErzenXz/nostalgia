@@ -116,8 +116,8 @@ export default function SettingsPage() {
           className={cn(
             "rounded-2xl border overflow-hidden transition-all duration-300",
             aiEnabled
-              ? "border-purple-500/20 bg-gradient-to-br from-purple-500/[0.04] via-white/[0.02] to-blue-500/[0.02]"
-              : "border-white/5 bg-white/[0.02]",
+              ? "border-purple-500/20 bg-gradient-to-br from-purple-500/[0.04] via-card to-primary/[0.02]"
+              : "border-border bg-card",
           )}
         >
           <div className="flex items-center justify-between px-6 py-5">
@@ -127,33 +127,33 @@ export default function SettingsPage() {
                   "flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-300",
                   aiEnabled
                     ? "bg-purple-500/15 shadow-[0_0_20px_rgba(168,85,247,0.1)]"
-                    : "bg-white/5",
+                    : "bg-secondary",
                 )}
               >
                 <Sparkles
                   className={cn(
                     "h-5 w-5 transition-colors duration-300",
-                    aiEnabled ? "text-purple-400" : "text-white/40",
+                    aiEnabled ? "text-purple-400" : "text-muted-foreground",
                   )}
                 />
               </div>
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-sm font-light tracking-wide text-white/80">
+                  <h2 className="text-sm font-medium text-foreground">
                     AI Intelligence
                   </h2>
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-light tracking-wide transition-all duration-300",
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide transition-all duration-300",
                       aiEnabled
                         ? "bg-purple-500/15 text-purple-400"
-                        : "bg-white/5 text-white/40",
+                        : "bg-secondary text-muted-foreground",
                     )}
                   >
                     {isLoading ? "Loading" : aiEnabled ? "Enabled" : "Disabled"}
                   </span>
                 </div>
-                <p className="text-xs font-light text-white/40 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Smart search, captions, tags &amp; Nostalgia Feed
                 </p>
               </div>
@@ -167,12 +167,12 @@ export default function SettingsPage() {
               aria-label="Toggle AI Intelligence"
               className={cn(
                 "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40",
-                aiEnabled ? "bg-purple-500/60" : "bg-white/10",
+                aiEnabled ? "bg-purple-500/60" : "bg-secondary",
               )}
             >
               <span
                 className={cn(
-                  "pointer-events-none inline-block h-[22px] w-[22px] rounded-full bg-white/90 shadow-lg transition-transform duration-300 ease-in-out",
+                  "pointer-events-none inline-block h-[22px] w-[22px] rounded-full bg-foreground shadow-lg transition-transform duration-300 ease-in-out",
                   aiEnabled ? "translate-x-[22px]" : "translate-x-0",
                 )}
               />
@@ -180,11 +180,11 @@ export default function SettingsPage() {
           </div>
 
           {/* Feature cards grid */}
-          <div className="border-t border-white/5 px-6 py-5">
+          <div className="border-t border-border px-6 py-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FeatureCard
                 icon={Search}
-                iconColor="text-blue-400"
+                iconColor="text-primary"
                 title="Semantic Search"
                 description="Find photos by describing what you remember"
                 active={aiEnabled}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
               />
               <FeatureCard
                 icon={Tag}
-                iconColor="text-amber-400"
+                iconColor="text-primary"
                 title="Smart Tags"
                 description="Auto-generated labels for people, places &amp; things"
                 active={aiEnabled}
@@ -214,21 +214,21 @@ export default function SettingsPage() {
           </div>
 
           {/* Privacy details */}
-          <div className="border-t border-white/5 bg-white/[0.01] px-6 py-4">
+          <div className="border-t border-border bg-secondary/30 px-6 py-4">
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/80" />
-              <span className="text-[11px] font-light uppercase tracking-widest text-emerald-400/80">
+              <span className="text-[11px] font-medium uppercase tracking-widest text-emerald-400/80">
                 Privacy Details
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="flex items-start gap-2.5">
-                <ImageIcon className="h-3.5 w-3.5 text-white/40 mt-0.5 shrink-0" />
+                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[11px] font-light text-white/60">
+                  <p className="text-[11px] text-foreground/80">
                     Uploaded for analysis
                   </p>
-                  <p className="text-[10px] font-light text-white/30 mt-0.5 leading-relaxed">
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
                     Low-res thumbnail only (512px max, JPEG)
                   </p>
                 </div>
@@ -236,25 +236,25 @@ export default function SettingsPage() {
               <div className="flex items-start gap-2.5">
                 <Lock className="h-3.5 w-3.5 text-emerald-400/80 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[11px] font-light text-white/60">
+                  <p className="text-[11px] text-foreground/80">
                     Always encrypted
                   </p>
-                  <p className="text-[10px] font-light text-white/30 mt-0.5 leading-relaxed">
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
                     Originals stay end-to-end encrypted
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 {aiOptIn ? (
-                  <Eye className="h-3.5 w-3.5 text-blue-400/80 mt-0.5 shrink-0" />
+                  <Eye className="h-3.5 w-3.5 text-primary/80 mt-0.5 shrink-0" />
                 ) : (
-                  <EyeOff className="h-3.5 w-3.5 text-white/40 mt-0.5 shrink-0" />
+                  <EyeOff className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                 )}
                 <div>
-                  <p className="text-[11px] font-light text-white/60">
+                  <p className="text-[11px] text-foreground/80">
                     {aiOptIn ? "AI can see thumbnails" : "AI sees nothing"}
                   </p>
-                  <p className="text-[10px] font-light text-white/30 mt-0.5 leading-relaxed">
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
                     {aiOptIn
                       ? "Only new uploads are analyzed"
                       : "No data sent for analysis"}
@@ -266,14 +266,14 @@ export default function SettingsPage() {
         </section>
 
         {/* Account */}
-        <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+        <section className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
-              <User className="h-4 w-4 text-white/40" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
+              <User className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-light tracking-wide text-white/80">Account</h2>
-              <p className="text-xs font-light text-white/40">
+              <h2 className="text-sm font-medium text-foreground">Account</h2>
+              <p className="text-xs text-muted-foreground">
                 Account management options will appear here.
               </p>
             </div>
@@ -281,14 +281,14 @@ export default function SettingsPage() {
         </section>
 
         {/* Storage */}
-        <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+        <section className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
-              <HardDrive className="h-4 w-4 text-white/40" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
+              <HardDrive className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-light tracking-wide text-white/80">Storage</h2>
-              <p className="text-xs font-light text-white/40">
+              <h2 className="text-sm font-medium text-foreground">Storage</h2>
+              <p className="text-xs text-muted-foreground">
                 Storage preferences and cleanup tools will appear here.
               </p>
             </div>
@@ -296,28 +296,28 @@ export default function SettingsPage() {
         </section>
 
         {/* Security */}
-        <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+        <section className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
-              <Lock className="h-4 w-4 text-white/40" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
+              <Lock className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-light tracking-wide text-white/80">Security</h2>
-              <p className="text-xs font-light text-white/40">
+              <h2 className="text-sm font-medium text-foreground">Security</h2>
+              <p className="text-xs text-muted-foreground">
                 End-to-end encryption key controls and recovery.
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+            <div className="rounded-lg border border-border bg-secondary/50 p-3">
               <div className="flex items-start gap-2.5">
                 <KeyRound className="mt-0.5 h-4 w-4 text-emerald-400/80" />
                 <div>
-                  <p className="text-xs font-light text-white/80">
+                  <p className="text-xs text-foreground/80">
                     Key status: {hasEncryptionKey ? "Present on this device" : "Not present"}
                   </p>
-                  <p className="mt-1 text-[11px] font-light text-white/40 leading-relaxed">
+                  <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">
                     We store your raw key only in browser IndexedDB on this device.
                     Server stores only a SHA-256 key fingerprint for verification.
                   </p>
@@ -344,7 +344,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-light text-white/40">
+              <label className="text-[11px] text-muted-foreground">
                 Create recovery bundle (forgot-key flow)
               </label>
               <Input
@@ -362,9 +362,9 @@ export default function SettingsPage() {
               </Button>
             </div>
 
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/[0.03] p-3">
-              <p className="text-[11px] font-light text-blue-300/80">Crypto profile</p>
-              <ul className="mt-2 space-y-1 text-[11px] font-light text-blue-100/60">
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[11px] text-primary/80">Crypto profile</p>
+              <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground">
                 <li>- AES-256-GCM for file encryption (client-side only)</li>
                 <li>- PBKDF2-SHA-512 (900k iterations) for recovery bundle wrapping</li>
                 <li>- SHA-256 fingerprint binding key to account</li>
@@ -375,16 +375,16 @@ export default function SettingsPage() {
         </section>
 
         {/* Sign-In Security */}
-        <section className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+        <section className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
-              <ShieldCheck className="h-4 w-4 text-white/40" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
+              <ShieldCheck className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-light tracking-wide text-white/80">
+              <h2 className="text-sm font-medium text-foreground">
                 Sign-in Security
               </h2>
-              <p className="text-xs font-light text-white/40">
+              <p className="text-xs text-muted-foreground">
                 Passkeys, 2FA, and device authorization.
               </p>
             </div>
@@ -414,19 +414,19 @@ function FeatureCard({
       className={cn(
         "flex items-start gap-3 rounded-xl border px-4 py-3 transition-all duration-300",
         active
-          ? "border-white/10 bg-white/[0.03]"
-          : "border-white/5 bg-white/[0.01] opacity-50",
+          ? "border-border bg-card"
+          : "border-border bg-card/50 opacity-50",
       )}
     >
       <Icon
         className={cn(
           "h-4 w-4 mt-0.5 shrink-0",
-          active ? iconColor : "text-white/40",
+          active ? iconColor : "text-muted-foreground",
         )}
       />
       <div>
-        <p className="text-xs font-light text-white/80">{title}</p>
-        <p className="text-[10px] font-light text-white/40 mt-0.5 leading-relaxed">
+        <p className="text-xs text-foreground/80">{title}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
           {description}
         </p>
       </div>
