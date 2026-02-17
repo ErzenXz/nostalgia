@@ -73,7 +73,12 @@ const EncryptionContext = createContext<EncryptionContextValue>({
 function EncryptionProviderWithAuth({ children }: { children: ReactNode }) {
   const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { user, userId, isAuthenticated } = useCurrentUser();
+  const {
+    user,
+    userId,
+    isAuthenticated,
+    isLoading: isUserLoading,
+  } = useCurrentUser();
   const updateEncryptionKey = useMutation(api.users.updateEncryptionKey);
 
   const storeAndSyncKey = useCallback(
@@ -126,30 +131,33 @@ function EncryptionProviderWithAuth({ children }: { children: ReactNode }) {
   );
 
   const setupNewEncryptionKey = useCallback(async (): Promise<{ key: string }> => {
+    if (isUserLoading) throw new Error("Authentication is still loading");
     if (!userId) throw new Error("User not authenticated");
     const key = await generateEncryptionKey();
     await storeAndSyncKey(userId, key);
     return { key: await exportKey(key) };
-  }, [storeAndSyncKey, userId]);
+  }, [isUserLoading, storeAndSyncKey, userId]);
 
   const importEncryptionKeyValue = useCallback(
     async (keyString: string): Promise<void> => {
+      if (isUserLoading) throw new Error("Authentication is still loading");
       if (!userId) throw new Error("User not authenticated");
       const trimmed = keyString.trim();
       if (!trimmed) throw new Error("Encryption key is required");
       const key = await importKey(trimmed);
       await storeAndSyncKey(userId, key);
     },
-    [storeAndSyncKey, userId],
+    [isUserLoading, storeAndSyncKey, userId],
   );
 
   const recoverEncryptionKey = useCallback(
     async (packageJson: string, passphrase: string): Promise<void> => {
+      if (isUserLoading) throw new Error("Authentication is still loading");
       if (!userId) throw new Error("User not authenticated");
       const key = await importKeyFromRecoveryPackage(packageJson, passphrase);
       await storeAndSyncKey(userId, key);
     },
-    [storeAndSyncKey, userId],
+    [isUserLoading, storeAndSyncKey, userId],
   );
 
   const exportCurrentEncryptionKey = useCallback(async (): Promise<string> => {
@@ -168,13 +176,19 @@ function EncryptionProviderWithAuth({ children }: { children: ReactNode }) {
   );
 
   const forgetLocalEncryptionKey = useCallback(async (): Promise<void> => {
+    if (isUserLoading) throw new Error("Authentication is still loading");
     if (!userId) throw new Error("User not authenticated");
     await deleteStoredEncryptionKey(userId);
     setEncryptionKey(null);
-  }, [userId]);
+  }, [isUserLoading, userId]);
 
   // Auto-initialize encryption when user is authenticated
   useEffect(() => {
+    if (isUserLoading) {
+      setIsLoading(true);
+      return;
+    }
+
     if (isAuthenticated && userId) {
       initializeEncryption(userId).catch(() => {
         setEncryptionKey(null);
@@ -184,7 +198,7 @@ function EncryptionProviderWithAuth({ children }: { children: ReactNode }) {
       setEncryptionKey(null);
       setIsLoading(false);
     }
-  }, [isAuthenticated, userId, initializeEncryption]);
+  }, [isUserLoading, isAuthenticated, userId, initializeEncryption]);
 
   const hasEncryptionKey = !!encryptionKey;
   const isReady = hasEncryptionKey;

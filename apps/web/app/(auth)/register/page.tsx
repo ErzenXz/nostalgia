@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Turnstile } from "@/components/auth/turnstile";
 import {
   Lock,
   Mail,
@@ -13,17 +14,41 @@ import {
   EyeOff,
   ArrowRight,
   Shield,
+  Github,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 export default function RegisterPage() {
   const router = useRouter();
+  const params = useSearchParams();
+  const redirectTo = params.get("redirect") ?? "/photos";
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  const handleSocial = async (provider: "google" | "github") => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const result = await authClient.signIn.social({ provider });
+      if (result.error) {
+        setError(result.error.message ?? "Sign in failed. Please try again.");
+      }
+      // On success this usually redirects away.
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +60,15 @@ export default function RegisterPage() {
         email,
         password,
         name,
+        ...(turnstileSiteKey
+          ? {
+              fetchOptions: {
+                headers: {
+                  "x-captcha-response": captchaToken ?? "",
+                },
+              },
+            }
+          : {}),
       });
 
       if (result.error) {
@@ -42,7 +76,7 @@ export default function RegisterPage() {
           result.error.message ?? "Registration failed. Please try again.",
         );
       } else {
-        router.push("/photos");
+        router.push(redirectTo);
       }
     } catch (err) {
       setError(
@@ -72,6 +106,37 @@ export default function RegisterPage() {
           <p className="text-sm text-red-400 text-center">{error}</p>
         </div>
       )}
+
+      {/* Social */}
+      <div className="space-y-3">
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full justify-center gap-2"
+          onClick={() => handleSocial("google")}
+          disabled={isLoading}
+        >
+          <span className="text-sm font-medium">Continue with Google</span>
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full justify-center gap-2"
+          onClick={() => handleSocial("github")}
+          disabled={isLoading}
+        >
+          <Github className="h-4 w-4" />
+          <span className="text-sm font-medium">Continue with GitHub</span>
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          or
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -148,11 +213,24 @@ export default function RegisterPage() {
           <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
         </div>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isLoading || (Boolean(turnstileSiteKey) && !captchaToken)}
+        >
           {isLoading ? "Creating account..." : "Create Account"}
           {!isLoading && <ArrowRight className="h-4 w-4" />}
         </Button>
       </form>
+
+      {/* Captcha */}
+      {turnstileSiteKey ? (
+        <Turnstile
+          siteKey={turnstileSiteKey}
+          onToken={setCaptchaToken}
+          action="register"
+        />
+      ) : null}
 
       {/* Footer */}
       <div className="text-center text-sm text-muted-foreground">

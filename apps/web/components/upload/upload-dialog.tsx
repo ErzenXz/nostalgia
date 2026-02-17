@@ -390,11 +390,13 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-green-400" />
-            Upload Photos
+          <DialogTitle className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10">
+              <Shield className="h-4 w-4 text-amber-400" />
+            </div>
+            <span className="font-light tracking-wide">Upload Photos</span>
           </DialogTitle>
           <DialogDescription>
             Your photos are encrypted before upload. Only you can see them.
@@ -402,121 +404,164 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
         </DialogHeader>
 
         {!hasEncryptionKey && (
-          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-4">
-            <div className="flex items-start gap-3">
-              <KeyRound className="mt-0.5 h-4 w-4 text-amber-300" />
-              <div className="space-y-3 text-xs text-amber-100/90">
-                <p className="text-sm font-medium text-amber-100">
-                  Set your encryption key before uploading
-                </p>
-                <p>
-                  We never store your plaintext key on the server. Save your key and
-                  recovery bundle to USB/offline storage.
-                </p>
+          <div className="mt-2 space-y-4">
+            {/* Key requirement banner */}
+            <div className="relative overflow-hidden rounded-xl border border-amber-400/20 bg-gradient-to-br from-amber-400/[0.03] via-transparent to-transparent p-5">
+              {/* Ambient glow */}
+              <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl" />
+              
+              <div className="relative flex items-start gap-4">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-400/10 ring-1 ring-amber-400/20">
+                  <KeyRound className="h-5 w-5 text-amber-400/80" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <h3 className="text-sm font-light tracking-wide text-white/90">
+                    Set your encryption key
+                  </h3>
+                  <p className="text-xs font-light leading-relaxed text-white/40">
+                    We never store your plaintext key on the server. Save your key and recovery bundle to USB or offline storage.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-[11px] text-amber-100/80">
-                    Recovery passphrase (for new key bundle)
+            {/* Create new key section */}
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5">
+              <div className="mb-4 flex items-center gap-2.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400/60" />
+                <h4 className="text-xs font-light uppercase tracking-widest text-white/50">
+                  Create New Key
+                </h4>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-light text-white/40">
+                    Recovery passphrase
                   </label>
                   <Input
                     type="password"
                     value={newKeyRecoveryPassphrase}
                     onChange={(e) => setNewKeyRecoveryPassphrase(e.target.value)}
-                    placeholder="Use a long unique passphrase"
+                    placeholder="Use a long unique passphrase (12+ chars)"
                   />
-                  <Button
-                    size="sm"
-                    onClick={handleCreateKey}
-                    disabled={isSettingKey || encryptionLoading}
-                  >
-                    {isSettingKey ? "Creating..." : "Create New Encryption Key"}
-                  </Button>
                 </div>
+                <Button
+                  size="sm"
+                  onClick={handleCreateKey}
+                  disabled={isSettingKey || encryptionLoading}
+                  className="w-full"
+                >
+                  {isSettingKey ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create New Encryption Key"
+                  )}
+                </Button>
+              </div>
 
-                {freshKey && (
-                  <div className="space-y-2 rounded-lg border border-amber-300/30 bg-black/20 p-3">
-                    <p className="text-[11px] text-amber-100/90">
-                      Save these files now. If lost, your encrypted photos cannot be
-                      decrypted.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
+              {/* Fresh key download section */}
+              {freshKey && (
+                <div className="mt-4 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.03] p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs font-light text-emerald-400/90">
+                      Key created successfully
+                    </span>
+                  </div>
+                  <p className="mb-3 text-[11px] font-light leading-relaxed text-white/50">
+                    Save these files now. If lost, your encrypted photos cannot be decrypted.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        downloadTextFile("nostalgia-encryption-key.txt", freshKey)
+                      }
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Raw Key
+                    </Button>
+                    {freshRecoveryBundle && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() =>
-                          downloadTextFile(
-                            "nostalgia-encryption-key.txt",
-                            freshKey,
-                          )
+                          downloadTextFile("nostalgia-recovery-bundle.json", freshRecoveryBundle)
                         }
                       >
                         <Download className="h-3.5 w-3.5" />
-                        Download Raw Key
+                        Recovery Bundle
                       </Button>
-                      {freshRecoveryBundle && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            downloadTextFile(
-                              "nostalgia-recovery-bundle.json",
-                              freshRecoveryBundle,
-                            )
-                          }
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Download Recovery Bundle
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
 
-                <div className="grid gap-2 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-[11px] text-amber-100/80">
-                      Import existing encryption key
-                    </label>
-                    <Input
-                      value={manualKeyInput}
-                      onChange={(e) => setManualKeyInput(e.target.value)}
-                      placeholder="Paste raw base64 key"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleImportKey}
-                      disabled={isSettingKey || encryptionLoading}
-                    >
-                      Import Key
-                    </Button>
-                  </div>
+            {/* Import/Recover section */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Import existing key */}
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <div className="mb-3 flex items-center gap-2.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400/60" />
+                  <h4 className="text-xs font-light uppercase tracking-widest text-white/50">
+                    Import Key
+                  </h4>
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    value={manualKeyInput}
+                    onChange={(e) => setManualKeyInput(e.target.value)}
+                    placeholder="Paste raw base64 key"
+                    className="text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleImportKey}
+                    disabled={isSettingKey || encryptionLoading}
+                    className="w-full"
+                  >
+                    Import Existing Key
+                  </Button>
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[11px] text-amber-100/80">
-                      Recover from bundle + passphrase (forgot key)
-                    </label>
-                    <textarea
-                      value={recoveryPackageInput}
-                      onChange={(e) => setRecoveryPackageInput(e.target.value)}
-                      placeholder="Paste recovery package JSON"
-                      className="min-h-20 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <Input
-                      type="password"
-                      value={recoveryPassphrase}
-                      onChange={(e) => setRecoveryPassphrase(e.target.value)}
-                      placeholder="Recovery passphrase"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleRecoverKey}
-                      disabled={isSettingKey || encryptionLoading}
-                    >
-                      Recover Key
-                    </Button>
-                  </div>
+              {/* Recover from bundle */}
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <div className="mb-3 flex items-center gap-2.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-purple-400/60" />
+                  <h4 className="text-xs font-light uppercase tracking-widest text-white/50">
+                    Recover Key
+                  </h4>
+                </div>
+                <div className="space-y-2">
+                  <textarea
+                    value={recoveryPackageInput}
+                    onChange={(e) => setRecoveryPackageInput(e.target.value)}
+                    placeholder="Paste recovery bundle JSON"
+                    className="min-h-[60px] w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-light text-white/90 placeholder:text-white/30 focus:border-amber-400/30 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+                  />
+                  <Input
+                    type="password"
+                    value={recoveryPassphrase}
+                    onChange={(e) => setRecoveryPassphrase(e.target.value)}
+                    placeholder="Recovery passphrase"
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleRecoverKey}
+                    disabled={isSettingKey || encryptionLoading}
+                    className="w-full"
+                  >
+                    Recover from Bundle
+                  </Button>
                 </div>
               </div>
             </div>
@@ -528,28 +573,37 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             {/* Drop zone */}
             <div
               className={cn(
-                "mt-4 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors",
+                "group relative mt-2 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-all duration-300 cursor-pointer",
                 isDragging
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-muted-foreground/50",
+                  ? "border-amber-400/40 bg-amber-400/5"
+                  : "border-white/10 hover:border-white/20 hover:bg-white/[0.01]",
               )}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload
-                className={cn(
-                  "mb-3 h-8 w-8",
-                  isDragging ? "text-primary" : "text-muted-foreground",
-                )}
-              />
-              <p className="text-sm font-medium text-foreground">
-                Drop photos here or click to browse
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                JPG, PNG, HEIC, WebP, RAW supported
-              </p>
+              {/* Ambient glow on hover */}
+              <div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <div className="absolute inset-0 rounded-xl" style={{ background: "radial-gradient(ellipse 50% 50% at 50% 50%, rgba(201, 168, 124, 0.05), transparent)" }} />
+              </div>
+              
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10 transition-all duration-300 group-hover:bg-amber-400/10 group-hover:ring-amber-400/20">
+                  <Upload
+                    className={cn(
+                      "h-6 w-6 transition-colors duration-300",
+                      isDragging ? "text-amber-400" : "text-white/40 group-hover:text-amber-400/80",
+                    )}
+                  />
+                </div>
+                <p className="text-sm font-light tracking-wide text-white/80">
+                  Drop photos here or click to browse
+                </p>
+                <p className="mt-1.5 text-xs font-light text-white/30">
+                  JPG, PNG, HEIC, WebP, RAW, Video
+                </p>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -564,29 +618,28 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
             {files.length > 0 && (
               <div
                 className={cn(
-                  "mt-3 flex items-center gap-2.5 rounded-lg border px-3 py-2 text-xs",
+                  "mt-3 flex items-center gap-2.5 rounded-lg border px-4 py-3 text-xs font-light",
                   aiOptIn
-                    ? "border-purple-500/20 bg-purple-500/[0.06] text-purple-300"
-                    : "border-border bg-secondary/30 text-muted-foreground",
+                    ? "border-purple-400/20 bg-purple-400/[0.03] text-purple-300/80"
+                    : "border-white/5 bg-white/[0.02] text-white/40",
                 )}
               >
                 {aiOptIn ? (
                   <>
-                    <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                    <Sparkles className="h-3.5 w-3.5 text-purple-400/80 shrink-0" />
                     <span>
-                      <span className="font-medium">AI Intelligence on</span>
-                      {" — "}analysis thumbnails will be created for smart search,
-                      captions &amp; tags
+                      <span className="text-purple-400/90">AI Intelligence on</span>
+                      {" — "}analysis thumbnails will be created for smart search, captions &amp; tags
                     </span>
                   </>
                 ) : (
                   <>
-                    <Brain className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <Brain className="h-3.5 w-3.5 text-white/40 shrink-0" />
                     <span>
                       AI Intelligence off — enable in{" "}
                       <a
                         href="/settings"
-                        className="underline underline-offset-2 hover:text-foreground transition-colors"
+                        className="text-amber-400/70 underline underline-offset-2 hover:text-amber-400 transition-colors"
                       >
                         Settings
                       </a>{" "}
@@ -601,36 +654,40 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
         {/* File list */}
         {hasEncryptionKey && files.length > 0 && (
-          <div className="mt-4 max-h-60 space-y-2 overflow-y-auto">
+          <div className="mt-4 max-h-60 space-y-2 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
             {files.map((uploadFile) => (
               <div
                 key={uploadFile.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-secondary/50 px-3 py-2"
+                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3"
               >
-                <FileImage className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/5">
+                  <FileImage className="h-4 w-4 text-white/40" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm text-foreground">
+                  <p className="truncate text-sm font-light text-white/80">
                     {uploadFile.file.name}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[11px] font-light text-white/30">
                       {formatBytes(uploadFile.file.size)}
                     </span>
                     {uploadFile.status !== "pending" &&
                       uploadFile.status !== "completed" &&
                       uploadFile.status !== "failed" && (
                         <>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px] font-light text-amber-400/70">
                             {statusLabel(uploadFile.status)}
                           </span>
-                          <Progress
-                            value={uploadFile.progress}
-                            className="h-1 flex-1"
-                          />
+                          <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/5">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-amber-400/60 to-amber-400/40 transition-all duration-300"
+                              style={{ width: `${uploadFile.progress}%` }}
+                            />
+                          </div>
                         </>
                       )}
                     {uploadFile.error && (
-                      <span className="text-[11px] text-destructive">
+                      <span className="text-[11px] font-light text-rose-400/80">
                         {uploadFile.error}
                       </span>
                     )}
@@ -638,15 +695,19 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                 </div>
                 <div className="flex-shrink-0">
                   {uploadFile.status === "completed" && (
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-400/10">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    </div>
                   )}
                   {uploadFile.status === "failed" && (
-                    <AlertCircle className="h-4 w-4 text-destructive" />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-400/10">
+                      <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+                    </div>
                   )}
                   {(uploadFile.status === "encrypting" ||
                     uploadFile.status === "uploading" ||
                     uploadFile.status === "saving") && (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-400/60" />
                   )}
                   {uploadFile.status === "pending" && (
                     <button
@@ -654,9 +715,9 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                         e.stopPropagation();
                         removeFile(uploadFile.id);
                       }}
-                      className="rounded p-0.5 hover:bg-accent"
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-white/30 transition-colors hover:bg-white/5 hover:text-white/60"
                     >
-                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
@@ -667,15 +728,15 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
 
         {/* Footer */}
         {hasEncryptionKey && files.length > 0 && (
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {files.length} file{files.length !== 1 ? "s" : ""} -{" "}
+          <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4">
+            <p className="text-xs font-light text-white/40">
+              {files.length} file{files.length !== 1 ? "s" : ""} ·{" "}
               {formatBytes(totalSize)}
-              {isUploading && ` - ${completedCount}/${files.length} uploaded`}
+              {isUploading && ` · ${completedCount}/${files.length} uploaded`}
             </p>
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => {
                   setFiles([]);

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.29",
+    "@better-auth/passkey": "1.4.9",
     "@convex-dev/better-auth": "^0.10.10",
     "ai": "^6.0.86",
     "better-auth": "1.4.9",

@@ -130,7 +130,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### 6. Set up authentication
 
-Better Auth is scaffolded and ready. Configure your auth providers in `apps/web/lib/auth.ts`. See the [Better Auth docs](https://www.better-auth.com/docs) for provider setup.
+Better Auth is scaffolded and ready. Configure providers and plugins in `/Users/erzenkrasniqi/Projects/Nostalgia/packages/backend/convex/betterAuth/auth.ts` (Better Auth runs in the Convex backend). See the [Better Auth docs](https://www.better-auth.com/docs) for provider setup.
 
 ## Building for Production
 

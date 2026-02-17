@@ -53,12 +53,12 @@ function FeedThumbnail({ photo }: { photo: any }) {
   return (
     <Link
       href={`/photos/${photo._id}`}
-      className="group relative flex-shrink-0 aspect-square w-40 sm:w-44 md:w-48 overflow-hidden rounded-xl bg-secondary hover:ring-2 hover:ring-primary/50 transition-all"
+      className="group relative flex-shrink-0 aspect-square w-40 sm:w-44 md:w-48 overflow-hidden rounded-xl bg-secondary transition-all duration-300 hover:shadow-2xl hover:shadow-black/30"
     >
       {url ? (
         isVideo ? (
           <video
-            className="absolute inset-0 h-full w-full object-cover transition-transform group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             src={url}
             muted
             playsInline
@@ -69,7 +69,7 @@ function FeedThumbnail({ photo }: { photo: any }) {
             src={url}
             alt={photo.description || photo.fileName}
             fill
-            className="object-cover transition-transform group-hover:scale-105"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="200px"
             unoptimized
           />
@@ -77,18 +77,43 @@ function FeedThumbnail({ photo }: { photo: any }) {
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted animate-pulse" />
       )}
+
+      {/* Vignette overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40 transition-opacity duration-300 group-hover:opacity-70"
+        style={{
+          background: "radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.6) 100%)",
+        }}
+      />
+
+      {/* Warm color tint on hover */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-15"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,200,150,0.5) 0%, rgba(200,150,100,0.3) 100%)",
+        }}
+      />
+
+      {/* Favorite badge */}
       {photo.isFavorite && (
-        <div className="absolute top-2 right-2">
-          <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500 drop-shadow-sm" />
+        <div className="absolute top-2 right-2 z-10">
+          <Heart className="h-3.5 w-3.5 fill-rose-400/90 text-rose-400/90 drop-shadow-sm" />
         </div>
       )}
+
+      {/* Bottom gradient with location */}
       {photo.locationName && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 pt-6 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="text-[10px] text-white truncate block">
-            {photo.locationName}
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-2 pt-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <span className="flex items-center gap-1 text-[10px] font-light tracking-wide text-white/90">
+            <MapPin className="h-2.5 w-2.5" />
+            <span className="truncate">{photo.locationName}</span>
           </span>
         </div>
       )}
+
+      {/* Film strip edge effect */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
     </Link>
   );
 }
@@ -100,36 +125,34 @@ function FeedSection({
   photos,
   linkHref,
   linkLabel,
-  gradient,
 }: {
   title: string;
   icon: React.ReactNode;
   photos: any[];
   linkHref?: string;
   linkLabel?: string;
-  gradient?: string;
 }) {
   if (photos.length === 0) return null;
 
   return (
     <div>
-      <div className="flex items-center justify-between px-8 mb-3">
-        <div className="flex items-center gap-2">
-          {icon}
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          <span className="text-xs text-muted-foreground">{photos.length}</span>
+      <div className="flex items-center justify-between px-8 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="text-amber-400/70">{icon}</div>
+          <h2 className="text-sm font-light tracking-wide text-white/80">{title}</h2>
+          <span className="text-xs font-light text-white/30">{photos.length}</span>
         </div>
         {linkHref && (
           <Link
             href={linkHref}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="group flex items-center gap-1 text-xs font-light text-white/40 transition-colors hover:text-white/70"
           >
             {linkLabel ?? "See all"}
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
           </Link>
         )}
       </div>
-      <div className="flex gap-2 overflow-x-auto px-8 pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
+      <div className="flex gap-3 overflow-x-auto px-8 pb-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         {photos.slice(0, 20).map((photo: any) => (
           <FeedThumbnail key={photo._id} photo={photo} />
         ))}
@@ -259,7 +282,7 @@ function PhotosContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-amber-400/50" />
       </div>
     );
   }
@@ -296,9 +319,9 @@ function PhotosContent() {
       </PageHeader>
 
       {photos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-          <Images className="h-12 w-12 opacity-50" />
-          <p className="mt-4 text-sm">
+        <div className="flex flex-col items-center justify-center py-24 text-white/40">
+          <Images className="h-12 w-12 opacity-30" />
+          <p className="mt-4 text-sm font-light tracking-wide">
             Upload your first photos to get started
           </p>
           <Button

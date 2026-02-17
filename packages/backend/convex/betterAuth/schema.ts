@@ -20,6 +20,8 @@ export const tables = {
     createdAt: v.number(),
     updatedAt: v.number(),
     userId: v.optional(v.union(v.null(), v.string())),
+    twoFactorEnabled: v.optional(v.union(v.null(), v.boolean())),
+    lastLoginMethod: v.optional(v.union(v.null(), v.string())),
   })
     .index("email_name", ["email","name"])
     .index("name", ["name"])
@@ -69,6 +71,37 @@ export const tables = {
     privateKey: v.string(),
     createdAt: v.number(),
     expiresAt: v.optional(v.union(v.null(), v.number())),
+  }),
+  passkey: defineTable({
+    name: v.optional(v.union(v.null(), v.string())),
+    publicKey: v.string(),
+    userId: v.string(),
+    credentialID: v.string(),
+    counter: v.number(),
+    deviceType: v.string(),
+    backedUp: v.boolean(),
+    transports: v.optional(v.union(v.null(), v.string())),
+    createdAt: v.optional(v.union(v.null(), v.number())),
+    aaguid: v.optional(v.union(v.null(), v.string())),
+  })
+    .index("credentialID", ["credentialID"])
+    .index("userId", ["userId"]),
+  twoFactor: defineTable({
+    secret: v.string(),
+    backupCodes: v.string(),
+    userId: v.string(),
+  })
+    .index("userId", ["userId"]),
+  deviceCode: defineTable({
+    deviceCode: v.string(),
+    userCode: v.string(),
+    userId: v.optional(v.union(v.null(), v.string())),
+    expiresAt: v.number(),
+    status: v.string(),
+    lastPolledAt: v.optional(v.union(v.null(), v.number())),
+    pollingInterval: v.optional(v.union(v.null(), v.number())),
+    clientId: v.optional(v.union(v.null(), v.string())),
+    scope: v.optional(v.union(v.null(), v.string())),
   }),
 };
 
