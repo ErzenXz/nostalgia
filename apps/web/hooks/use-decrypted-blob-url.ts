@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { decryptBlob } from "@/lib/encryption";
 import { useEncryption } from "@/components/providers/encryption-provider";
+import {
+  getCachedThumbnail,
+  setCachedThumbnail,
+} from "@/lib/thumbnail-cache";
 
 type CacheEntry = { url: string; expiresAt: number };
 
@@ -10,7 +14,7 @@ const decryptedUrlCache = new Map<string, CacheEntry>();
 const inFlight = new Map<string, Promise<string>>();
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const MAX_CACHE_ENTRIES = 250;
+const MAX_CACHE_ENTRIES = 500;
 
 function evictIfNeeded() {
   if (decryptedUrlCache.size <= MAX_CACHE_ENTRIES) return;
@@ -53,6 +57,7 @@ export function useDecryptedBlobUrl({
       return;
     }
 
+    // Check memory cache first
     const cached = decryptedUrlCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       setUrl(cached.url);
@@ -65,6 +70,19 @@ export function useDecryptedBlobUrl({
     const task =
       existing ??
       (async () => {
+        // Check IndexedDB cache for thumbnails
+        const idbBlob = await getCachedThumbnail(cacheKey).catch(() => null);
+        if (idbBlob) {
+          const objectUrl = URL.createObjectURL(idbBlob);
+          decryptedUrlCache.set(cacheKey, {
+            url: objectUrl,
+            expiresAt: Date.now() + CACHE_TTL_MS,
+          });
+          evictIfNeeded();
+          return objectUrl;
+        }
+
+        // Fetch and decrypt
         const res = await fetch(signedUrl);
         if (!res.ok) {
           throw new Error(`Failed to fetch encrypted blob: ${res.status}`);
@@ -79,6 +97,11 @@ export function useDecryptedBlobUrl({
         });
         evictIfNeeded();
 
+        // Persist thumbnail to IndexedDB (fire-and-forget, only for small blobs < 500KB)
+        if (decrypted.size < 500 * 1024) {
+          setCachedThumbnail(cacheKey, decrypted).catch(() => {});
+        }
+
         return objectUrl;
       })();
 
@@ -91,7 +114,6 @@ export function useDecryptedBlobUrl({
         if (!cancelled) setUrl(objectUrl);
       })
       .catch(() => {
-        // Leave as null; callers should render placeholders.
         if (!cancelled) setUrl(null);
       })
       .finally(() => {
@@ -105,4 +127,3 @@ export function useDecryptedBlobUrl({
 
   return url;
 }
-

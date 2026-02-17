@@ -32,12 +32,23 @@
   --color-glow-warm: rgba(201, 166, 107, 0.15);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif), "Playfair Display", "Georgia", ui-serif, serif;
   --font-mono: "GeistMono", ui-monospace, monospace;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+
+  /* Consistent transition durations */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  /* Easing curves */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 * {
@@ -52,20 +63,35 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Warm atmospheric background with subtle vignette */
+/* ─── Film Grain Overlay ──────────────────────────────────── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  mix-blend-mode: overlay;
+}
+
+/* ─── Warm Atmospheric Vignette ───────────────────────────── */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201, 166, 107, 0.03), transparent),
-    radial-gradient(ellipse 60% 40% at 0% 50%, rgba(139, 90, 43, 0.02), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 50%, rgba(139, 90, 43, 0.02), transparent);
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(201, 166, 107, 0.04), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 0% 50%, rgba(139, 90, 43, 0.03), transparent),
+    radial-gradient(ellipse 70% 50% at 100% 50%, rgba(139, 90, 43, 0.03), transparent),
+    radial-gradient(ellipse 120% 120% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.15) 100%);
   pointer-events: none;
   z-index: -1;
 }
 
-/* Custom scrollbar - warm tinted */
+/* ─── Custom Scrollbar - Warm Tinted ──────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -84,82 +110,172 @@ body::before {
   background: #c9a66b;
 }
 
-/* Photo grid selection */
+/* ─── Typography ──────────────────────────────────────────── */
+.font-heading {
+  font-family: var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+/* ─── Photo Grid Item ─────────────────────────────────────── */
 .photo-grid-item {
   transition:
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--duration-slow) var(--ease-out-expo),
+    box-shadow var(--duration-slow) var(--ease-out-expo);
 }
 
 .photo-grid-item:hover {
   transform: scale(1.02);
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(201, 166, 107, 0.1);
+  box-shadow:
+    0 8px 32px -8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(201, 166, 107, 0.1),
+    0 0 24px -4px rgba(201, 166, 107, 0.06);
 }
 
-/* Nostalgic fade-in animation */
+/* ─── Glassmorphism ───────────────────────────────────────── */
+.glass {
+  background: rgba(20, 20, 20, 0.75);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.glass-subtle {
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(12px) saturate(1.1);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* ─── Polaroid Effect ─────────────────────────────────────── */
+.polaroid {
+  padding: 6px 6px 24px 6px;
+  background: linear-gradient(145deg, #faf8f5, #eee8df);
+  border-radius: 2px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* ─── Sepia Filter Toggle ─────────────────────────────────── */
+.sepia-warm {
+  filter: sepia(0.15) saturate(1.1) brightness(0.95);
+}
+
+/* ─── Animations ──────────────────────────────────────────── */
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: scale(1.05);
   }
-
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
-/* Film-like slide animation */
 @keyframes slideIn {
   from {
     opacity: 0;
     transform: translateX(20px);
   }
-
   to {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
-/* Subtle pulse for loading states */
-@keyframes subtlePulse {
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+@keyframes subtlePulse {
   0%,
   100% {
     opacity: 0.5;
   }
-
   50% {
     opacity: 0.8;
   }
 }
 
-/* Warm glow effect */
 @keyframes warmGlow {
-
   0%,
   100% {
     opacity: 0.15;
   }
-
   50% {
     opacity: 0.25;
   }
 }
 
-/* Shimmer animation for skeleton loading */
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);
   }
-
   100% {
     transform: translateX(100%);
   }
 }
 
-/* Map markers - warm tinted */
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.3);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ─── Hide Scrollbar ──────────────────────────────────────── */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Sonner Toast Overrides ──────────────────────────────── */
+[data-sonner-toaster] [data-sonner-toast] {
+  --normal-bg: #1a1a1a;
+  --normal-border: #2a2825;
+  --normal-text: #e8e4dc;
+  border: 1px solid rgba(201, 166, 107, 0.1);
+  background: rgba(20, 20, 20, 0.9);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-title] {
+  color: #e8e4dc;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-description] {
+  color: #8a8578;
+}
+
+/* ─── Safe Area ───────────────────────────────────────────── */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── Map Markers ─────────────────────────────────────────── */
 .map-cluster-marker {
   background: rgba(201, 166, 107, 0.9);
   color: #0d0d0d;
@@ -173,7 +289,7 @@ body::before {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Skeuomorphic card styling */
+/* ─── Skeuomorphic Card ───────────────────────────────────── */
 .skeuo-card {
   background: linear-gradient(145deg, #1a1a1a, #141414);
   border: 1px solid #2a2825;

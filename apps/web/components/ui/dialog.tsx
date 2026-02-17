@@ -43,7 +43,7 @@ export const DialogContent = forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-border bg-card p-6 shadow-2xl shadow-black/40 animate-in fade-in zoom-in-95 duration-200",
+      "glass rounded-2xl p-6 shadow-2xl shadow-black/40 animate-in fade-in zoom-in-95 duration-200",
       className,
     )}
     {...props}
@@ -65,7 +65,7 @@ export const DialogTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn("text-lg font-medium text-foreground", className)}
+    className={cn("text-lg font-heading font-semibold text-foreground", className)}
     {...props}
   />
 ));

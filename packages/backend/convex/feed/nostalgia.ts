@@ -232,15 +232,68 @@ export const getNostalgiaFeed = action({
 
     const pool = Array.from(dedup.values());
 
-    // Score candidates.
+    // Enhanced scoring with time-of-day, seasonal, face, and quality factors.
+    const nowDate = new Date(now);
+    const currentHour = nowDate.getHours();
+    const currentMonth = nowDate.getMonth();
+
     const scored = pool.map((p) => {
       const t = p.takenAt ?? p.uploadedAt;
       const ageDays = Math.max(0, (now - t) / DAY_MS);
+
+      // Base nostalgia: older photos feel more nostalgic (log scale)
       const nostalgiaScore = Math.log1p(ageDays / 365);
+
+      // Favorite boost
       const favBoost = p.isFavorite ? 0.5 : 0;
+
+      // Semantic coherence with recent session topic
       const coherence = topic && Array.isArray(p.embeddingClipV2) ? dot(topic, p.embeddingClipV2) : 0;
+
+      // Tag richness bonus
       const tagBoost = Array.isArray(p.aiTagsV2) ? Math.min(0.4, p.aiTagsV2.length / 60) : 0;
-      const total = nostalgiaScore + favBoost + 0.8 * coherence + tagBoost;
+
+      // Time-of-day relevance: sunset photos in evening, morning photos in morning
+      let timeOfDayBoost = 0;
+      if (p.takenAt) {
+        const photoHour = new Date(p.takenAt).getHours();
+        const hourDiff = Math.abs(photoHour - currentHour);
+        if (hourDiff <= 2) timeOfDayBoost = 0.2;
+        else if (hourDiff <= 4) timeOfDayBoost = 0.1;
+      }
+
+      // Seasonal matching: show winter photos in winter, summer in summer
+      let seasonalBoost = 0;
+      if (p.takenAt) {
+        const photoMonth = new Date(p.takenAt).getMonth();
+        const monthDiff = Math.min(
+          Math.abs(photoMonth - currentMonth),
+          12 - Math.abs(photoMonth - currentMonth),
+        );
+        if (monthDiff <= 1) seasonalBoost = 0.25;
+        else if (monthDiff <= 2) seasonalBoost = 0.1;
+      }
+
+      // Face detection: photos with people are more engaging
+      const faceBoost = (typeof p.detectedFaces === "number" && p.detectedFaces > 0)
+        ? Math.min(0.3, p.detectedFaces * 0.15)
+        : 0;
+
+      // AI quality score
+      const qualityBoost = (p.aiQuality?.score != null)
+        ? (p.aiQuality.score - 0.5) * 0.4
+        : 0;
+
+      const total =
+        nostalgiaScore +
+        favBoost +
+        0.8 * coherence +
+        tagBoost +
+        timeOfDayBoost +
+        seasonalBoost +
+        faceBoost +
+        qualityBoost;
+
       return {
         photo: p,
         total,
@@ -285,6 +338,7 @@ export const getNostalgiaFeed = action({
         photoId: p._id,
         takenAt: p.takenAt ?? null,
         uploadedAt: p.uploadedAt,
+        mimeType: p.mimeType ?? "image/jpeg",
         reason: pickReason(mode, p.takenAt, now),
         score: chosen.total,
         scoreBreakdown: {
@@ -293,6 +347,8 @@ export const getNostalgiaFeed = action({
         },
         captionShort: p.captionShort ?? null,
         aiTagsV2: p.aiTagsV2 ?? null,
+        locationName: p.locationName ?? null,
+        detectedFaces: p.detectedFaces ?? null,
       });
       if (Array.isArray(p.embeddingClipV2)) selectedVecs.push(p.embeddingClipV2);
     }

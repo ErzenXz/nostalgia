@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn, formatBytes } from "@/lib/utils";
 import { encryptBlob, encryptFile } from "@/lib/encryption";
 import { createImageThumbnailBlob } from "@/lib/thumbnails";
+import { createVideoThumbnailBlob } from "@/lib/video-thumbnails";
 import { useEncryption } from "@/components/providers/encryption-provider";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAiOptInForUserId } from "@/hooks/use-ai-opt-in";
@@ -24,6 +25,8 @@ import {
   Upload,
   X,
   FileImage,
+  FileVideo,
+  FileAudio,
   Shield,
   CheckCircle2,
   AlertCircle,
@@ -157,7 +160,17 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
           encryptedThumbnailBlob = (await encryptBlob(thumb, encryptionKey))
             .encryptedBlob;
         } catch {
-          // Thumbnail is best-effort; original upload should still succeed.
+          encryptedThumbnailBlob = null;
+        }
+      } else if (uploadFile.file.type.startsWith("video/")) {
+        try {
+          const thumb = await createVideoThumbnailBlob(uploadFile.file, {
+            maxSize: 512,
+            quality: 0.82,
+          });
+          encryptedThumbnailBlob = (await encryptBlob(thumb, encryptionKey))
+            .encryptedBlob;
+        } catch {
           encryptedThumbnailBlob = null;
         }
       }
@@ -601,14 +614,14 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                   Drop photos here or click to browse
                 </p>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  JPG, PNG, HEIC, WebP, RAW, Video
+                  Photos, Videos, Audio files
                 </p>
               </div>
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*,video/*"
+                accept="image/*,video/*,audio/*"
                 className="hidden"
                 onChange={(e) => e.target.files && addFiles(e.target.files)}
               />
@@ -660,8 +673,14 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
                 key={uploadFile.id}
                 className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
               >
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-secondary">
-                  <FileImage className="h-4 w-4 text-muted-foreground" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                  {uploadFile.file.type.startsWith("video/") ? (
+                    <FileVideo className="h-4 w-4 text-muted-foreground" />
+                  ) : uploadFile.file.type.startsWith("audio/") ? (
+                    <FileAudio className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <FileImage className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-sm text-foreground">

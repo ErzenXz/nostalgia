@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, Suspense, memo } from "react";
+import { useState, useCallback, useMemo, useRef, Suspense, memo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,9 +11,11 @@ import { usePhotoUrl } from "@/hooks/use-photo-url";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
 import { PageHeader } from "@/components/layout/page-header";
 import { PhotoGrid } from "@/components/photos/photo-grid";
+import { TimelineScrubber } from "@/components/photos/timeline-scrubber";
 import { Lightbox } from "@/components/photos/lightbox";
 import { UploadDialog } from "@/components/upload/upload-dialog";
 import { Button } from "@/components/ui/button";
+import { groupPhotosByDate } from "@/lib/utils";
 import {
   Upload,
   Grid3X3,
@@ -21,10 +23,8 @@ import {
   Loader2,
   LayoutGrid,
   Heart,
-  Clock,
   MapPin,
   ChevronRight,
-  Sparkles,
 } from "lucide-react";
 
 export default function PhotosPage() {
@@ -35,7 +35,7 @@ export default function PhotosPage() {
   );
 }
 
-/** Horizontal scrollable thumbnail for feed sections - YouTube style */
+/** Horizontal scrollable thumbnail for feed sections */
 const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
   const imageKey = photo.thumbnailStorageKey || photo.storageKey;
   const signedUrl = usePhotoUrl(imageKey);
@@ -53,9 +53,8 @@ const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
   return (
     <Link
       href={`/photos/${photo._id}`}
-      className="group relative flex-shrink-0 w-[220px] overflow-hidden rounded-lg bg-zinc-900 transition-all duration-200 hover:ring-1 hover:ring-zinc-700"
+      className="group relative shrink-0 w-[200px] md:w-[220px] overflow-hidden rounded-xl bg-card/50 border border-border/30 transition-all duration-200 hover:border-border hover:shadow-lg hover:shadow-black/10"
     >
-      {/* Thumbnail */}
       <div className="relative aspect-video">
         {url ? (
           isVideo ? (
@@ -71,42 +70,39 @@ const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
               src={url}
               alt={photo.description || photo.fileName}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
               sizes="220px"
               unoptimized
             />
           )
         ) : (
-          <div className="absolute inset-0 bg-zinc-800 animate-pulse" />
+          <div className="absolute inset-0 bg-secondary/40 animate-pulse" />
         )}
-        
-        {/* Duration badge for videos */}
+
         {isVideo && (
           <div className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.5 text-[10px] text-white">
             Video
           </div>
         )}
-        
-        {/* Favorite badge */}
+
         {photo.isFavorite && (
           <div className="absolute top-1.5 right-1.5">
             <Heart className="h-3 w-3 fill-red-500 text-red-500" />
           </div>
         )}
       </div>
-      
-      {/* Info under thumbnail */}
+
       <div className="p-2.5">
-        <h3 className="text-sm font-medium text-zinc-200 line-clamp-2 leading-snug">
+        <h3 className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
           {photo.description || photo.fileName}
         </h3>
         {photo.locationName && (
-          <p className="mt-1 text-xs text-zinc-500 flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
+          <p className="mt-1 text-[10px] text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-2.5 w-2.5" />
             <span className="truncate">{photo.locationName}</span>
           </p>
         )}
-        <p className="mt-0.5 text-xs text-zinc-600">
+        <p className="mt-0.5 text-[10px] text-muted-foreground/60">
           {new Date(photo.takenAt || photo._creationTime).toLocaleDateString()}
         </p>
       </div>
@@ -114,7 +110,7 @@ const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
   );
 });
 
-/** A horizontal scroll section in the feed - YouTube style */
+/** A horizontal scroll section */
 const FeedSection = memo(function FeedSection({
   title,
   photos,
@@ -129,20 +125,20 @@ const FeedSection = memo(function FeedSection({
   if (photos.length === 0) return null;
 
   return (
-    <div className="py-4">
-      <div className="flex items-center justify-between px-8 mb-3">
-        <h2 className="text-base font-medium text-zinc-100">{title}</h2>
+    <div className="py-3">
+      <div className="flex items-center justify-between px-4 md:px-8 mb-3">
+        <h2 className="text-sm font-heading font-semibold text-foreground">{title}</h2>
         {linkHref && (
           <Link
             href={linkHref}
-            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-primary/70 hover:text-primary transition-colors"
           >
             {linkLabel ?? "See all"}
             <ChevronRight className="h-3 w-3" />
           </Link>
         )}
       </div>
-      <div className="flex gap-3 overflow-x-auto px-8 pb-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800">
+      <div className="flex gap-3 overflow-x-auto px-4 md:px-8 pb-2 scrollbar-none">
         {photos.slice(0, 12).map((photo: any) => (
           <FeedThumbnail key={photo._id} photo={photo} />
         ))}
@@ -161,6 +157,7 @@ function PhotosContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectable, setSelectable] = useState(false);
   const [viewMode, setViewMode] = useState<"feed" | "grid">("feed");
+  const dateRefsMap = useRef(new Map<string, HTMLDivElement>());
 
   const { userId, isLoading: userLoading } = useCurrentUser();
 
@@ -178,24 +175,42 @@ function PhotosContent() {
   const archivePhoto = useMutation(api.photos.archive);
   const trashPhoto = useMutation(api.photos.trash);
 
-  // Stabilize photos array reference
   const photos = useMemo(() => photosResult?.photos ?? [], [photosResult]);
   const isLoading = userLoading || (userId && photosResult === undefined);
 
-  // Compute feed sections - memoize with stable dependencies
+  // Timeline entries for scrubber
+  const timelineEntries = useMemo(() => {
+    if (photos.length === 0) return [];
+    const grouped = groupPhotosByDate(photos);
+    return Array.from(grouped.entries()).map(([dateKey, datePhotos]) => ({
+      label: dateKey,
+      dateKey,
+      count: datePhotos.length,
+    }));
+  }, [photos]);
+
+  // Active date key from scroll position
+  const [activeDateKey, setActiveDateKey] = useState<string | undefined>();
+
+  const handleTimelineSelect = useCallback((dateKey: string) => {
+    const el = dateRefsMap.current.get(dateKey);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveDateKey(dateKey);
+    }
+  }, []);
+
   const feedSections = useMemo(() => {
     if (!photos || photos.length === 0) return null;
 
     const now = Date.now();
     const dayMs = 86400000;
 
-    // Recent: last 7 days
     const recent = photos.filter((p: any) => {
       const t = p.takenAt ?? p.uploadedAt;
       return now - t < dayMs * 7;
     });
 
-    // This Day in History: same month+day from previous years
     const today = new Date();
     const todayMonth = today.getMonth();
     const todayDay = today.getDate();
@@ -209,7 +224,6 @@ function PhotosContent() {
       );
     });
 
-    // By Location: group by locationName, pick top locations
     const locationMap = new Map<string, any[]>();
     for (const p of photos) {
       if (p.locationName) {
@@ -222,7 +236,6 @@ function PhotosContent() {
       .sort((a, b) => b[1].length - a[1].length)
       .slice(0, 3);
 
-    // Older photos: older than 30 days
     const older = photos.filter((p: any) => {
       const t = p.takenAt ?? p.uploadedAt;
       return now - t > dayMs * 30;
@@ -273,7 +286,7 @@ function PhotosContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -310,7 +323,7 @@ function PhotosContent() {
       </PageHeader>
 
       {photos.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-white/40">
+        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground/40">
           <Images className="h-12 w-12 opacity-30" />
           <p className="mt-4 text-sm font-light tracking-wide">
             Upload your first photos to get started
@@ -326,28 +339,21 @@ function PhotosContent() {
           </Button>
         </div>
       ) : viewMode === "feed" ? (
-        /* ──── Feed View ──── */
         <div className="space-y-2 py-4">
           {feedSections && (
             <>
-              <FeedSection
-                title="Recent"
-                photos={feedSections.recent}
-              />
-
+              <FeedSection title="Recent" photos={feedSections.recent} />
               <FeedSection
                 title="On This Day"
                 photos={feedSections.onThisDay}
                 linkHref="/memories"
                 linkLabel="Memories"
               />
-
               <FeedSection
                 title="Favorites"
                 photos={feedSections.favorites}
                 linkHref="/favorites"
               />
-
               {feedSections.topLocations.map(([location, locPhotos]) => (
                 <FeedSection
                   key={location}
@@ -357,18 +363,13 @@ function PhotosContent() {
                   linkLabel="Map"
                 />
               ))}
-
-              <FeedSection
-                title="Older Photos"
-                photos={feedSections.older}
-              />
+              <FeedSection title="Older Photos" photos={feedSections.older} />
             </>
           )}
 
-          {/* All photos grid below the feed sections */}
-          <div className="px-8 pt-6 border-t border-zinc-800">
+          <div className="px-4 md:px-8 pt-6 border-t border-border/50">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium text-zinc-100">
+              <h2 className="text-sm font-heading font-semibold text-foreground">
                 All Photos
               </h2>
               <Button
@@ -381,20 +382,28 @@ function PhotosContent() {
               </Button>
             </div>
           </div>
+
+          {/* Timeline scrubber */}
+          <TimelineScrubber
+            entries={timelineEntries}
+            activeDateKey={activeDateKey}
+            onSelect={handleTimelineSelect}
+          />
+
           <PhotoGrid
             photos={photos}
             onPhotoClick={(photo) => router.push(`/photos/${photo._id}`)}
             onFavorite={handleFavorite}
             emptyMessage="Upload your first photos to get started"
             emptyIcon={<Images className="h-12 w-12 opacity-50" />}
+            stickyHeaders
+            dateRefs={dateRefsMap}
           />
         </div>
       ) : (
-        /* ──── Grid View ──── */
         <>
-          {/* Selection toolbar */}
           {selectable && selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 border-b border-border bg-secondary/50 px-8 py-2">
+            <div className="flex items-center gap-3 border-b border-border bg-secondary/30 px-4 md:px-8 py-2">
               <span className="text-sm text-foreground">
                 {selectedIds.size} selected
               </span>
@@ -434,6 +443,13 @@ function PhotosContent() {
             </div>
           )}
 
+          {/* Timeline scrubber for grid view too */}
+          <TimelineScrubber
+            entries={timelineEntries}
+            activeDateKey={activeDateKey}
+            onSelect={handleTimelineSelect}
+          />
+
           <PhotoGrid
             photos={photos}
             onPhotoClick={handlePhotoClick}
@@ -443,9 +459,10 @@ function PhotosContent() {
             onSelectionChange={setSelectedIds}
             emptyMessage="Upload your first photos to get started"
             emptyIcon={<Images className="h-12 w-12 opacity-50" />}
+            stickyHeaders
+            dateRefs={dateRefsMap}
           />
 
-          {/* Lightbox */}
           {lightboxIndex !== null && (
             <Lightbox
               photos={photos}
@@ -460,7 +477,6 @@ function PhotosContent() {
         </>
       )}
 
-      {/* Upload Dialog */}
       <UploadDialog open={showUpload} onClose={() => setShowUpload(false)} />
     </>
   );

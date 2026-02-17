@@ -12,6 +12,7 @@ import Image from "next/image";
 import { cn, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import {
   Sparkles,
   Calendar,
@@ -23,6 +24,9 @@ import {
   AlertTriangle,
   RefreshCw,
   ImageOff,
+  Share2,
+  FolderPlus,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -32,11 +36,14 @@ interface FeedItem {
   photoId: string;
   takenAt: number | null;
   uploadedAt: number;
+  mimeType?: string;
   reason: string;
   score: number;
   scoreBreakdown: { nostalgia: number; coherence: number };
   captionShort: string | null;
   aiTagsV2: string[] | null;
+  locationName?: string | null;
+  detectedFaces?: number | null;
 }
 
 const modeConfig: Record<
@@ -71,22 +78,23 @@ const modeConfig: Record<
 
 // ─── Skeleton ──────────────────────────────────────────────
 
-function FeedCardSkeleton() {
+function FeedCardSkeleton({ variant = "medium" }: { variant?: "hero" | "medium" | "small" }) {
+  const aspectClass =
+    variant === "hero" ? "aspect-[16/9]" : variant === "small" ? "aspect-square" : "aspect-[4/3]";
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="aspect-[4/3] w-full bg-secondary/60 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[shimmer_2s_infinite] -translate-x-full" />
+    <div className="rounded-2xl border border-border/50 bg-card/50 overflow-hidden">
+      <div className={cn(aspectClass, "w-full bg-secondary/40 relative overflow-hidden")}>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-[shimmer_2s_infinite] -translate-x-full" />
       </div>
-      <div className="p-5 space-y-3">
+      <div className="p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-20 rounded-full bg-secondary animate-pulse" />
-          <div className="h-3 w-28 rounded-full bg-secondary/60 animate-pulse" />
+          <div className="h-3 w-20 rounded-full bg-secondary/60 animate-pulse" />
+          <div className="h-3 w-28 rounded-full bg-secondary/40 animate-pulse" />
         </div>
-        <div className="h-4 w-3/4 rounded bg-secondary/50 animate-pulse" />
+        <div className="h-4 w-3/4 rounded bg-secondary/40 animate-pulse" />
         <div className="flex gap-1.5">
-          <div className="h-5 w-14 rounded-md bg-secondary/40 animate-pulse" />
-          <div className="h-5 w-10 rounded-md bg-secondary/40 animate-pulse" />
-          <div className="h-5 w-16 rounded-md bg-secondary/40 animate-pulse" />
+          <div className="h-5 w-14 rounded-md bg-secondary/30 animate-pulse" />
+          <div className="h-5 w-10 rounded-md bg-secondary/30 animate-pulse" />
         </div>
       </div>
     </div>
@@ -101,12 +109,14 @@ function FeedPhoto({
   mimeType,
   isEncrypted,
   alt,
+  variant = "medium",
 }: {
   storageKey: string;
   thumbnailStorageKey?: string;
   mimeType: string;
   isEncrypted?: boolean;
   alt: string;
+  variant?: "hero" | "medium" | "small";
 }) {
   const imageKey = thumbnailStorageKey || storageKey;
   const signedUrl = usePhotoUrl(imageKey);
@@ -120,27 +130,38 @@ function FeedPhoto({
   });
 
   const displayUrl = isEncrypted ? decryptedUrl : signedUrl;
+  const aspectClass =
+    variant === "hero" ? "aspect-[16/9]" : variant === "small" ? "aspect-square" : "aspect-[4/3]";
 
   if (!displayUrl) {
     return (
-      <div className="aspect-[4/3] w-full bg-secondary/60 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[shimmer_2s_infinite] -translate-x-full" />
+      <div className={cn(aspectClass, "w-full bg-secondary/40 relative overflow-hidden")}>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-[shimmer_2s_infinite] -translate-x-full" />
       </div>
     );
   }
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden">
+    <div className={cn("relative w-full overflow-hidden", aspectClass)}>
       <Image
         src={displayUrl}
         alt={alt}
         fill
-        className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-        sizes="(max-width: 768px) 100vw, 600px"
+        className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+        sizes={variant === "hero" ? "(max-width: 768px) 100vw, 80vw" : "(max-width: 768px) 100vw, 40vw"}
         unoptimized
       />
     </div>
   );
+}
+
+// ─── Time Ago Helper ───────────────────────────────────────
+
+function timeAgoLabel(timestamp: number): string {
+  const years = Math.floor((Date.now() - timestamp) / (365.25 * 24 * 60 * 60 * 1000));
+  if (years === 0) return "This year";
+  if (years === 1) return "1 year ago";
+  return `${years} years ago`;
 }
 
 // ─── Feed Card ─────────────────────────────────────────────
@@ -148,101 +169,155 @@ function FeedPhoto({
 function FeedCard({
   item,
   photo,
+  variant = "medium",
   onFavorite,
 }: {
   item: FeedItem;
   photo: any;
+  variant?: "hero" | "medium" | "small";
   onFavorite: (id: string) => void;
 }) {
+  const [isLiked, setIsLiked] = useState(photo?.isFavorite ?? false);
+
   if (!photo) return null;
 
   const date = item.takenAt ?? item.uploadedAt;
-  const year = date ? new Date(date).getFullYear() : null;
+
+  const handleFavorite = () => {
+    setIsLiked(!isLiked);
+    onFavorite(item.photoId);
+  };
 
   return (
-    <div className="group relative rounded-2xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-muted-foreground/25 hover:shadow-lg hover:shadow-black/5">
-      {/* Photo */}
-      <FeedPhoto
-        storageKey={photo.storageKey}
-        thumbnailStorageKey={photo.thumbnailStorageKey}
-        mimeType={photo.mimeType}
-        isEncrypted={photo.isEncrypted}
-        alt={item.captionShort || photo.fileName}
-      />
-
-      {/* Overlay gradient for reason text on image */}
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
-
-      {/* Reason — overlaid on the image top-left */}
-      <div className="absolute top-3 left-4 flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-md px-2.5 py-1 text-[11px] font-semibold text-white/90 uppercase tracking-wider">
-          <Sparkles className="h-3 w-3 text-purple-300" />
-          {item.reason}
-        </span>
-      </div>
-
-      {/* Favorite button */}
-      <button
-        className="absolute top-3 right-3 rounded-full bg-black/30 backdrop-blur-sm p-2 text-white/80 hover:bg-black/50 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-        onClick={() => onFavorite(item.photoId)}
-      >
-        <Heart
-          className={cn(
-            "h-4 w-4",
-            photo.isFavorite ? "fill-red-500 text-red-500" : "",
-          )}
+    <Link href={`/photos/${item.photoId}`} className="block">
+      <div className="group relative rounded-2xl border border-border/40 bg-card/60 overflow-hidden transition-all duration-300 hover:border-border hover:shadow-lg hover:shadow-black/20">
+        {/* Photo */}
+        <FeedPhoto
+          storageKey={photo.storageKey}
+          thumbnailStorageKey={photo.thumbnailStorageKey}
+          mimeType={photo.mimeType}
+          isEncrypted={photo.isEncrypted}
+          alt={item.captionShort || photo.fileName}
+          variant={variant}
         />
-      </button>
 
-      {/* Bottom overlay content — caption on image */}
-      {item.captionShort && (
-        <div className="absolute bottom-0 inset-x-0 px-5 pb-4 pointer-events-none">
-          <p className="text-sm text-white/90 font-medium leading-snug drop-shadow-sm line-clamp-2">
-            {item.captionShort}
-          </p>
+        {/* Overlay gradients */}
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
+
+        {/* Reason badge */}
+        <div className="absolute top-3 left-3">
+          <span className="glass-subtle inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold text-white/90 uppercase tracking-wider">
+            <Sparkles className="h-2.5 w-2.5 text-primary" />
+            {item.reason}
+          </span>
         </div>
-      )}
 
-      {/* Content below image */}
-      <div className="px-5 py-4 space-y-2.5">
-        {/* Date */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            {date ? formatDate(date) : "Unknown date"}
+        {/* Caption overlay on image */}
+        {item.captionShort && variant !== "small" && (
+          <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pointer-events-none">
+            <p className="text-sm text-white/90 font-medium leading-snug drop-shadow-sm line-clamp-2">
+              {item.captionShort}
+            </p>
           </div>
-          {year && (
-            <span className="text-[10px] font-medium text-muted-foreground/60 tabular-nums">
-              {Math.floor(
-                (Date.now() - (date ?? Date.now())) / (365.25 * 24 * 60 * 60 * 1000),
-              )}{" "}
-              years ago
-            </span>
-          )}
-        </div>
+        )}
 
-        {/* Tags */}
-        {item.aiTagsV2 && item.aiTagsV2.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {item.aiTagsV2.slice(0, 6).map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="text-[10px] px-1.5 py-0 bg-secondary/60"
-              >
-                {tag}
-              </Badge>
-            ))}
-            {item.aiTagsV2.length > 6 && (
-              <span className="self-center text-[10px] text-muted-foreground">
-                +{item.aiTagsV2.length - 6}
+        {/* Content below image */}
+        <div className="px-4 py-3 space-y-2">
+          {/* Date + Time ago */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              {date ? formatDate(date) : "Unknown date"}
+            </div>
+            {date && (
+              <span className="text-[10px] font-medium text-primary/60 tabular-nums">
+                {timeAgoLabel(date)}
               </span>
             )}
           </div>
-        )}
+
+          {/* Location */}
+          {photo.locationName && variant !== "small" && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground/80">
+              <MapPin className="h-3 w-3" />
+              <span className="truncate">{photo.locationName}</span>
+            </div>
+          )}
+
+          {/* Tags */}
+          {item.aiTagsV2 && item.aiTagsV2.length > 0 && variant !== "small" && (
+            <div className="flex flex-wrap gap-1">
+              {item.aiTagsV2.slice(0, variant === "hero" ? 8 : 5).map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 bg-secondary/50 text-muted-foreground"
+                >
+                  {tag}
+                </Badge>
+              ))}
+              {item.aiTagsV2.length > (variant === "hero" ? 8 : 5) && (
+                <span className="self-center text-[10px] text-muted-foreground/50">
+                  +{item.aiTagsV2.length - (variant === "hero" ? 8 : 5)}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Interaction bar */}
+          <div className="flex items-center gap-1 pt-1 -mx-1">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleFavorite();
+              }}
+            >
+              <Heart
+                className={cn(
+                  "h-4 w-4 transition-all",
+                  isLiked
+                    ? "fill-red-500 text-red-500 animate-[heartPop_0.4s_ease-out]"
+                    : "",
+                )}
+              />
+              {variant !== "small" && (
+                <span>{isLiked ? "Liked" : "Like"}</span>
+              )}
+            </button>
+            {variant !== "small" && (
+              <>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  <span>Album</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span>Share</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -250,24 +325,49 @@ function FeedCard({
 
 function FeedCardWithPhoto({
   item,
+  variant = "medium",
   onFavorite,
+  index,
 }: {
   item: FeedItem;
+  variant?: "hero" | "medium" | "small";
   onFavorite: (id: string) => void;
+  index: number;
 }) {
   const photo = useQuery(api.photos.getById, {
     photoId: item.photoId as any,
   });
 
   if (photo === undefined) {
-    return <FeedCardSkeleton />;
+    return <FeedCardSkeleton variant={variant} />;
   }
 
   if (photo === null) {
     return null;
   }
 
-  return <FeedCard item={item} photo={photo} onFavorite={onFavorite} />;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.4,
+        delay: Math.min(index * 0.06, 0.3),
+        ease: [0.16, 1, 0.3, 1],
+      }}
+    >
+      <FeedCard item={item} photo={photo} variant={variant} onFavorite={onFavorite} />
+    </motion.div>
+  );
+}
+
+// ─── Card variant helper ──────────────────────────────────
+
+function getCardVariant(index: number): "hero" | "medium" | "small" {
+  if (index === 0) return "hero";
+  const pos = (index - 1) % 5;
+  if (pos < 2) return "medium";
+  return "small";
 }
 
 // ─── Main Page ─────────────────────────────────────────────
@@ -332,9 +432,6 @@ export default function FeedPage() {
         const newItems: FeedItem[] = res.items ?? [];
         const prev = reset ? [] : itemsRef.current;
         const merged = reset ? newItems : mergeUnique(prev, newItems);
-
-        // If we didn't add anything new, stop paging to avoid infinite loops
-        // when the backend returns empty/duplicate pages (common with small libraries).
         const added = merged.length - prev.length;
         const shouldContinue = added > 0 && newItems.length > 0;
 
@@ -363,12 +460,9 @@ export default function FeedPage() {
     ],
   );
 
-  // Load on mount and mode change
   useEffect(() => {
     if (userLoading || aiOptInLoading || !userId) return;
-    // Invalidate any in-flight request from the previous mode/year.
     feedTokenRef.current += 1;
-    // Allow a fresh request for the new mode immediately.
     isLoadingRef.current = false;
     setIsLoading(false);
     itemsRef.current = [];
@@ -380,7 +474,6 @@ export default function FeedPage() {
     }
   }, [mode, deepDiveYear, aiOptIn, aiOptInLoading, loadMore, userId, userLoading]);
 
-  // Infinite scroll observer
   useEffect(() => {
     const el = observerRef.current;
     if (!el) return;
@@ -414,7 +507,7 @@ export default function FeedPage() {
           description="A story of your life, told through photos"
         />
         <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
             Sign in to view your feed
           </h3>
           <p className="text-sm text-muted-foreground max-w-md mb-6">
@@ -441,7 +534,7 @@ export default function FeedPage() {
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-primary/20 mb-4">
             <Sparkles className="h-8 w-8 text-purple-400" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
             Enable AI Intelligence
           </h3>
           <p className="text-sm text-muted-foreground max-w-md mb-6">
@@ -468,9 +561,9 @@ export default function FeedPage() {
         description="A story of your life, told through photos"
       />
 
-      <div className="px-8 py-6">
+      <div className="px-4 md:px-8 py-6">
         {/* Mode tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-none">
           {(Object.keys(modeConfig) as FeedMode[]).map((m) => {
             const config = modeConfig[m];
             const Icon = config.icon;
@@ -480,13 +573,13 @@ export default function FeedPage() {
                 key={m}
                 onClick={() => setMode(m)}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200",
+                  "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition-all duration-200",
                   isActive
-                    ? "bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-sm shadow-purple-500/10"
-                    : "bg-secondary/50 text-muted-foreground border border-border hover:bg-secondary hover:text-foreground",
+                    ? "bg-primary/15 text-primary border border-primary/30 shadow-sm shadow-primary/5"
+                    : "bg-secondary/40 text-muted-foreground border border-transparent hover:bg-secondary/70 hover:text-foreground",
                 )}
               >
-                <Icon className={cn("h-4 w-4", isActive && "text-purple-400")} />
+                <Icon className={cn("h-4 w-4", isActive && "text-primary")} />
                 {config.label}
               </button>
             );
@@ -495,9 +588,9 @@ export default function FeedPage() {
 
         {/* Deep dive year selector */}
         {mode === "deep_dive_year" && (
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-5">
             <span className="text-sm text-muted-foreground">Year:</span>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {Array.from(
                 { length: 20 },
                 (_, i) => new Date().getFullYear() - 1 - i,
@@ -508,8 +601,8 @@ export default function FeedPage() {
                   className={cn(
                     "rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200",
                     y === deepDiveYear
-                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm shadow-purple-500/10"
-                      : "bg-secondary text-muted-foreground hover:bg-accent",
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : "bg-secondary/40 text-muted-foreground hover:bg-secondary/70",
                   )}
                 >
                   {y}
@@ -526,10 +619,15 @@ export default function FeedPage() {
 
         {/* Initial loading skeletons */}
         {items.length === 0 && isLoading && (
-          <div className="mx-auto max-w-2xl space-y-6">
-            <FeedCardSkeleton />
-            <FeedCardSkeleton />
-            <FeedCardSkeleton />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="md:col-span-2 lg:col-span-3">
+              <FeedCardSkeleton variant="hero" />
+            </div>
+            <FeedCardSkeleton variant="medium" />
+            <FeedCardSkeleton variant="medium" />
+            <FeedCardSkeleton variant="small" />
+            <FeedCardSkeleton variant="small" />
+            <FeedCardSkeleton variant="small" />
           </div>
         )}
 
@@ -545,11 +643,7 @@ export default function FeedPage() {
             <p className="text-xs text-muted-foreground mb-4">
               Something went wrong. Please try again.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => loadMore(true)}
-            >
+            <Button variant="outline" size="sm" onClick={() => loadMore(true)}>
               <RefreshCw className="h-3.5 w-3.5" />
               Retry
             </Button>
@@ -571,18 +665,28 @@ export default function FeedPage() {
           </div>
         )}
 
-        {/* Feed items */}
+        {/* Feed items - masonry grid */}
         {items.length > 0 && (
-          <div className="mx-auto max-w-2xl space-y-6">
-            {items.map((item) => (
-              <FeedCardWithPhoto
-                key={item.photoId}
-                item={item}
-                onFavorite={(id) =>
-                  toggleFavorite({ photoId: id as any })
-                }
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-auto">
+            {items.map((item, i) => {
+              const variant = getCardVariant(i);
+              const isHero = variant === "hero";
+              return (
+                <div
+                  key={item.photoId}
+                  className={cn(
+                    isHero && "md:col-span-2 lg:col-span-3",
+                  )}
+                >
+                  <FeedCardWithPhoto
+                    item={item}
+                    variant={variant}
+                    onFavorite={(id) => toggleFavorite({ photoId: id as any })}
+                    index={i}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 

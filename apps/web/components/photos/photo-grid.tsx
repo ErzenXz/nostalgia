@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, type ReactNode } from "react";
+import { useState, useCallback, useMemo, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import { cn, formatDate, groupPhotosByDate } from "@/lib/utils";
 import { Heart, Check, MapPin } from "lucide-react";
@@ -35,6 +35,8 @@ interface PhotoGridProps {
   onSelectionChange?: (ids: Set<string>) => void;
   emptyMessage?: string;
   emptyIcon?: ReactNode;
+  stickyHeaders?: boolean;
+  dateRefs?: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }
 
 export function PhotoGrid({
@@ -46,10 +48,11 @@ export function PhotoGrid({
   onSelectionChange,
   emptyMessage = "No photos yet",
   emptyIcon,
+  stickyHeaders = false,
+  dateRefs,
 }: PhotoGridProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  // Collect all storage keys to batch-fetch presigned URLs
   const storageKeys = useMemo(
     () => photos.map((p) => p.thumbnailStorageKey || p.storageKey),
     [photos],
@@ -71,21 +74,33 @@ export function PhotoGrid({
 
   if (photos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-white/40">
+      <div className="flex flex-col items-center justify-center py-24 text-muted-foreground/40">
         {emptyIcon}
         <p className="mt-4 text-sm font-light tracking-wide">{emptyMessage}</p>
       </div>
     );
   }
 
-  // Group photos by date
   const grouped = groupPhotosByDate(photos);
 
   return (
-    <div className="space-y-8 px-8 py-6">
+    <div className="space-y-8 px-4 md:px-8 py-6">
       {Array.from(grouped.entries()).map(([dateKey, datePhotos]) => (
-        <div key={dateKey}>
-          <h3 className="mb-3 text-xs font-light uppercase tracking-widest text-white/30">
+        <div
+          key={dateKey}
+          ref={(el) => {
+            if (el && dateRefs?.current) {
+              dateRefs.current.set(dateKey, el);
+            }
+          }}
+        >
+          <h3
+            className={cn(
+              "mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground/50",
+              stickyHeaders &&
+                "sticky top-0 md:top-0 z-20 bg-background/90 backdrop-blur-sm py-2 -mx-4 md:-mx-8 px-4 md:px-8",
+            )}
+          >
             {formatDate(new Date(dateKey))}
           </h3>
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
@@ -165,19 +180,17 @@ function PhotoGridCell({
   return (
     <div
       className={cn(
-        "photo-grid-item group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-secondary",
-        "transition-all duration-300 ease-out",
-        isSelected && "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-background",
+        "photo-grid-item group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-secondary/50",
+        isSelected && "ring-2 ring-primary/70 ring-offset-2 ring-offset-background",
       )}
       onMouseEnter={() => onHover(photo._id)}
       onMouseLeave={() => onHover(null)}
       onClick={onClick}
     >
-      {/* Photo image/video or placeholder */}
       {displayUrl ? (
         isVideo ? (
           <video
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             src={displayUrl}
             muted
             playsInline
@@ -188,31 +201,26 @@ function PhotoGridCell({
             src={displayUrl}
             alt={photo.description || photo.fileName}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1536px) 16vw, 12.5vw"
             unoptimized
           />
         )
       ) : (
-        <>
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted animate-pulse" />
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-            {photo.fileName.slice(0, 12)}
-          </div>
-        </>
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary/60 to-muted/60 animate-pulse" />
       )}
 
-      {/* Vignette overlay - always visible, stronger on hover */}
+      {/* Vignette overlay */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-30 transition-opacity duration-300 group-hover:opacity-60"
+        className="pointer-events-none absolute inset-0 opacity-30 transition-opacity duration-300 group-hover:opacity-50"
         style={{
           background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)",
         }}
       />
 
-      {/* Warm color tint on hover */}
+      {/* Warm tint on hover */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-20"
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-15"
         style={{
           background: "linear-gradient(135deg, rgba(255,200,150,0.4) 0%, rgba(200,150,100,0.3) 100%)",
         }}
@@ -221,11 +229,12 @@ function PhotoGridCell({
       {/* Selection checkbox */}
       {(selectable || isHovered) && (
         <button
+          type="button"
           className={cn(
             "absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200",
             "backdrop-blur-sm",
             isSelected
-              ? "border-amber-400 bg-amber-400/90"
+              ? "border-primary bg-primary/90"
               : "border-white/60 bg-black/40 opacity-0 group-hover:opacity-100",
           )}
           onClick={(e) => {
@@ -233,13 +242,14 @@ function PhotoGridCell({
             onToggleSelection();
           }}
         >
-          {isSelected && <Check className="h-3 w-3 text-black" />}
+          {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
         </button>
       )}
 
       {/* Favorite button */}
       {isHovered && !selectable && (
         <button
+          type="button"
           className="absolute right-2 top-2 z-10 rounded-full bg-black/40 p-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-black/60 backdrop-blur-sm"
           onClick={(e) => {
             e.stopPropagation();
@@ -249,7 +259,7 @@ function PhotoGridCell({
           <Heart
             className={cn(
               "h-4 w-4 transition-all",
-              photo.isFavorite ? "fill-rose-400 text-rose-400" : "text-white/80 hover:text-white",
+              photo.isFavorite ? "fill-red-500 text-red-500" : "text-white/80 hover:text-white",
             )}
           />
         </button>
@@ -269,7 +279,7 @@ function PhotoGridCell({
         </div>
       )}
 
-      {/* Film strip effect on edges */}
+      {/* Film strip highlight */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
     </div>

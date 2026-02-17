@@ -289,4 +289,79 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_date", ["userId", "date"]),
+
+  // ─── Channels (YouTube-like spaces) ─────────────────────
+  channels: defineTable({
+    ownerId: v.id("users"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    coverUrl: v.optional(v.string()),
+    visibility: v.union(
+      v.literal("private"),
+      v.literal("family"),
+      v.literal("public"),
+    ),
+    inviteCode: v.optional(v.string()),
+    memberCount: v.number(),
+    mediaCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_invite_code", ["inviteCode"]),
+
+  // ─── Channel Members ────────────────────────────────────
+  channelMembers: defineTable({
+    channelId: v.id("channels"),
+    userId: v.id("users"),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("editor"),
+      v.literal("viewer"),
+    ),
+    joinedAt: v.number(),
+  })
+    .index("by_channel", ["channelId"])
+    .index("by_user", ["userId"])
+    .index("by_channel_user", ["channelId", "userId"]),
+
+  // ─── Channel Media (shared items) ──────────────────────
+  channelMedia: defineTable({
+    channelId: v.id("channels"),
+    photoId: v.id("photos"),
+    sharedBy: v.id("users"),
+    caption: v.optional(v.string()),
+    sharedAt: v.number(),
+  })
+    .index("by_channel", ["channelId", "sharedAt"])
+    .index("by_photo", ["photoId"]),
+
+  // ─── Reactions ──────────────────────────────────────────
+  reactions: defineTable({
+    mediaId: v.id("photos"),
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("heart"),
+      v.literal("fire"),
+      v.literal("laugh"),
+      v.literal("cry"),
+      v.literal("wow"),
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_media", ["mediaId"])
+    .index("by_media_user", ["mediaId", "userId"])
+    .index("by_user", ["userId"]),
+
+  // ─── Comments ───────────────────────────────────────────
+  comments: defineTable({
+    mediaId: v.id("photos"),
+    userId: v.id("users"),
+    text: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_media", ["mediaId", "createdAt"])
+    .index("by_user", ["userId"]),
 });
