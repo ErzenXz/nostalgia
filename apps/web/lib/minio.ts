@@ -5,11 +5,18 @@ export function getMinioClient() {
   // Defaults are intentionally local-dev friendly. Production should override via env.
   const accessKey = process.env.MINIO_ACCESS_KEY || "minioadmin";
   const secretKey = process.env.MINIO_SECRET_KEY || "minioadmin";
+  const useSSL = process.env.MINIO_USE_SSL === "true";
+  const port =
+    process.env.MINIO_PORT !== undefined && process.env.MINIO_PORT !== ""
+      ? parseInt(process.env.MINIO_PORT, 10)
+      : useSSL
+        ? 443
+        : 9000;
 
   return new Client({
     endPoint: process.env.MINIO_ENDPOINT || "localhost",
-    port: parseInt(process.env.MINIO_PORT || "9000"),
-    useSSL: process.env.MINIO_USE_SSL === "true",
+    port,
+    useSSL,
     accessKey,
     secretKey,
   });

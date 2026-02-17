@@ -176,7 +176,15 @@ export function UploadDialog({ open, onClose }: UploadDialogProps) {
       });
 
       if (!storageRes.ok) {
-        throw new Error("Failed to get upload URL");
+        let details = "";
+        try {
+          details = await storageRes.text();
+        } catch {
+          details = "";
+        }
+        throw new Error(
+          `Failed to get upload URL (${storageRes.status}): ${details || storageRes.statusText}`,
+        );
       }
 
       const { storageKey, thumbnailKey, uploadUrl, thumbnailUploadUrl } =

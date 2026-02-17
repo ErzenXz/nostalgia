@@ -42,7 +42,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Storage error:", error);
     return NextResponse.json(
-      { error: "Failed to generate upload URL" },
+      {
+        error: "Failed to generate upload URL",
+        details: error instanceof Error ? error.message : String(error),
+        minio: {
+          endPoint: process.env.MINIO_ENDPOINT || "localhost",
+          port: process.env.MINIO_PORT || "",
+          useSSL: process.env.MINIO_USE_SSL === "true",
+          bucket: process.env.MINIO_BUCKET || "nostalgia-photos",
+          thumbnailBucket:
+            process.env.MINIO_THUMBNAIL_BUCKET || "nostalgia-thumbnails",
+        },
+      },
       { status: 500 },
     );
   }
