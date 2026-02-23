@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, memo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
@@ -10,7 +10,7 @@ import { usePhotoUrl } from "@/hooks/use-photo-url";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
 import { PhotoGrid } from "@/components/photos/photo-grid";
 import { Lightbox } from "@/components/photos/lightbox";
-import { Button } from "@/components/ui/button";
+import { AddPhotosSheet } from "@/components/albums/add-photos-sheet";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -27,6 +27,7 @@ import {
   MinusCircle,
   LayoutGrid,
   Clock,
+  PlusCircle,
 } from "lucide-react";
 
 // ─── Cinematic cover ──────────────────────────────────────
@@ -81,13 +82,13 @@ function StatPill({ icon, value }: { icon: React.ReactNode; value: string }) {
 
 export default function AlbumDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const albumId = params.id as string;
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectable, setSelectable] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"grid" | "timeline">("grid");
+  const [showAddPhotos, setShowAddPhotos] = useState(false);
 
   const album = useQuery(api.albums.getById, { albumId: albumId as any });
   const albumPhotos = useQuery(api.albums.getPhotos, { albumId: albumId as any });
@@ -176,10 +177,10 @@ export default function AlbumDetailPage() {
         <Images className="h-12 w-12 opacity-30 mb-4" />
         <p className="text-sm font-mono text-amber-900/40">Album not found</p>
         <Link href="/albums" className="mt-4">
-          <Button variant="outline" size="sm" className="border-amber-900/25 text-amber-800/50">
-            <ArrowLeft className="h-4 w-4" />
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-sm border border-amber-900/25 text-[10px] font-mono text-amber-800/50 hover:text-amber-600/70 uppercase tracking-wider transition-colors">
+            <ArrowLeft className="h-3.5 w-3.5" />
             Back to Albums
-          </Button>
+          </button>
         </Link>
       </div>
     );
@@ -209,8 +210,15 @@ export default function AlbumDetailPage() {
           </Link>
         </div>
 
-        {/* Share button */}
-        <div className="absolute top-4 right-4 z-10">
+        {/* Top-right action buttons */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <button
+            onClick={() => setShowAddPhotos(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-black/40 backdrop-blur-sm border border-white/10 text-[10px] font-mono text-white/60 hover:text-white/90 transition-colors uppercase tracking-wider"
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            Add
+          </button>
           <button
             onClick={handleShare}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-black/40 backdrop-blur-sm border border-white/10 text-[10px] font-mono text-white/60 hover:text-white/90 transition-colors uppercase tracking-wider"
@@ -364,6 +372,14 @@ export default function AlbumDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── Add Photos Sheet ── */}
+      <AddPhotosSheet
+        albumId={albumId}
+        existingPhotoIds={new Set(photos.map((p: any) => p._id))}
+        open={showAddPhotos}
+        onClose={() => setShowAddPhotos(false)}
+      />
     </>
   );
 }

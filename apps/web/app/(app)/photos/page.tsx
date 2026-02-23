@@ -21,6 +21,7 @@ import { PhotoGrid } from "@/components/photos/photo-grid";
 import { TimelineScrubber } from "@/components/photos/timeline-scrubber";
 import { Lightbox } from "@/components/photos/lightbox";
 import { UploadDialog } from "@/components/upload/upload-dialog";
+import { AddToAlbumSheet } from "@/components/albums/add-to-album-sheet";
 import { Button } from "@/components/ui/button";
 import { groupPhotosByDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -281,6 +282,7 @@ function SelectionBar({
 function PhotosContent() {
   const router = useRouter();
   const [showUpload, setShowUpload] = useState(false);
+  const [showAddToAlbum, setShowAddToAlbum] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectable, setSelectable] = useState(false);
@@ -659,9 +661,7 @@ function PhotosContent() {
           onFavorite={handleBulkFavorite}
           onArchive={handleBulkArchive}
           onTrash={handleBulkTrash}
-          onAddToAlbum={() => {
-            // TODO: open album picker sheet
-          }}
+          onAddToAlbum={() => setShowAddToAlbum(true)}
           onClear={() => {
             setSelectedIds(new Set());
             setSelectable(false);
@@ -670,6 +670,16 @@ function PhotosContent() {
       )}
 
       <UploadDialog open={showUpload} onClose={() => setShowUpload(false)} />
+
+      <AddToAlbumSheet
+        photoIds={Array.from(selectedIds)}
+        open={showAddToAlbum}
+        onClose={() => setShowAddToAlbum(false)}
+        onDone={() => {
+          setSelectedIds(new Set());
+          setSelectable(false);
+        }}
+      />
     </>
   );
 }

@@ -84,8 +84,21 @@ export function PhotoGrid({
   const grouped = groupPhotosByDate(photos);
 
   return (
-    <div className="space-y-8 px-4 md:px-8 py-6">
-      {Array.from(grouped.entries()).map(([dateKey, datePhotos]) => (
+    <div className="space-y-6 px-4 md:px-8 py-6">
+      {Array.from(grouped.entries()).map(([dateKey, datePhotos]) => {
+        // Pick the most common location name in this day group
+        const locationCounts = new Map<string, number>();
+        for (const p of datePhotos as Photo[]) {
+          if (p.locationName) {
+            locationCounts.set(p.locationName, (locationCounts.get(p.locationName) ?? 0) + 1);
+          }
+        }
+        const topLocation =
+          locationCounts.size > 0
+            ? Array.from(locationCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0]
+            : null;
+
+        return (
         <div
           key={dateKey}
           ref={(el) => {
@@ -94,15 +107,30 @@ export function PhotoGrid({
             }
           }}
         >
-          <h3
+          <div
             className={cn(
-              "mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground/50",
+              "mb-3 flex items-center gap-3",
               stickyHeaders &&
-                "sticky top-0 md:top-0 z-20 bg-background/90 backdrop-blur-sm py-2 -mx-4 md:-mx-8 px-4 md:px-8",
+                "sticky top-0 z-20 bg-background/90 backdrop-blur-sm py-2 -mx-4 md:-mx-8 px-4 md:px-8",
             )}
           >
-            {formatDate(new Date(dateKey))}
-          </h3>
+            <span className="text-[10px] font-mono font-medium uppercase tracking-[0.15em] text-amber-800/50">
+              {formatDate(new Date(dateKey))}
+            </span>
+            {topLocation && (
+              <>
+                <span className="text-amber-900/25 text-[10px]">·</span>
+                <span className="flex items-center gap-1 text-[10px] font-mono text-amber-900/40">
+                  <svg className="h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                  {topLocation}
+                </span>
+              </>
+            )}
+            <div className="h-px flex-1 bg-amber-900/8" />
+            <span className="text-[9px] font-mono text-amber-900/30 shrink-0">
+              {(datePhotos as Photo[]).length}
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
             {datePhotos.map((photo, index) => {
               const isSelected = selectedIds.has(photo._id);
@@ -135,7 +163,8 @@ export function PhotoGrid({
             })}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
