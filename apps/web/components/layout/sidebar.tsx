@@ -142,26 +142,28 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col border-r border-border bg-sidebar transition-all duration-300 ease-in-out",
+        "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col border-r border-amber-900/20 bg-sidebar transition-all duration-300 ease-in-out",
+        "shadow-[inset_-1px_0_0_rgba(201,166,107,0.04)]",
         collapsed ? "w-[68px]" : "w-64",
       )}
     >
       {/* Logo */}
       <div
         className={cn(
-          "flex h-14 items-center border-b border-border",
+          "flex h-14 items-center border-b border-amber-900/20",
+          "bg-gradient-to-b from-amber-950/20 to-transparent",
           collapsed ? "justify-center px-2" : "gap-3 px-5",
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-[0_0_16px_rgba(201,166,107,0.25)]">
           <Lock className="h-3.5 w-3.5 text-primary-foreground" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
-            <h1 className="text-sm font-semibold tracking-tight text-foreground">
+            <h1 className="text-sm font-heading font-semibold tracking-tight text-foreground">
               Nostalgia
             </h1>
-            <p className="text-[9px] font-medium text-muted-foreground tracking-widest">
+            <p className="text-[9px] font-mono text-amber-700/60 tracking-[0.2em]">
               ENCRYPTED
             </p>
           </div>
@@ -173,7 +175,9 @@ export function Sidebar() {
         <Link
           href="/photos?upload=true"
           className={cn(
-            "flex items-center justify-center rounded-lg bg-primary text-sm font-medium text-primary-foreground transition-all duration-200 hover:bg-primary/90 active:scale-[0.97]",
+            "flex items-center justify-center rounded-lg text-sm font-medium text-primary-foreground transition-all duration-200 active:scale-[0.97]",
+            "bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500",
+            "shadow-[0_2px_8px_rgba(201,166,107,0.3),inset_0_1px_0_rgba(255,255,255,0.15)]",
             collapsed ? "h-10 w-10 mx-auto" : "gap-2 px-4 py-2.5 w-full",
           )}
         >
@@ -193,26 +197,26 @@ export function Sidebar() {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              title={collapsed ? item.name : undefined}
-              className={cn(
-                "group relative flex items-center rounded-lg text-sm transition-all duration-200",
-                collapsed
-                  ? "h-10 w-10 mx-auto justify-center"
-                  : "gap-3 px-3 py-2",
-                isActive
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              )}
-            >
-              {isActive && (
-                <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
-              )}
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.name}</span>}
-            </Link>
+        <Link
+          key={item.name}
+          href={item.href}
+          title={collapsed ? item.name : undefined}
+          className={cn(
+            "group relative flex items-center rounded-lg text-sm transition-all duration-200",
+            collapsed
+              ? "h-10 w-10 mx-auto justify-center"
+              : "gap-3 px-3 py-2",
+            isActive
+              ? "bg-amber-950/50 text-foreground"
+              : "text-muted-foreground hover:bg-amber-950/30 hover:text-foreground",
+          )}
+        >
+          {isActive && (
+            <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(201,166,107,0.5)]" />
+          )}
+          <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-amber-400" : "")} />
+          {!collapsed && <span>{item.name}</span>}
+        </Link>
           );
         })}
       </nav>
@@ -275,16 +279,16 @@ export function MobileHeader() {
   const { mobileOpen, setMobileOpen } = useSidebarStore();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-md px-4">
+    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between border-b border-amber-900/20 bg-sidebar/95 backdrop-blur-md px-4 shadow-[0_1px_0_rgba(201,166,107,0.04)]">
       <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shadow-[0_0_12px_rgba(201,166,107,0.2)]">
           <Lock className="h-3 w-3 text-primary-foreground" />
         </div>
-        <span className="text-sm font-semibold text-foreground">Nostalgia</span>
+        <span className="text-sm font-heading font-semibold text-foreground">Nostalgia</span>
       </div>
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/30 transition-colors"
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -310,23 +314,23 @@ export function MobileDrawer() {
         onClick={() => setMobileOpen(false)}
       />
       {/* Drawer */}
-      <div className="fixed top-0 left-0 bottom-0 z-50 w-72 bg-sidebar border-r border-border flex flex-col md:hidden animate-in slide-in-from-left duration-200">
+      <div className="fixed top-0 left-0 bottom-0 z-50 w-72 bg-sidebar border-r border-amber-900/20 flex flex-col md:hidden animate-in slide-in-from-left duration-200 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
         {/* Header */}
-        <div className="flex h-14 items-center justify-between border-b border-border px-5">
+        <div className="flex h-14 items-center justify-between border-b border-amber-900/20 px-5 bg-gradient-to-b from-amber-950/15 to-transparent">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-[0_0_14px_rgba(201,166,107,0.2)]">
               <Lock className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-foreground">Nostalgia</h1>
-              <p className="text-[9px] font-medium text-muted-foreground tracking-widest">
+              <h1 className="text-sm font-heading font-semibold text-foreground">Nostalgia</h1>
+              <p className="text-[9px] font-mono text-amber-700/55 tracking-[0.2em]">
                 ENCRYPTED
               </p>
             </div>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/30 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -337,7 +341,11 @@ export function MobileDrawer() {
           <Link
             href="/photos?upload=true"
             onClick={() => setMobileOpen(false)}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-primary-foreground",
+              "bg-gradient-to-b from-amber-500 to-amber-600",
+              "shadow-[0_2px_8px_rgba(201,166,107,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]",
+            )}
           >
             <Upload className="h-4 w-4" />
             Upload
@@ -357,14 +365,14 @@ export function MobileDrawer() {
                 className={cn(
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   isActive
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                    ? "bg-amber-950/50 text-foreground"
+                    : "text-muted-foreground hover:bg-amber-950/30 hover:text-foreground",
                 )}
               >
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
+                  <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(201,166,107,0.5)]" />
                 )}
-                <item.icon className="h-4 w-4 shrink-0" />
+                <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-amber-400" : "")} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -406,7 +414,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-14 items-center justify-around border-t border-border bg-sidebar/95 backdrop-blur-md safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-14 items-center justify-around border-t border-amber-900/20 bg-sidebar/97 backdrop-blur-md safe-area-pb shadow-[0_-1px_0_rgba(201,166,107,0.04)]">
       {mobileNav.map((item) => {
         const isActive =
           pathname === item.href || pathname.startsWith(item.href + "/");
@@ -417,12 +425,12 @@ export function MobileTabBar() {
             className={cn(
               "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors",
               isActive
-                ? "text-primary"
-                : "text-muted-foreground active:text-foreground",
+                ? "text-amber-400"
+                : "text-amber-900/50 active:text-amber-600",
             )}
           >
             <item.icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium">{item.name}</span>
+            <span className="text-[10px] font-mono">{item.name}</span>
           </Link>
         );
       })}
@@ -431,12 +439,12 @@ export function MobileTabBar() {
         className={cn(
           "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors",
           pathname === "/settings"
-            ? "text-primary"
-            : "text-muted-foreground active:text-foreground",
+            ? "text-amber-400"
+            : "text-amber-900/50 active:text-amber-600",
         )}
       >
         <Settings className="h-5 w-5" />
-        <span className="text-[10px] font-medium">Settings</span>
+        <span className="text-[10px] font-mono">Settings</span>
       </Link>
     </nav>
   );

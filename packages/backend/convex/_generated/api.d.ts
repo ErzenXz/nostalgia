@@ -17,12 +17,16 @@ import type * as ai_worker from "../ai/worker.js";
 import type * as ai_worker_db from "../ai/worker_db.js";
 import type * as albums from "../albums.js";
 import type * as auth from "../auth.js";
+import type * as channels from "../channels.js";
+import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as feed_nostalgia from "../feed/nostalgia.js";
 import type * as http from "../http.js";
 import type * as memories from "../memories.js";
+import type * as people from "../people.js";
 import type * as photos from "../photos.js";
 import type * as processing from "../processing.js";
+import type * as reactions from "../reactions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -41,12 +45,16 @@ declare const fullApi: ApiFromModules<{
   "ai/worker_db": typeof ai_worker_db;
   albums: typeof albums;
   auth: typeof auth;
+  channels: typeof channels;
+  comments: typeof comments;
   crons: typeof crons;
   "feed/nostalgia": typeof feed_nostalgia;
   http: typeof http;
   memories: typeof memories;
+  people: typeof people;
   photos: typeof photos;
   processing: typeof processing;
+  reactions: typeof reactions;
   users: typeof users;
 }>;
 

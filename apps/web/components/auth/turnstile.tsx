@@ -83,7 +83,15 @@ export function Turnstile({
   const widgetIdRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const isDev = process.env.NODE_ENV === "development";
+
   useEffect(() => {
+    // Bypass Turnstile entirely in local development
+    if (isDev) {
+      onToken("dev-bypass");
+      return;
+    }
+
     let cancelled = false;
 
     async function mount() {
@@ -126,7 +134,19 @@ export function Turnstile({
       }
       widgetIdRef.current = null;
     };
-  }, [action, onToken, siteKey, theme]);
+  }, [action, isDev, onToken, siteKey, theme]);
+
+  // Dev mode indicator
+  if (isDev) {
+    return (
+      <div className="flex items-center gap-2 rounded-sm bg-amber-950/30 border border-amber-800/20 px-3 py-2">
+        <div className="h-1.5 w-1.5 rounded-full bg-amber-500/60 shrink-0" />
+        <span className="text-[10px] font-mono text-amber-700/55 uppercase tracking-wider">
+          Captcha bypassed · development
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

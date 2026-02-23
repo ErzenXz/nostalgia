@@ -16,6 +16,7 @@ import {
   Github,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -37,24 +38,15 @@ export default function LoginClient() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
     try {
       const result = await authClient.signIn.email({
         email,
         password,
         ...(turnstileSiteKey
-          ? {
-              fetchOptions: {
-                headers: {
-                  "x-captcha-response": captchaToken ?? "",
-                },
-              },
-            }
+          ? { fetchOptions: { headers: { "x-captcha-response": captchaToken ?? "" } } }
           : {}),
       });
-
       const twoFactorRedirect = Boolean((result.data as any)?.twoFactorRedirect);
-
       if (result.error) {
         setError(result.error.message ?? "Sign in failed. Please try again.");
       } else if (twoFactorRedirect) {
@@ -63,9 +55,7 @@ export default function LoginClient() {
         router.push(redirectTo);
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -75,24 +65,15 @@ export default function LoginClient() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
     try {
-      const result = await authClient.twoFactor.verifyTotp({
-        code: twoFactorCode,
-        trustDevice,
-      });
-
+      const result = await authClient.twoFactor.verifyTotp({ code: twoFactorCode, trustDevice });
       if (result.error) {
-        setError(
-          result.error.message ?? "Verification failed. Please try again.",
-        );
+        setError(result.error.message ?? "Verification failed. Please try again.");
       } else {
         router.push(redirectTo);
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -103,14 +84,9 @@ export default function LoginClient() {
     setIsLoading(true);
     try {
       const result = await authClient.signIn.social({ provider });
-      if (result.error) {
-        setError(result.error.message ?? "Sign in failed. Please try again.");
-      }
-      // On success this usually redirects away.
+      if (result.error) setError(result.error.message ?? "Sign in failed.");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -127,234 +103,195 @@ export default function LoginClient() {
         router.push(redirectTo);
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred.",
-      );
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-          <Lock className="h-6 w-6 text-primary-foreground" />
+  if (step === "twoFactor") {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-heading font-semibold text-foreground/95">Two-factor</h1>
+          <p className="mt-0.5 text-[10px] font-mono text-amber-800/50 uppercase tracking-wider">
+            Enter code from your authenticator
+          </p>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Sign in to your Nostalgia account
-        </p>
-      </div>
 
-      {/* Error message */}
-      {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-          <p className="text-sm text-red-400 text-center">{error}</p>
-        </div>
-      )}
-
-      {/* Social / Passkey */}
-      <div className="space-y-3">
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full justify-center gap-2"
-          onClick={() => handleSocial("google")}
-          disabled={isLoading}
-        >
-          <span className="text-sm font-medium">Continue with Google</span>
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full justify-center gap-2"
-          onClick={() => handleSocial("github")}
-          disabled={isLoading}
-        >
-          <Github className="h-4 w-4" />
-          <span className="text-sm font-medium">Continue with GitHub</span>
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full justify-center gap-2"
-          onClick={handlePasskey}
-          disabled={isLoading}
-        >
-          <KeyRound className="h-4 w-4" />
-          <span className="text-sm font-medium">Continue with Passkey</span>
-        </Button>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          or
-        </span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      {/* Form */}
-      {step === "credentials" ? (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-foreground"
-            >
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-9"
-                required
-              />
-            </div>
+        {error && (
+          <div className="rounded-lg border border-red-900/30 bg-red-950/20 px-3 py-2">
+            <p className="text-xs text-red-400 text-center">{error}</p>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-foreground"
-            >
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-9"
-                required
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={() => setShowPassword((v) => !v)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading || (Boolean(turnstileSiteKey) && !captchaToken)}
-          >
-            {isLoading ? "Signing in..." : "Sign In"}
-            {!isLoading && <ArrowRight className="h-4 w-4" />}
-          </Button>
-        </form>
-      ) : (
         <form onSubmit={handleVerifyTwoFactor} className="space-y-4">
-          <div className="rounded-lg border border-border bg-card/50 p-3">
-            <p className="text-sm text-foreground text-center font-medium">
-              Two-factor verification
-            </p>
-            <p className="text-xs text-muted-foreground text-center mt-1">
-              Enter the code from your authenticator app.
-            </p>
+          <div className="relative">
+            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-800/40" />
+            <Input
+              id="twoFactorCode"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="123456"
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value)}
+              className="pl-9 border-amber-900/25 bg-[#0c0b0a] focus:border-amber-700/40 font-mono tracking-[0.3em] text-center"
+              required
+              autoFocus
+            />
           </div>
 
-          <div className="space-y-2">
-            <label
-              htmlFor="twoFactorCode"
-              className="text-sm font-medium text-foreground"
-            >
-              Authentication code
-            </label>
-            <div className="relative">
-              <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="twoFactorCode"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="123456"
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value)}
-                className="pl-9"
-                required
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <label className="flex items-center gap-2 text-[11px] font-mono text-amber-800/50 cursor-pointer">
             <input
               type="checkbox"
               checked={trustDevice}
               onChange={(e) => setTrustDevice(e.target.checked)}
+              className="accent-amber-500"
             />
             Trust this device for 30 days
           </label>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Verifying..." : "Verify"}
+          <Button type="submit" className="w-full bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 font-mono uppercase tracking-wider" disabled={isLoading}>
+            {isLoading ? "Verifying…" : "Verify"}
             {!isLoading && <ArrowRight className="h-4 w-4" />}
           </Button>
-
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={() => {
-              setStep("credentials");
-              setTwoFactorCode("");
-            }}
-            disabled={isLoading}
-          >
-            Back
-          </Button>
         </form>
+
+        <button
+          type="button"
+          className="w-full text-[11px] font-mono text-amber-800/50 hover:text-amber-600/70 transition-colors"
+          onClick={() => { setStep("credentials"); setTwoFactorCode(""); }}
+        >
+          ← Back to sign in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-heading font-semibold text-foreground/95">Welcome back</h1>
+        <p className="mt-0.5 text-[10px] font-mono text-amber-800/50 uppercase tracking-wider">
+          Sign in to your vault
+        </p>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg border border-red-900/30 bg-red-950/20 px-3 py-2">
+          <p className="text-xs text-red-400 text-center">{error}</p>
+        </div>
       )}
 
+      {/* Social / Passkey — compact icon row */}
+      <div className="grid grid-cols-3 gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="border-amber-900/25 bg-[#0c0b0a] hover:border-amber-700/40 hover:bg-amber-950/30 text-amber-800/60 hover:text-amber-400 h-10 justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider"
+          onClick={() => handleSocial("google")}
+          disabled={isLoading}
+          title="Google"
+        >
+          {/* Google SVG */}
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+          </svg>
+          <span className="hidden sm:inline">Google</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="border-amber-900/25 bg-[#0c0b0a] hover:border-amber-700/40 hover:bg-amber-950/30 text-amber-800/60 hover:text-amber-400 h-10 justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider"
+          onClick={() => handleSocial("github")}
+          disabled={isLoading}
+          title="GitHub"
+        >
+          <Github className="h-4 w-4" />
+          <span className="hidden sm:inline">GitHub</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="border-amber-900/25 bg-[#0c0b0a] hover:border-amber-700/40 hover:bg-amber-950/30 text-amber-800/60 hover:text-amber-400 h-10 justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider"
+          onClick={handlePasskey}
+          disabled={isLoading}
+          title="Passkey"
+        >
+          <KeyRound className="h-4 w-4" />
+          <span className="hidden sm:inline">Passkey</span>
+        </Button>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-amber-900/15" />
+        <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-900/40">or</span>
+        <div className="h-px flex-1 bg-amber-900/15" />
+      </div>
+
+      {/* Email / Password form */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-800/35 pointer-events-none" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="pl-9 border-amber-900/22 bg-[#0c0b0a] focus:border-amber-700/40 placeholder:text-amber-900/30 text-sm"
+            required
+          />
+        </div>
+
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-800/35 pointer-events-none" />
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="pl-9 pr-9 border-amber-900/22 bg-[#0c0b0a] focus:border-amber-700/40 placeholder:text-amber-900/30 text-sm"
+            required
+          />
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-800/35 hover:text-amber-600/60 transition-colors"
+            onClick={() => setShowPassword((v) => !v)}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 shadow-[0_2px_8px_rgba(201,166,107,0.25)] font-mono uppercase tracking-wider"
+          disabled={isLoading || (Boolean(turnstileSiteKey) && !captchaToken)}
+        >
+          {isLoading ? "Signing in…" : "Sign In"}
+          {!isLoading && <ArrowRight className="h-4 w-4" />}
+        </Button>
+      </form>
+
       {/* Captcha */}
-      {turnstileSiteKey && step === "credentials" ? (
-        <Turnstile
-          siteKey={turnstileSiteKey}
-          onToken={setCaptchaToken}
-          action="login"
-        />
-      ) : null}
+      {turnstileSiteKey && (
+        <Turnstile siteKey={turnstileSiteKey} onToken={setCaptchaToken} action="login" />
+      )}
 
       {/* Footer */}
-      {step === "credentials" ? (
-        <>
-          <div className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-foreground hover:underline"
-            >
-              Sign up
-            </Link>
-          </div>
-
-          {/* Security notice */}
-          <div className="rounded-lg border border-border bg-card/50 p-3">
-            <p className="text-xs text-muted-foreground text-center">
-              Your photos are end-to-end encrypted. We can never see your
-              content.
-            </p>
-          </div>
-        </>
-      ) : null}
+      <p className="text-center text-[11px] font-mono text-amber-900/40">
+        No account?{" "}
+        <Link href="/register" className="text-amber-700/60 hover:text-amber-500/80 transition-colors">
+          Sign up free
+        </Link>
+      </p>
     </div>
   );
 }
-

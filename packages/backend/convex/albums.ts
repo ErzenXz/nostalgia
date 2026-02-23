@@ -225,3 +225,31 @@ export const deleteAlbum = mutation({
     return null;
   },
 });
+
+export const getCoverPhotos = query({
+  args: { albumId: v.id("albums") },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const albumPhotos = await ctx.db
+      .query("albumPhotos")
+      .withIndex("by_album", (q) => q.eq("albumId", args.albumId))
+      .order("asc")
+      .take(4);
+
+    const photos = await Promise.all(
+      albumPhotos.map(async (ap) => {
+        const photo = await ctx.db.get(ap.photoId);
+        if (!photo) return null;
+        return {
+              _id: photo._id,
+              storageKey: photo.storageKey,
+              thumbnailStorageKey: photo.thumbnailStorageKey ?? undefined,
+              isEncrypted: photo.isEncrypted ?? false,
+              mimeType: photo.mimeType,
+            };
+      }),
+    );
+
+    return photos.filter((p): p is NonNullable<typeof p> => p !== null);
+  },
+});
