@@ -7,7 +7,6 @@ import { api } from "@repo/backend/convex/_generated/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useConvexAvailable } from "@/components/providers/convex-provider";
 import { useSidebarStore } from "@/store/sidebar";
-import { TimelineWidget } from "@/components/layout/timeline-widget";
 import { AiIndexingProgress } from "@/components/ai-indexing-progress";
 import { cn, formatBytes } from "@/lib/utils";
 import {
@@ -28,157 +27,173 @@ import {
   PanelLeftOpen,
   Menu,
   X,
+  Users,
+  Home,
+  ChevronRight,
 } from "lucide-react";
 
-const navigation = [
-  { name: "Feed", href: "/feed", icon: Clapperboard, mobile: true },
-  { name: "Photos", href: "/photos", icon: Images, mobile: true },
-  { name: "Search", href: "/search", icon: Search, mobile: true },
-  { name: "Favorites", href: "/favorites", icon: Heart, mobile: false },
-  { name: "Albums", href: "/albums", icon: FolderOpen, mobile: true },
-  { name: "Map", href: "/map", icon: Map, mobile: false },
-  { name: "Memories", href: "/memories", icon: Sparkles, mobile: false },
-  { name: "Archive", href: "/archive", icon: Archive, mobile: false },
-  { name: "Trash", href: "/trash", icon: Trash2, mobile: false },
+// ── Navigation sections ──────────────────────────────────────────
+const navSections = [
+  {
+    label: null,
+    items: [
+      { name: "Home", href: "/feed", icon: Home, mobile: true },
+      { name: "Photos", href: "/photos", icon: Images, mobile: true },
+      { name: "Search", href: "/search", icon: Search, mobile: true },
+    ],
+  },
+  {
+    label: "Library",
+    items: [
+      { name: "Albums", href: "/albums", icon: FolderOpen, mobile: true },
+      { name: "Memories", href: "/memories", icon: Sparkles, mobile: false },
+      { name: "Favorites", href: "/favorites", icon: Heart, mobile: false },
+      { name: "Archive", href: "/archive", icon: Archive, mobile: false },
+    ],
+  },
+  {
+    label: "AI",
+    items: [
+      { name: "People", href: "/albums/people", icon: Users, mobile: false },
+      { name: "Map", href: "/map", icon: Map, mobile: false },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { name: "Trash", href: "/trash", icon: Trash2, mobile: false },
+    ],
+  },
 ];
 
-const mobileNav = navigation.filter((n) => n.mobile);
+const mobileNavItems = navSections.flatMap((s) => s.items).filter((i) => i.mobile);
 
-function SidebarStorageStats({ collapsed }: { collapsed: boolean }) {
+// ── Storage stats ────────────────────────────────────────────────
+
+function StorageStats({ collapsed }: { collapsed: boolean }) {
   const { userId } = useCurrentUser();
-
-  const storageStats = useQuery(
-    api.users.getStorageStats,
-    userId ? { userId } : "skip",
-  );
+  const storageStats = useQuery(api.users.getStorageStats, userId ? { userId } : "skip");
 
   const usedBytes = storageStats?.usedStorageBytes ?? 0;
   const quotaBytes = storageStats?.storageQuotaBytes ?? 15 * 1024 * 1024 * 1024;
-  const percentUsed = storageStats?.percentUsed ?? 0;
+  const percent = storageStats?.percentUsed ?? 0;
 
   if (collapsed) {
     return (
-      <div className="border-t border-border p-3 flex justify-center">
+      <div className="p-3 flex justify-center">
         <div className="relative h-8 w-8">
           <svg className="h-8 w-8 -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#3f3f3f" strokeWidth="3" />
             <circle
-              cx="18"
-              cy="18"
-              r="15"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              className="text-secondary"
-            />
-            <circle
-              cx="18"
-              cy="18"
-              r="15"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeDasharray={`${percentUsed * 0.942} 94.2`}
-              className="text-primary transition-all duration-500"
+              cx="18" cy="18" r="15" fill="none"
+              stroke="#c9a66b" strokeWidth="3"
+              strokeDasharray={`${percent * 0.942} 94.2`}
+              className="transition-all duration-500"
             />
           </svg>
-          <HardDrive className="absolute inset-0 m-auto h-3 w-3 text-muted-foreground" />
+          <HardDrive className="absolute inset-0 m-auto h-3 w-3 text-[#aaa]" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="border-t border-border p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Storage</span>
+    <div className="px-4 py-3">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <HardDrive className="h-3 w-3 text-[#aaa]" />
+          <span className="text-[11px] text-[#aaa]">Storage</span>
+        </div>
+        <span className="text-[11px] text-[#aaa]">{Math.round(percent)}%</span>
       </div>
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-secondary">
+      <div className="h-0.5 rounded-full bg-[#3f3f3f] overflow-hidden">
         <div
           className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${Math.min(percentUsed, 100)}%` }}
+          style={{ width: `${Math.min(percent, 100)}%` }}
         />
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        {formatBytes(usedBytes)}{" "}
-        <span className="text-muted-foreground/50">of</span>{" "}
-        {formatBytes(quotaBytes)}
+      <p className="mt-1 text-[10px] text-[#717171]">
+        {formatBytes(usedBytes)} of {formatBytes(quotaBytes)}
       </p>
     </div>
   );
 }
 
-function SidebarStorageFallback({ collapsed }: { collapsed: boolean }) {
-  if (collapsed) {
-    return (
-      <div className="border-t border-border p-3 flex justify-center">
-        <HardDrive className="h-4 w-4 text-muted-foreground" />
-      </div>
-    );
-  }
+// ── Nav item ─────────────────────────────────────────────────────
+
+function NavItem({
+  item,
+  collapsed,
+  onClick,
+}: {
+  item: { name: string; href: string; icon: React.ElementType };
+  collapsed: boolean;
+  onClick?: () => void;
+}) {
+  const pathname = usePathname();
+  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+  const Icon = item.icon;
 
   return (
-    <div className="border-t border-border p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Storage</span>
-      </div>
-      <div className="mb-2 h-1 overflow-hidden rounded-full bg-secondary">
-        <div className="h-full w-0 rounded-full bg-primary" />
-      </div>
-      <p className="text-[11px] text-muted-foreground">
-        0 B <span className="text-muted-foreground/50">of</span> 15 GB
-      </p>
-    </div>
+    <Link
+      href={item.href}
+      title={collapsed ? item.name : undefined}
+      onClick={onClick}
+      className={cn(
+        "flex items-center rounded-xl text-sm transition-all duration-150 select-none",
+        collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2 w-full",
+        isActive
+          ? "bg-white/10 text-white font-medium"
+          : "text-[#aaa] hover:bg-white/[0.05] hover:text-white",
+      )}
+    >
+      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-white" : "text-[#aaa]")} />
+      {!collapsed && <span className="leading-none">{item.name}</span>}
+    </Link>
   );
 }
 
-/** Desktop sidebar - collapsible */
+// ── Desktop Sidebar ───────────────────────────────────────────────
+
 export function Sidebar() {
-  const pathname = usePathname();
   const convexAvailable = useConvexAvailable();
   const { collapsed, toggle } = useSidebarStore();
+  const { user } = useCurrentUser();
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col border-r border-amber-900/20 bg-sidebar transition-all duration-300 ease-in-out",
-        "shadow-[inset_-1px_0_0_rgba(201,166,107,0.04)]",
-        collapsed ? "w-[68px]" : "w-64",
+        "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col",
+        "bg-sidebar border-r border-white/[0.06] transition-all duration-300 ease-in-out",
+        collapsed ? "w-[72px]" : "w-60",
       )}
     >
-      {/* Logo */}
+      {/* ── Logo ── */}
       <div
         className={cn(
-          "flex h-14 items-center border-b border-amber-900/20",
-          "bg-gradient-to-b from-amber-950/20 to-transparent",
-          collapsed ? "justify-center px-2" : "gap-3 px-5",
+          "flex h-14 items-center shrink-0",
+          collapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-[0_0_16px_rgba(201,166,107,0.25)]">
-          <Lock className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+          <Lock className="h-3.5 w-3.5 text-black" />
         </div>
         {!collapsed && (
-          <div className="overflow-hidden">
-            <h1 className="text-sm font-heading font-semibold tracking-tight text-foreground">
-              Nostalgia
-            </h1>
-            <p className="text-[9px] font-mono text-amber-700/60 tracking-[0.2em]">
-              ENCRYPTED
-            </p>
-          </div>
+          <span className="text-[15px] font-semibold text-white tracking-tight font-heading">
+            Nostalgia
+          </span>
         )}
       </div>
 
-      {/* Upload Button */}
-      <div className={cn("py-3", collapsed ? "px-2" : "px-3")}>
+      {/* ── Upload button ── */}
+      <div className={cn("shrink-0", collapsed ? "px-2 pb-2" : "px-3 pb-3")}>
         <Link
           href="/photos?upload=true"
           className={cn(
-            "flex items-center justify-center rounded-lg text-sm font-medium text-primary-foreground transition-all duration-200 active:scale-[0.97]",
-            "bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500",
-            "shadow-[0_2px_8px_rgba(201,166,107,0.3),inset_0_1px_0_rgba(255,255,255,0.15)]",
-            collapsed ? "h-10 w-10 mx-auto" : "gap-2 px-4 py-2.5 w-full",
+            "flex items-center justify-center rounded-full text-sm font-medium text-black transition-all active:scale-[0.97]",
+            "bg-primary hover:brightness-110",
+            "shadow-[0_2px_8px_rgba(201,166,107,0.25)]",
+            collapsed ? "h-9 w-9 mx-auto" : "gap-2 px-4 py-2 w-full",
           )}
         >
           <Upload className="h-4 w-4 shrink-0" />
@@ -186,66 +201,59 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav
-        className={cn(
-          "flex-1 space-y-0.5 overflow-y-auto",
-          collapsed ? "px-2" : "px-3",
-        )}
-      >
-        {navigation.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-        <Link
-          key={item.name}
-          href={item.href}
-          title={collapsed ? item.name : undefined}
-          className={cn(
-            "group relative flex items-center rounded-lg text-sm transition-all duration-200",
-            collapsed
-              ? "h-10 w-10 mx-auto justify-center"
-              : "gap-3 px-3 py-2",
-            isActive
-              ? "bg-amber-950/50 text-foreground"
-              : "text-muted-foreground hover:bg-amber-950/30 hover:text-foreground",
-          )}
-        >
-          {isActive && (
-            <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(201,166,107,0.5)]" />
-          )}
-          <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-amber-400" : "")} />
-          {!collapsed && <span>{item.name}</span>}
-        </Link>
-          );
-        })}
+      {/* ── Nav sections ── */}
+      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "px-2 space-y-1" : "px-3 space-y-4")}>
+        {navSections.map((section, si) => (
+          <div key={si} className={collapsed ? "space-y-1" : "space-y-0.5"}>
+            {section.label && !collapsed && (
+              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#717171] select-none">
+                {section.label}
+              </p>
+            )}
+            {section.items.map((item) => (
+              <NavItem key={item.href} item={item} collapsed={collapsed} />
+            ))}
+          </div>
+        ))}
       </nav>
 
-      {/* Timeline widget (only when expanded) */}
-      {!collapsed && convexAvailable && <TimelineWidget />}
+      {/* ── AI indexing ── */}
+      {convexAvailable && <AiIndexingProgress collapsed={collapsed} />}
 
-      {/* AI indexing progress (when opted in and there is pending work) */}
-      {convexAvailable && (
-        <AiIndexingProgress collapsed={collapsed} />
-      )}
-
-      {/* Storage */}
-      <div className="relative z-10">
+      {/* ── Storage ── */}
+      <div className="shrink-0 border-t border-white/[0.06]">
         {convexAvailable ? (
-          <SidebarStorageStats collapsed={collapsed} />
+          <StorageStats collapsed={collapsed} />
         ) : (
-          <SidebarStorageFallback collapsed={collapsed} />
+          <div className={cn("px-4 py-3 text-[11px] text-[#717171]", collapsed && "hidden")} />
         )}
       </div>
 
-      {/* Settings + Collapse toggle */}
-      <div className="border-t border-border p-2 space-y-0.5">
+      {/* ── User + Settings + Collapse ── */}
+      <div className={cn("shrink-0 border-t border-white/[0.06] p-2 space-y-0.5")}>
+        {!collapsed && user && (
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/[0.05] transition-colors cursor-default mb-0.5">
+            <div className="h-6 w-6 rounded-full bg-primary/30 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-semibold text-primary uppercase">
+                {(user.name ?? user.email ?? "U").charAt(0)}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-medium text-white truncate leading-none">
+                {user.name ?? user.email}
+              </p>
+              {user.name && (
+                <p className="text-[10px] text-[#717171] truncate mt-0.5 leading-none">{user.email}</p>
+              )}
+            </div>
+          </div>
+        )}
         <Link
           href="/settings"
           title={collapsed ? "Settings" : undefined}
           className={cn(
-            "group flex items-center rounded-lg text-sm text-muted-foreground transition-all duration-200 hover:bg-accent/50 hover:text-foreground",
-            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2",
+            "flex items-center rounded-xl text-sm text-[#aaa] hover:bg-white/[0.05] hover:text-white transition-colors",
+            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2 w-full",
           )}
         >
           <Settings className="h-4 w-4 shrink-0" />
@@ -254,10 +262,8 @@ export function Sidebar() {
         <button
           onClick={toggle}
           className={cn(
-            "flex items-center rounded-lg text-sm text-muted-foreground transition-all duration-200 hover:bg-accent/50 hover:text-foreground cursor-pointer",
-            collapsed
-              ? "h-10 w-10 mx-auto justify-center"
-              : "gap-3 px-3 py-2 w-full",
+            "flex items-center rounded-xl text-sm text-[#aaa] hover:bg-white/[0.05] hover:text-white transition-colors cursor-pointer",
+            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2 w-full",
           )}
         >
           {collapsed ? (
@@ -274,21 +280,22 @@ export function Sidebar() {
   );
 }
 
-/** Mobile header with hamburger menu */
+// ── Mobile header ─────────────────────────────────────────────────
+
 export function MobileHeader() {
   const { mobileOpen, setMobileOpen } = useSidebarStore();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between border-b border-amber-900/20 bg-sidebar/95 backdrop-blur-md px-4 shadow-[0_1px_0_rgba(201,166,107,0.04)]">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shadow-[0_0_12px_rgba(201,166,107,0.2)]">
-          <Lock className="h-3 w-3 text-primary-foreground" />
+    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between bg-sidebar/95 backdrop-blur-md px-4 border-b border-white/[0.06]">
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+          <Lock className="h-3 w-3 text-black" />
         </div>
-        <span className="text-sm font-heading font-semibold text-foreground">Nostalgia</span>
+        <span className="text-[14px] font-semibold text-white font-heading">Nostalgia</span>
       </div>
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/30 transition-colors"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-[#aaa] hover:text-white hover:bg-white/[0.05] transition-colors"
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -296,56 +303,43 @@ export function MobileHeader() {
   );
 }
 
-/** Mobile slide-over drawer for full navigation */
+// ── Mobile drawer ─────────────────────────────────────────────────
+
 export function MobileDrawer() {
   const { mobileOpen, setMobileOpen } = useSidebarStore();
-  const pathname = usePathname();
   const convexAvailable = useConvexAvailable();
+  const close = () => setMobileOpen(false);
 
   if (!mobileOpen) return null;
 
   return (
     <>
-      {/* Backdrop */}
       <button
         type="button"
         aria-label="Close navigation"
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden cursor-default"
-        onClick={() => setMobileOpen(false)}
+        onClick={close}
       />
-      {/* Drawer */}
-      <div className="fixed top-0 left-0 bottom-0 z-50 w-72 bg-sidebar border-r border-amber-900/20 flex flex-col md:hidden animate-in slide-in-from-left duration-200 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+      <div className="fixed top-0 left-0 bottom-0 z-50 w-64 bg-sidebar border-r border-white/[0.06] flex flex-col md:hidden animate-in slide-in-from-left duration-200 shadow-[4px_0_32px_rgba(0,0,0,0.6)]">
         {/* Header */}
-        <div className="flex h-14 items-center justify-between border-b border-amber-900/20 px-5 bg-gradient-to-b from-amber-950/15 to-transparent">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-[0_0_14px_rgba(201,166,107,0.2)]">
-              <Lock className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="flex h-12 items-center justify-between px-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+              <Lock className="h-3 w-3 text-black" />
             </div>
-            <div>
-              <h1 className="text-sm font-heading font-semibold text-foreground">Nostalgia</h1>
-              <p className="text-[9px] font-mono text-amber-700/55 tracking-[0.2em]">
-                ENCRYPTED
-              </p>
-            </div>
+            <span className="text-[14px] font-semibold text-white font-heading">Nostalgia</span>
           </div>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/30 transition-colors"
-          >
+          <button onClick={close} className="h-8 w-8 flex items-center justify-center rounded-lg text-[#aaa] hover:text-white hover:bg-white/[0.05]">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Upload */}
-        <div className="px-3 py-3">
+        <div className="px-3 py-3 shrink-0">
           <Link
             href="/photos?upload=true"
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-primary-foreground",
-              "bg-gradient-to-b from-amber-500 to-amber-600",
-              "shadow-[0_2px_8px_rgba(201,166,107,0.25),inset_0_1px_0_rgba(255,255,255,0.15)]",
-            )}
+            onClick={close}
+            className="flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-black bg-primary hover:brightness-110 shadow-[0_2px_8px_rgba(201,166,107,0.25)]"
           >
             <Upload className="h-4 w-4" />
             Upload
@@ -353,52 +347,32 @@ export function MobileDrawer() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
-          {navigation.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  isActive
-                    ? "bg-amber-950/50 text-foreground"
-                    : "text-muted-foreground hover:bg-amber-950/30 hover:text-foreground",
-                )}
-              >
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(201,166,107,0.5)]" />
-                )}
-                <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-amber-400" : "")} />
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-3 space-y-4">
+          {navSections.map((section, si) => (
+            <div key={si} className="space-y-0.5">
+              {section.label && (
+                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#717171] select-none">
+                  {section.label}
+                </p>
+              )}
+              {section.items.map((item) => (
+                <NavItem key={item.href} item={item} collapsed={false} onClick={close} />
+              ))}
+            </div>
+          ))}
         </nav>
 
-        {/* AI indexing progress */}
-        {convexAvailable && (
-          <AiIndexingProgress collapsed={false} />
-        )}
+        {convexAvailable && <AiIndexingProgress collapsed={false} />}
 
-        {/* Storage */}
-        <div className="relative z-10">
-          {convexAvailable ? (
-            <SidebarStorageStats collapsed={false} />
-          ) : (
-            <SidebarStorageFallback collapsed={false} />
-          )}
+        <div className="shrink-0 border-t border-white/[0.06]">
+          {convexAvailable && <StorageStats collapsed={false} />}
         </div>
 
-        {/* Settings */}
-        <div className="border-t border-border p-3">
+        <div className="shrink-0 border-t border-white/[0.06] p-2">
           <Link
             href="/settings"
-            onClick={() => setMobileOpen(false)}
-            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+            onClick={close}
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#aaa] hover:bg-white/[0.05] hover:text-white transition-colors"
           >
             <Settings className="h-4 w-4" />
             <span>Settings</span>
@@ -409,42 +383,39 @@ export function MobileDrawer() {
   );
 }
 
-/** Mobile bottom tab bar */
+// ── Mobile bottom tab bar ─────────────────────────────────────────
+
 export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-14 items-center justify-around border-t border-amber-900/20 bg-sidebar/97 backdrop-blur-md safe-area-pb shadow-[0_-1px_0_rgba(201,166,107,0.04)]">
-      {mobileNav.map((item) => {
-        const isActive =
-          pathname === item.href || pathname.startsWith(item.href + "/");
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-14 items-center justify-around border-t border-white/[0.06] bg-sidebar/97 backdrop-blur-md safe-area-pb">
+      {mobileNavItems.map((item) => {
+        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        const Icon = item.icon;
         return (
           <Link
-            key={item.name}
+            key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors",
-              isActive
-                ? "text-amber-400"
-                : "text-amber-900/50 active:text-amber-600",
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
+              isActive ? "text-white" : "text-[#aaa] active:text-white",
             )}
           >
-            <item.icon className="h-5 w-5" />
-            <span className="text-[10px] font-mono">{item.name}</span>
+            <Icon className="h-5 w-5" />
+            <span className="text-[10px]">{item.name}</span>
           </Link>
         );
       })}
       <Link
         href="/settings"
         className={cn(
-          "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors",
-          pathname === "/settings"
-            ? "text-amber-400"
-            : "text-amber-900/50 active:text-amber-600",
+          "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
+          pathname === "/settings" ? "text-white" : "text-[#aaa] active:text-white",
         )}
       >
         <Settings className="h-5 w-5" />
-        <span className="text-[10px] font-mono">Settings</span>
+        <span className="text-[10px]">Settings</span>
       </Link>
     </nav>
   );

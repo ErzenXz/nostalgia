@@ -10,7 +10,6 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { usePhotoUrl } from "@/hooks/use-photo-url";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
 import { cn, formatDate, formatBytes } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Heart,
@@ -108,19 +107,14 @@ function RelatedPhotoCard({ photo }: { photo: any }) {
   return (
     <Link
       href={`/photos/${photo._id}`}
-      className={cn(
-        "group flex gap-3 rounded-xl p-2.5 transition-all duration-300",
-        "bg-[#0f0e0d] border border-amber-900/12",
-        "hover:border-amber-800/28 hover:bg-[#121110]",
-        "hover:shadow-[0_4px_20px_rgba(0,0,0,0.5),0_0_16px_-8px_rgba(201,166,107,0.1)]",
-      )}
+      className="group flex gap-3 rounded-xl p-2.5 transition-colors duration-150 bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-white/[0.06]"
     >
       {/* Thumbnail */}
-      <div className="relative w-[120px] sm:w-[130px] shrink-0 aspect-video rounded-lg overflow-hidden bg-[#0c0b0a]">
+      <div className="relative w-[120px] sm:w-[130px] shrink-0 aspect-video rounded-lg overflow-hidden bg-[#272727]">
         {url ? (
           isVideo ? (
             <video
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 photo-warm"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               src={url}
               muted
               playsInline
@@ -131,47 +125,44 @@ function RelatedPhotoCard({ photo }: { photo: any }) {
               src={url}
               alt={photo.description || photo.fileName}
               fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105 photo-warm"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
               sizes="130px"
               unoptimized
             />
           )
         ) : (
-          <div className="absolute inset-0 bg-amber-950/20 animate-pulse" />
+          <div className="absolute inset-0 bg-[#272727] animate-pulse" />
         )}
         {isVideo && (
-          <div className="absolute bottom-1 right-1 rounded-sm bg-black/80 px-1.5 py-0.5 text-[9px] font-mono text-amber-500/70 uppercase tracking-wider">
+          <div className="absolute bottom-1 right-1 rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white/70">
             Video
           </div>
         )}
         {photo.isFavorite && (
           <div className="absolute top-1.5 right-1.5">
-            <Heart className="h-3 w-3 fill-red-500/80 text-red-500/80" />
+            <Heart className="h-3 w-3 fill-red-500 text-red-500" />
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0 py-0.5">
-        <h4 className="text-sm font-serif text-foreground/85 line-clamp-2 leading-tight mb-1.5">
+      <div className="flex-1 min-w-0 py-0.5 space-y-1">
+        <h4 className="text-[13px] text-[#f1f1f1] font-medium line-clamp-2 leading-snug">
           {photo.description || photo.fileName}
         </h4>
-        <p className="text-[10px] font-mono text-amber-800/50">
+        <p className="text-[11px] text-[#aaa]">
           {formatDate(photo.takenAt ?? photo.uploadedAt)}
         </p>
         {photo.locationName && (
-          <p className="text-[10px] font-mono text-amber-800/40 mt-0.5 flex items-center gap-1">
+          <p className="text-[11px] text-[#aaa] flex items-center gap-1">
             <MapPin className="h-2.5 w-2.5 shrink-0" />
             <span className="truncate">{photo.locationName}</span>
           </p>
         )}
         {photo.aiTags && photo.aiTags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-1 pt-0.5">
             {photo.aiTags.slice(0, 2).map((tag: string) => (
-              <span
-                key={tag}
-                className="text-[8px] px-1.5 py-0.5 rounded-sm font-mono bg-amber-950/40 text-amber-800/50 border border-amber-900/20"
-              >
+              <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-[#aaa] border border-white/[0.06]">
                 {tag}
               </span>
             ))}
@@ -272,7 +263,7 @@ export default function PhotoDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-6 w-6 animate-spin text-amber-700/50" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#aaa]" />
       </div>
     );
   }
@@ -280,19 +271,15 @@ export default function PhotoDetailPage() {
   if (!photo) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
-        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-amber-950/25 border border-amber-900/20 mb-4">
-          <Images className="h-6 w-6 text-amber-800/40" />
-        </div>
-        <p className="text-sm font-serif text-foreground/80 mb-1">Photo not found</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-3 text-amber-800/60 hover:text-amber-400"
+        <Images className="h-10 w-10 text-[#717171] mb-4" />
+        <p className="text-[#f1f1f1] font-medium mb-1">Photo not found</p>
+        <button
+          className="mt-3 flex items-center gap-2 px-4 py-2 rounded-full bg-[#272727] text-[#f1f1f1] text-sm hover:bg-[#3f3f3f] transition-colors"
           onClick={() => router.push("/photos")}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4" />
           Back to Photos
-        </Button>
+        </button>
       </div>
     );
   }
@@ -317,75 +304,44 @@ export default function PhotoDetailPage() {
   return (
     <div className="min-h-screen">
       {/* ── Top navigation bar ── */}
-      <div
-        className={cn(
-          "sticky top-0 z-20 flex items-center justify-between px-4 py-2.5 lg:px-6",
-          "border-b border-amber-900/20",
-          "bg-[#0d0d0d]/97 backdrop-blur-md",
-          "shadow-[0_1px_0_rgba(201,166,107,0.04)]",
-        )}
-      >
+      <div className="sticky top-0 z-20 flex items-center justify-between px-4 py-2.5 lg:px-6 border-b border-white/[0.06] bg-[#0f0f0f]/97 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/40"
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-[#aaa] hover:text-white hover:bg-white/[0.05] transition-colors"
             onClick={() => router.push("/photos")}
           >
             <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-sm font-mono text-amber-700/60 truncate max-w-[200px] sm:max-w-[320px] tracking-wider">
+          </button>
+          <h1 className="text-[13px] text-[#aaa] truncate max-w-[200px] sm:max-w-[320px]">
             {photo.fileName}
           </h1>
         </div>
 
         <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/40"
-            onClick={() => toggleFavorite({ photoId: photoId as any })}
-          >
-            <Heart
+          {[
+            { icon: Heart, action: () => toggleFavorite({ photoId: photoId as any }), active: photo.isFavorite, activeClass: "text-red-500" },
+            { icon: Archive, action: () => archivePhoto({ photoId: photoId as any }) },
+            { icon: Share2, action: () => {} },
+            { icon: Download, action: () => {} },
+          ].map(({ icon: Icon, action, active, activeClass }, i) => (
+            <button
+              key={i}
+              onClick={action}
               className={cn(
-                "h-5 w-5 transition-all duration-300",
-                photo.isFavorite ? "fill-red-500/80 text-red-500/80 scale-110" : "",
+                "flex h-8 w-8 items-center justify-center rounded-xl transition-colors",
+                active ? (activeClass ?? "text-white") : "text-[#aaa]",
+                "hover:text-white hover:bg-white/[0.05]",
               )}
-            />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/40"
-            onClick={() => archivePhoto({ photoId: photoId as any })}
+            >
+              <Icon className={cn("h-4.5 w-4.5", active && activeClass && "fill-current")} />
+            </button>
+          ))}
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-[#aaa] hover:text-red-400 hover:bg-red-950/20 transition-colors"
+            onClick={() => { trashPhoto({ photoId: photoId as any }); router.push("/photos"); }}
           >
-            <Archive className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/40"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-amber-800/60 hover:text-amber-400 hover:bg-amber-950/40"
-          >
-            <Download className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-amber-800/60 hover:text-red-400/70 hover:bg-red-950/25"
-            onClick={() => {
-              trashPhoto({ photoId: photoId as any });
-              router.push("/photos");
-            }}
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -416,14 +372,7 @@ export default function PhotoDetailPage() {
               {prevPhoto && (
                 <Link
                   href={`/photos/${prevPhoto._id}`}
-                  className={cn(
-                    "absolute left-3 top-1/2 -translate-y-1/2",
-                    "flex h-10 w-10 items-center justify-center",
-                    "rounded-full bg-black/60 text-white/70 backdrop-blur-sm",
-                    "border border-amber-900/20",
-                    "hover:bg-black/80 hover:text-amber-400 hover:border-amber-700/30",
-                    "transition-all duration-200",
-                  )}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white/80 backdrop-blur-sm hover:bg-black/80 hover:text-white transition-colors"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
@@ -431,14 +380,7 @@ export default function PhotoDetailPage() {
               {nextPhoto && (
                 <Link
                   href={`/photos/${nextPhoto._id}`}
-                  className={cn(
-                    "absolute right-3 top-1/2 -translate-y-1/2",
-                    "flex h-10 w-10 items-center justify-center",
-                    "rounded-full bg-black/60 text-white/70 backdrop-blur-sm",
-                    "border border-amber-900/20",
-                    "hover:bg-black/80 hover:text-amber-400 hover:border-amber-700/30",
-                    "transition-all duration-200",
-                  )}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white/80 backdrop-blur-sm hover:bg-black/80 hover:text-white transition-colors"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Link>
@@ -446,16 +388,8 @@ export default function PhotoDetailPage() {
 
               {/* Frame counter */}
               {currentIndex >= 0 && (
-                <div
-                  className={cn(
-                    "absolute bottom-3 right-3",
-                    "px-2.5 py-1 rounded-sm",
-                    "bg-black/70 backdrop-blur-sm",
-                    "border border-amber-900/20",
-                    "text-[10px] font-mono text-amber-600/60 tabular-nums tracking-widest",
-                  )}
-                >
-                  {String(currentIndex + 1).padStart(2, "0")} / {String(allPhotos.length).padStart(2, "0")}
+                <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/70 backdrop-blur-sm text-[11px] text-white/60 tabular-nums">
+                  {currentIndex + 1} / {allPhotos.length}
                 </div>
               )}
             </div>
@@ -466,30 +400,30 @@ export default function PhotoDetailPage() {
 
           {/* ── Title + quick stats ── */}
           <div className="mt-5 space-y-3">
-            <h2 className="text-xl sm:text-2xl font-serif font-medium text-foreground/95 leading-tight tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#f1f1f1] leading-tight">
               {photo.description || photo.fileName}
             </h2>
 
-            {/* Film slate stats row */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+            {/* Stats row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
               {photo.locationName && (
-                <div className="flex items-center gap-1.5 text-xs font-mono text-amber-700/60">
-                  <MapPin className="h-3.5 w-3.5 text-amber-700/40 shrink-0" />
+                <div className="flex items-center gap-1.5 text-[12px] text-[#aaa]">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
                   {photo.locationName}
                 </div>
               )}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-amber-700/60">
-                <Calendar className="h-3.5 w-3.5 text-amber-700/40 shrink-0" />
+              <div className="flex items-center gap-1.5 text-[12px] text-[#aaa]">
+                <Calendar className="h-3.5 w-3.5 shrink-0" />
                 {formatDate(photo.takenAt ?? photo.uploadedAt)}
               </div>
               {(photo.cameraMake || photo.cameraModel) && (
-                <div className="flex items-center gap-1.5 text-xs font-mono text-amber-700/60">
-                  <Camera className="h-3.5 w-3.5 text-amber-700/40 shrink-0" />
+                <div className="flex items-center gap-1.5 text-[12px] text-[#aaa]">
+                  <Camera className="h-3.5 w-3.5 shrink-0" />
                   {[photo.cameraMake, photo.cameraModel].filter(Boolean).join(" ")}
                 </div>
               )}
-              <div className="flex items-center gap-1.5 text-xs font-mono text-amber-700/60">
-                <FileImage className="h-3.5 w-3.5 text-amber-700/40 shrink-0" />
+              <div className="flex items-center gap-1.5 text-[12px] text-[#aaa]">
+                <FileImage className="h-3.5 w-3.5 shrink-0" />
                 {formatBytes(photo.sizeBytes)}
               </div>
             </div>
@@ -498,103 +432,69 @@ export default function PhotoDetailPage() {
             {photo.aiTags && photo.aiTags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {photo.aiTags.slice(0, 14).map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="text-[10px] px-2 py-1 rounded-sm font-mono bg-amber-950/40 text-amber-700/65 border border-amber-900/22 tracking-wide"
-                  >
+                  <span key={tag} className="text-[11px] px-2 py-1 rounded-full bg-white/[0.06] text-[#aaa] border border-white/[0.06] hover:bg-white/[0.1] hover:text-[#f1f1f1] transition-colors cursor-pointer">
                     {tag}
                   </span>
                 ))}
                 {photo.aiTags.length > 14 && (
-                  <span className="text-[10px] font-mono text-amber-900/40 self-center">
-                    +{photo.aiTags.length - 14}
-                  </span>
+                  <span className="text-[11px] text-[#717171] self-center">+{photo.aiTags.length - 14}</span>
                 )}
               </div>
             )}
           </div>
 
-          {/* ── Develop Notes — AI Description ── */}
+          {/* ── AI Description ── */}
           {photo.description && (
-            <div className="mt-5 rounded-xl overflow-hidden darkroom-panel">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-amber-900/12">
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-lg shrink-0",
-                    "bg-amber-950/60 border border-amber-800/25",
-                  )}
-                >
-                  <Sparkles className="h-4 w-4 text-amber-500/75" />
-                </div>
+            <div className="mt-5 rounded-xl bg-[#1f1f1f] border border-white/[0.06] overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+                <Sparkles className="h-4 w-4 text-[#c9a66b] shrink-0" />
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-600/65">
-                    Develop Notes
-                  </p>
-                  <p className="text-[9px] font-mono text-amber-900/40 tracking-wider">
-                    AI GENERATED CAPTION
-                  </p>
+                  <p className="text-[12px] font-medium text-[#f1f1f1]">AI Description</p>
+                  <p className="text-[10px] text-[#717171]">Generated by AI analysis</p>
                 </div>
               </div>
               <div className="px-4 py-4">
-                <p className="text-sm font-serif text-foreground/85 leading-relaxed italic">
-                  &ldquo;{photo.description}&rdquo;
+                <p className="text-[13px] text-[#f1f1f1] leading-relaxed">
+                  {photo.description}
                 </p>
               </div>
             </div>
           )}
 
           {/* ── Technical Data — EXIF ── */}
-          <div className="mt-4 rounded-xl overflow-hidden darkroom-panel">
+          <div className="mt-4 rounded-xl bg-[#1f1f1f] border border-white/[0.06] overflow-hidden">
             <details className="group" open>
-              <summary
-                className={cn(
-                  "flex items-center justify-between px-4 py-3 cursor-pointer",
-                  "hover:bg-amber-950/15 transition-colors duration-200",
-                )}
-              >
+              <summary className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/[0.03] transition-colors">
                 <div className="flex items-center gap-2">
-                  <Info className="h-3.5 w-3.5 text-amber-800/50" />
-                  <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-700/65">
-                    Technical Data
-                  </span>
+                  <Info className="h-3.5 w-3.5 text-[#aaa]" />
+                  <span className="text-[12px] font-medium text-[#f1f1f1]">Technical Details</span>
                 </div>
-                <ChevronRight className="h-4 w-4 text-amber-800/35 transition-transform duration-200 group-open:rotate-90" />
+                <ChevronRight className="h-4 w-4 text-[#717171] transition-transform duration-200 group-open:rotate-90" />
               </summary>
 
-              <div className="border-t border-amber-900/12 px-4 py-4 space-y-4">
-                {/* EXIF data grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="border-t border-white/[0.06] px-4 py-4 space-y-4">
+                {/* EXIF grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {exifData.map(({ label, value }) => (
-                    <div
-                      key={label}
-                      className="rounded-lg bg-[#0c0b0a] border border-amber-900/10 px-3 py-2.5"
-                    >
-                      <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-900/45 block mb-1">
-                        {label}
-                      </span>
-                      <span className="text-xs font-mono text-amber-600/75 block truncate">
-                        {value || "—"}
-                      </span>
+                    <div key={label} className="rounded-lg bg-[#272727] border border-white/[0.04] px-3 py-2.5">
+                      <span className="text-[10px] uppercase tracking-wider text-[#717171] block mb-1">{label}</span>
+                      <span className="text-[12px] text-[#f1f1f1] block truncate">{value || "—"}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Dominant color palette */}
+                {/* Color palette */}
                 {photo.dominantColors && photo.dominantColors.length > 0 && (
                   <div>
-                    <span className="text-[9px] font-mono uppercase tracking-[0.18em] text-amber-900/45 block mb-2.5">
-                      Colour Palette
-                    </span>
-                    <div className="flex gap-2.5 flex-wrap">
+                    <span className="text-[10px] uppercase tracking-wider text-[#717171] block mb-2.5">Color Palette</span>
+                    <div className="flex gap-2 flex-wrap">
                       {photo.dominantColors.slice(0, 6).map((color: string, i: number) => (
                         <div key={i} className="flex flex-col items-center gap-1.5">
                           <div
-                            className="h-8 w-8 rounded-lg border border-amber-900/18 shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                            className="h-8 w-8 rounded-lg border border-white/[0.06]"
                             style={{ backgroundColor: color }}
                           />
-                          <span className="text-[8px] font-mono text-amber-900/35 uppercase">
-                            {color.replace("#", "")}
-                          </span>
+                          <span className="text-[9px] text-[#717171] uppercase">{color.replace("#", "")}</span>
                         </div>
                       ))}
                     </div>
@@ -608,29 +508,18 @@ export default function PhotoDetailPage() {
           <div className="h-6" />
         </div>
 
-        {/* ── RIGHT: More from this roll ── */}
+        {/* ── RIGHT: Up Next ── */}
         <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0">
-          {/* Section header */}
-          <div className="flex items-center gap-3 mb-4 px-0.5">
-            <div className="h-px flex-1 bg-gradient-to-r from-amber-900/25 to-transparent" />
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-700/55 whitespace-nowrap">
-              More From This Roll
-            </span>
-            <div className="h-px flex-1 bg-gradient-to-l from-amber-900/25 to-transparent" />
-          </div>
+          <h3 className="text-[13px] font-semibold text-[#f1f1f1] mb-3">Up Next</h3>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {relatedPhotos.slice(0, 12).map((rPhoto: any) => (
               <RelatedPhotoCard key={rPhoto._id} photo={rPhoto} />
             ))}
             {relatedPhotos.length === 0 && (
               <div className="text-center py-12">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-950/25 border border-amber-900/18 mx-auto mb-3">
-                  <Images className="h-5 w-5 text-amber-800/35" />
-                </div>
-                <p className="text-xs font-mono text-amber-900/35 uppercase tracking-wider">
-                  No related photos
-                </p>
+                <Images className="h-8 w-8 text-[#717171] mx-auto mb-3" />
+                <p className="text-[13px] text-[#aaa]">No related photos</p>
               </div>
             )}
           </div>

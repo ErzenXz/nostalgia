@@ -114,20 +114,20 @@ export function PhotoGrid({
                 "sticky top-0 z-20 bg-background/90 backdrop-blur-sm py-2 -mx-4 md:-mx-8 px-4 md:px-8",
             )}
           >
-            <span className="text-[10px] font-mono font-medium uppercase tracking-[0.15em] text-amber-800/50">
+            <span className="text-[11px] font-medium text-[#aaa]">
               {formatDate(new Date(dateKey))}
             </span>
             {topLocation && (
               <>
-                <span className="text-amber-900/25 text-[10px]">·</span>
-                <span className="flex items-center gap-1 text-[10px] font-mono text-amber-900/40">
+                <span className="text-[#717171] text-[11px]">·</span>
+                <span className="flex items-center gap-1 text-[11px] text-[#717171]">
                   <svg className="h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
                   {topLocation}
                 </span>
               </>
             )}
-            <div className="h-px flex-1 bg-amber-900/8" />
-            <span className="text-[9px] font-mono text-amber-900/30 shrink-0">
+            <div className="h-px flex-1 bg-white/[0.04]" />
+            <span className="text-[11px] text-[#717171] shrink-0">
               {(datePhotos as Photo[]).length}
             </span>
           </div>

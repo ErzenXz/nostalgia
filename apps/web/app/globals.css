@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  /* Nostalgic Dark - Skeuomorphic, warm shadows, film-like */
-  --color-background: #0d0d0d;
-  --color-foreground: #e8e4dc;
-  --color-card: #141414;
-  --color-card-foreground: #e8e4dc;
-  --color-popover: #1a1a1a;
-  --color-popover-foreground: #e8e4dc;
+  /* Nostalgia — YouTube Dark parity + warm amber brand accent */
+  --color-background: #0f0f0f;
+  --color-foreground: #f1f1f1;
+  --color-card: #1f1f1f;
+  --color-card-foreground: #f1f1f1;
+  --color-popover: #282828;
+  --color-popover-foreground: #f1f1f1;
   --color-primary: #c9a66b;
-  --color-primary-foreground: #0d0d0d;
-  --color-secondary: #1f1f1f;
-  --color-secondary-foreground: #e8e4dc;
-  --color-muted: #1a1a1a;
-  --color-muted-foreground: #8a8578;
-  --color-accent: #2a2520;
-  --color-accent-foreground: #e8e4dc;
-  --color-destructive: #4a2020;
-  --color-destructive-foreground: #e8e4dc;
-  --color-border: #2a2825;
-  --color-input: #2a2825;
+  --color-primary-foreground: #0f0f0f;
+  --color-secondary: #272727;
+  --color-secondary-foreground: #f1f1f1;
+  --color-muted: #272727;
+  --color-muted-foreground: #aaaaaa;
+  --color-accent: #3f3f3f;
+  --color-accent-foreground: #f1f1f1;
+  --color-destructive: #cc0000;
+  --color-destructive-foreground: #f1f1f1;
+  --color-border: #3f3f3f;
+  --color-input: #121212;
   --color-ring: #c9a66b;
-  --color-sidebar: #0d0d0d;
-  --color-sidebar-foreground: #e8e4dc;
+  --color-sidebar: #171717;
+  --color-sidebar-foreground: #f1f1f1;
 
-  /* Warm accent colors for skeuomorphic feel */
-  --color-accent-warm: #3d3530;
+  /* Brand accent (amber/gold — Nostalgia identity) */
+  --color-accent-warm: #2a2520;
   --color-accent-gold: #c9a66b;
-  --color-accent-amber: #b8860b;
-  --color-shadow-warm: rgba(201, 166, 107, 0.08);
-  --color-glow-warm: rgba(201, 166, 107, 0.15);
+  --color-accent-amber: #c9a66b;
+  --color-shadow-warm: rgba(201, 166, 107, 0.06);
+  --color-glow-warm: rgba(201, 166, 107, 0.12);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-serif), "Playfair Display", "Georgia", ui-serif, serif;

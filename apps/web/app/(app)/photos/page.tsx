@@ -83,7 +83,7 @@ const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
   return (
     <Link
       href={`/photos/${photo._id}`}
-      className="group relative shrink-0 w-[180px] overflow-hidden rounded-lg film-print transition-all duration-200 hover:-translate-y-0.5"
+      className="group relative shrink-0 w-[180px] overflow-hidden rounded-lg rounded-xl bg-[#1f1f1f] transition-all duration-200 hover:-translate-y-0.5"
     >
       <div className="relative aspect-[4/3]">
         {url ? (
@@ -106,17 +106,17 @@ const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
             />
           )
         ) : (
-          <div className="absolute inset-0 bg-amber-950/20 animate-pulse" />
+          <div className="absolute inset-0 bg-[#272727] animate-pulse" />
         )}
         {isVideo && (
           <div className="absolute bottom-1.5 right-1.5 rounded-sm bg-black/70 px-1.5 py-0.5 flex items-center gap-1">
-            <Video className="h-2.5 w-2.5 text-amber-400/80" />
-            <span className="text-[9px] font-mono text-amber-400/80 uppercase">Video</span>
+            <Video className="h-2.5 w-2.5 text-white/80" />
+            <span className="text-[9px] font-mono text-white/80 uppercase">Video</span>
           </div>
         )}
         {photo.isFavorite && (
           <div className="absolute top-1.5 right-1.5">
-            <Heart className="h-3 w-3 fill-amber-500/80 text-amber-500/80" />
+            <Heart className="h-3 w-3 fill-red-500 text-red-500" />
           </div>
         )}
       </div>
@@ -125,7 +125,7 @@ const FeedThumbnail = memo(function FeedThumbnail({ photo }: { photo: any }) {
           {photo.description || photo.fileName}
         </p>
         {photo.locationName && (
-          <p className="mt-0.5 text-[9px] font-mono text-amber-800/50 flex items-center gap-1">
+          <p className="mt-0.5 text-[9px] font-mono text-[#aaa] flex items-center gap-1">
             <MapPin className="h-2 w-2" />
             <span className="truncate">{photo.locationName}</span>
           </p>
@@ -158,7 +158,7 @@ const FeedSection = memo(function FeedSection({
         <div>
           <h2 className="text-sm font-heading font-semibold text-foreground/90">{title}</h2>
           {subtitle && (
-            <p className="text-[9px] font-mono text-amber-800/45 uppercase tracking-wider mt-0.5">
+            <p className="text-[9px] font-mono text-[#aaa] uppercase tracking-wider mt-0.5">
               {subtitle}
             </p>
           )}
@@ -166,7 +166,7 @@ const FeedSection = memo(function FeedSection({
         {linkHref && (
           <Link
             href={linkHref}
-            className="flex items-center gap-1 text-[10px] font-mono text-amber-700/55 hover:text-amber-500 transition-colors uppercase tracking-wider"
+            className="flex items-center gap-1 text-[10px] font-mono text-[#aaa] hover:text-white transition-colors uppercase tracking-wider"
           >
             {linkLabel ?? "See all"}
             <ChevronRight className="h-3 w-3" />
@@ -192,7 +192,7 @@ function FilterChips({
   onChange: (v: FilterChip) => void;
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 md:px-8 py-3 scrollbar-none border-b border-amber-900/12">
+    <div className="flex gap-2 overflow-x-auto px-4 md:px-8 py-3 scrollbar-none border-b border-white/[0.04]">
       {FILTER_CHIPS.map(({ id, label }) => (
         <button
           key={id}
@@ -200,8 +200,8 @@ function FilterChips({
           className={cn(
             "shrink-0 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-wider transition-all duration-200 border",
             active === id
-              ? "bg-amber-600/20 border-amber-600/40 text-amber-400/90"
-              : "border-amber-900/20 text-amber-900/40 hover:border-amber-800/35 hover:text-amber-700/60",
+              ? "bg-white/[0.1] border-white/[0.15] text-white/90"
+              : "border-white/[0.06] text-[#717171] hover:border-white/[0.1] hover:text-[#aaa]",
           )}
         >
           {label}
@@ -231,28 +231,28 @@ function SelectionBar({
   return (
     <div className="fixed bottom-0 inset-x-0 z-50 pb-safe lg:left-[--sidebar-width,240px]">
       <div className="mx-auto max-w-3xl m-4">
-        <div className="rounded-xl border border-amber-800/25 bg-[#0f0e0d]/95 backdrop-blur-xl shadow-[0_-8px_40px_rgba(0,0,0,0.6)] flex items-center gap-2 px-4 py-3">
-          <span className="text-[11px] font-mono text-amber-700/70 uppercase tracking-wider shrink-0">
+        <div className="rounded-xl border border-white/[0.08] bg-[#0f0e0d]/95 backdrop-blur-xl shadow-[0_-8px_40px_rgba(0,0,0,0.6)] flex items-center gap-2 px-4 py-3">
+          <span className="text-[11px] font-mono text-[#aaa] uppercase tracking-wider shrink-0">
             {count} selected
           </span>
           <div className="flex-1" />
           <button
             onClick={onAddToAlbum}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-wider text-amber-700/60 hover:text-amber-400 border border-amber-900/20 hover:border-amber-700/35 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-wider text-[#aaa] hover:text-white border border-white/[0.06] hover:border-white/[0.15] transition-colors"
           >
             <PlusCircle className="h-3.5 w-3.5" />
             Album
           </button>
           <button
             onClick={onFavorite}
-            className="p-2 rounded-sm text-amber-700/50 hover:text-amber-400 hover:bg-amber-950/30 transition-colors"
+            className="p-2 rounded-sm text-[#717171] hover:text-white hover:bg-white/[0.04] transition-colors"
             title="Favorite"
           >
             <Heart className="h-4 w-4" />
           </button>
           <button
             onClick={onArchive}
-            className="p-2 rounded-sm text-amber-700/50 hover:text-amber-400 hover:bg-amber-950/30 transition-colors"
+            className="p-2 rounded-sm text-[#717171] hover:text-white hover:bg-white/[0.04] transition-colors"
             title="Archive"
           >
             <Archive className="h-4 w-4" />
@@ -266,7 +266,7 @@ function SelectionBar({
           </button>
           <button
             onClick={onClear}
-            className="p-2 rounded-sm text-amber-900/40 hover:text-amber-700/60 transition-colors ml-1"
+            className="p-2 rounded-sm text-[#717171] hover:text-[#aaa] transition-colors ml-1"
             title="Clear selection"
           >
             <X className="h-4 w-4" />
@@ -455,7 +455,7 @@ function PhotosContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-800/40" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#aaa]" />
       </div>
     );
   }
@@ -473,8 +473,8 @@ function PhotosContent() {
           className={cn(
             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[10px] font-mono uppercase tracking-wider border transition-colors",
             selectable
-              ? "bg-amber-600/15 border-amber-600/35 text-amber-400/90"
-              : "border-amber-900/22 text-amber-900/40 hover:border-amber-800/35 hover:text-amber-700/60",
+              ? "bg-white/[0.08] border-white/[0.12] text-white/90"
+              : "border-white/[0.06] text-[#717171] hover:border-white/[0.1] hover:text-[#aaa]",
           )}
         >
           <CheckSquare className="h-3.5 w-3.5" />
@@ -483,7 +483,7 @@ function PhotosContent() {
         <button
           onClick={() => setViewMode(viewMode === "feed" ? "grid" : "feed")}
           title={viewMode === "feed" ? "Grid view" : "Feed view"}
-          className="p-1.5 rounded-sm text-amber-900/40 hover:text-amber-700/60 border border-amber-900/15 hover:border-amber-800/30 transition-colors"
+          className="p-1.5 rounded-sm text-[#717171] hover:text-[#aaa] border border-white/[0.04] hover:border-white/[0.12] transition-colors"
         >
           {viewMode === "feed" ? (
             <Grid3X3 className="h-4 w-4" />
@@ -493,7 +493,7 @@ function PhotosContent() {
         </button>
         <Button
           size="sm"
-          className="bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 shadow-[0_2px_8px_rgba(201,166,107,0.2)] font-mono uppercase tracking-wider text-[10px]"
+          className="bg-primary hover:brightness-110 text-black text-[13px]"
           onClick={() => setShowUpload(true)}
         >
           <Upload className="h-3.5 w-3.5" />
@@ -508,15 +508,15 @@ function PhotosContent() {
 
       {/* Empty state */}
       {allPhotos.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-32 text-amber-900/30">
+        <div className="flex flex-col items-center justify-center py-32 text-[#717171]">
           <Images className="h-12 w-12 opacity-30 mb-4" />
-          <p className="text-sm font-mono text-amber-900/40">
+          <p className="text-sm font-mono text-[#717171]">
             Upload your first photos to get started
           </p>
           <Button
             variant="outline"
             size="sm"
-            className="mt-4 border-amber-900/25 text-amber-800/50"
+            className="mt-4 border-white/[0.08] text-[#aaa]"
             onClick={() => setShowUpload(true)}
           >
             <Upload className="h-4 w-4" />
@@ -527,9 +527,9 @@ function PhotosContent() {
 
       {/* Filtered empty state */}
       {allPhotos.length > 0 && photos.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 text-amber-900/30">
+        <div className="flex flex-col items-center justify-center py-24 text-[#717171]">
           <Images className="h-10 w-10 opacity-30 mb-3" />
-          <p className="text-xs font-mono text-amber-900/40 uppercase tracking-wider">
+          <p className="text-xs font-mono text-[#717171] uppercase tracking-wider">
             No photos match this filter
           </p>
         </div>
@@ -547,7 +547,7 @@ function PhotosContent() {
               />
               {feedSections.onThisDay.length > 0 && (
                 <>
-                  <div className="h-px mx-4 md:mx-8 bg-amber-900/10" />
+                  <div className="h-px mx-4 md:mx-8 bg-white/[0.04]" />
                   <FeedSection
                     title="On This Day"
                     subtitle="From past years"
@@ -559,7 +559,7 @@ function PhotosContent() {
               )}
               {feedSections.favorites.length > 0 && (
                 <>
-                  <div className="h-px mx-4 md:mx-8 bg-amber-900/10" />
+                  <div className="h-px mx-4 md:mx-8 bg-white/[0.04]" />
                   <FeedSection
                     title="Favorites"
                     subtitle={`${feedSections.favorites.length} photos`}
@@ -570,7 +570,7 @@ function PhotosContent() {
               )}
               {feedSections.topLocations.map(([location, locPhotos]) => (
                 <div key={location}>
-                  <div className="h-px mx-4 md:mx-8 bg-amber-900/10" />
+                  <div className="h-px mx-4 md:mx-8 bg-white/[0.04]" />
                   <FeedSection
                     title={location}
                     subtitle={`${(locPhotos as any[]).length} photos`}
@@ -580,7 +580,7 @@ function PhotosContent() {
                   />
                 </div>
               ))}
-              <div className="h-px mx-4 md:mx-8 bg-amber-900/10" />
+              <div className="h-px mx-4 md:mx-8 bg-white/[0.04]" />
             </>
           ) : null}
 
@@ -592,7 +592,7 @@ function PhotosContent() {
               </h2>
               <button
                 onClick={() => setViewMode("grid")}
-                className="flex items-center gap-1 text-[10px] font-mono text-amber-700/55 hover:text-amber-500 transition-colors uppercase tracking-wider"
+                className="flex items-center gap-1 text-[10px] font-mono text-[#aaa] hover:text-white transition-colors uppercase tracking-wider"
               >
                 Grid view
                 <ChevronRight className="h-3 w-3" />
