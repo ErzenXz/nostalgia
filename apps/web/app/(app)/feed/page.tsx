@@ -22,7 +22,6 @@ import {
   RefreshCw,
   ImageOff,
   MapPin,
-  ChevronRight,
   Play,
 } from "lucide-react";
 import Link from "next/link";
@@ -73,6 +72,15 @@ const modeConfig: Record<
   },
 };
 
+// ── Time ago ─────────────────────────────────────────────────
+
+function timeAgo(ts: number): string {
+  const years = Math.floor((Date.now() - ts) / (365.25 * 24 * 60 * 60 * 1000));
+  if (years === 0) return "This year";
+  if (years === 1) return "1 year ago";
+  return `${years} years ago`;
+}
+
 // ── Card Image ──────────────────────────────────────────────
 
 function CardImage({
@@ -102,9 +110,7 @@ function CardImage({
   const isVideo = mimeType.startsWith("video/");
 
   if (!displayUrl) {
-    return (
-      <div className="absolute inset-0 bg-[#1f1f1f] animate-pulse" />
-    );
+    return <div className="absolute inset-0 bg-[#1a1a1a] animate-pulse" />;
   }
 
   return (
@@ -113,14 +119,14 @@ function CardImage({
         src={displayUrl}
         alt={alt}
         fill
-        className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+        sizes="(max-width: 640px) 100vw, 560px"
         unoptimized
       />
       {isVideo && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-10 w-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <Play className="h-4 w-4 text-white fill-white ml-0.5" />
+          <div className="h-14 w-14 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-lg">
+            <Play className="h-6 w-6 text-white fill-white ml-0.5" />
           </div>
         </div>
       )}
@@ -129,6 +135,7 @@ function CardImage({
 }
 
 // ── Feed Card ───────────────────────────────────────────────
+// Instagram-style: full-width photo, actions + caption below
 
 function FeedCard({
   item,
@@ -140,15 +147,17 @@ function FeedCard({
   onFavorite: (id: string) => void;
 }) {
   const [liked, setLiked] = useState(photo?.isFavorite ?? false);
+
   if (!photo) return null;
 
   const date = item.takenAt ?? item.uploadedAt;
 
   return (
-    <Link href={`/photos/${item.photoId}`} className="block group">
-      <div className="space-y-2">
-        {/* Thumbnail */}
-        <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-[#1f1f1f]">
+    <article className="w-full">
+      {/* ── Photo ── */}
+      <Link href={`/photos/${item.photoId}`} className="block group relative">
+        {/* Aspect: square for portrait feel like Instagram */}
+        <div className="relative w-full aspect-square overflow-hidden rounded-2xl bg-[#1a1a1a]">
           <CardImage
             storageKey={photo.storageKey}
             thumbnailStorageKey={photo.thumbnailStorageKey}
@@ -157,80 +166,105 @@ function FeedCard({
             alt={item.captionShort || photo.fileName}
           />
 
-          {/* Dark overlay on hover */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+          {/* Subtle bottom gradient for legibility */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-          {/* Time-ago badge */}
+          {/* AI score badge — top right */}
+          {item.score > 0.7 && (
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/10">
+              <Sparkles className="h-3 w-3 text-primary" />
+              <span className="text-[11px] font-medium text-primary">Top memory</span>
+            </div>
+          )}
+
+          {/* Time ago — bottom left */}
           {date && (
-            <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm rounded px-1.5 py-0.5">
-              <span className="text-[10px] text-white/80 tabular-nums">
+            <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md rounded-full px-2.5 py-1 border border-white/10">
+              <span className="text-[11px] font-medium text-white/90">
                 {timeAgo(date)}
               </span>
             </div>
           )}
-
-          {/* Amber dot for AI-scored items */}
-          {item.score > 0.7 && (
-            <div className="absolute top-2 left-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-full px-1.5 py-0.5">
-              <Sparkles className="h-2.5 w-2.5 text-[#c9a66b]" />
-            </div>
-          )}
         </div>
+      </Link>
 
-        {/* Metadata below thumbnail */}
-        <div className="px-0.5 space-y-1">
-          {/* Caption / title */}
-          <p className="text-[13px] text-[#f1f1f1] font-medium leading-snug line-clamp-2">
-            {item.captionShort || photo.fileName}
-          </p>
-          {/* Date + location meta */}
-          <div className="flex items-center gap-1.5 text-[11px] text-[#aaa]">
-            {date && <span>{formatDate(date)}</span>}
-            {photo.locationName && (
-              <>
-                <span>·</span>
-                <span className="flex items-center gap-0.5 truncate max-w-[120px]">
-                  <MapPin className="h-2.5 w-2.5 shrink-0" />
-                  {photo.locationName}
-                </span>
-              </>
-            )}
-          </div>
-          {/* Tags */}
-          {item.aiTagsV2 && item.aiTagsV2.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-0.5">
-              {item.aiTagsV2.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-[#aaa] border border-white/[0.06]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Like action (bottom-right, discreet) */}
+      {/* ── Actions ── */}
+      <div className="flex items-center gap-1 px-1 pt-3 pb-2">
         <button
           type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          onClick={() => {
             setLiked(!liked);
             onFavorite(item.photoId);
           }}
-          className="opacity-0 group-hover:opacity-100 absolute bottom-14 right-2 transition-opacity duration-200 p-1.5 rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80"
+          className="group/heart flex items-center gap-1.5 p-1.5 rounded-full hover:bg-white/[0.06] transition-colors"
         >
           <Heart
             className={cn(
-              "h-4 w-4 transition-colors",
-              liked ? "fill-red-500 text-red-500" : "text-white",
+              "h-6 w-6 transition-all duration-200",
+              liked
+                ? "fill-red-500 text-red-500 scale-110"
+                : "text-[#ccc] group-hover/heart:text-white",
             )}
           />
         </button>
+
+        {/* Location pill */}
+        {photo.locationName && (
+          <div className="ml-auto flex items-center gap-1 text-[12px] text-[#888]">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate max-w-[140px]">{photo.locationName}</span>
+          </div>
+        )}
       </div>
-    </Link>
+
+      {/* ── Caption & metadata ── */}
+      <div className="px-1 space-y-2">
+        {/* Caption */}
+        {(item.captionShort || photo.fileName) && (
+          <p className="text-[14px] text-white font-medium leading-snug line-clamp-3">
+            {item.captionShort || photo.fileName}
+          </p>
+        )}
+
+        {/* Date */}
+        {date && (
+          <p className="text-[12px] text-[#888]">{formatDate(date)}</p>
+        )}
+
+        {/* AI tags */}
+        {item.aiTagsV2 && item.aiTagsV2.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {item.aiTagsV2.slice(0, 4).map((tag) => (
+              <span
+                key={tag}
+                className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.07] text-[#bbb] border border-white/[0.08]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+// ── Skeleton card ────────────────────────────────────────────
+
+function FeedCardSkeleton() {
+  return (
+    <div className="w-full space-y-3">
+      <div className="aspect-square w-full rounded-2xl bg-[#1a1a1a] animate-pulse" />
+      <div className="space-y-2 px-1">
+        <div className="h-4 w-3/4 rounded-full bg-white/[0.06] animate-pulse" />
+        <div className="h-3 w-1/3 rounded-full bg-white/[0.04] animate-pulse" />
+        <div className="flex gap-1.5 pt-1">
+          <div className="h-5 w-14 rounded-full bg-white/[0.05] animate-pulse" />
+          <div className="h-5 w-16 rounded-full bg-white/[0.05] animate-pulse" />
+          <div className="h-5 w-12 rounded-full bg-white/[0.05] animate-pulse" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -248,96 +282,23 @@ function FeedCardHydrated({
   const photo = useQuery(api.photos.getById, { photoId: item.photoId as any });
 
   if (photo === undefined) {
-    return (
-      <div className="space-y-2">
-        <div className="aspect-video w-full rounded-xl bg-[#1f1f1f] animate-pulse" />
-        <div className="space-y-1.5 px-0.5">
-          <div className="h-3 w-3/4 rounded bg-white/[0.06] animate-pulse" />
-          <div className="h-2.5 w-1/2 rounded bg-white/[0.04] animate-pulse" />
-        </div>
-      </div>
-    );
+    return <FeedCardSkeleton />;
   }
   if (!photo) return null;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.2), ease: [0.16, 1, 0.3, 1] }}
-      className="relative"
+      transition={{
+        duration: 0.4,
+        delay: Math.min(index * 0.06, 0.3),
+        ease: [0.16, 1, 0.3, 1],
+      }}
     >
       <FeedCard item={item} photo={photo} onFavorite={onFavorite} />
     </motion.div>
   );
-}
-
-// ── Section row ──────────────────────────────────────────────
-
-function SectionRow({
-  title,
-  icon: Icon,
-  description,
-  items,
-  onFavorite,
-  isLoading,
-}: {
-  title: string;
-  icon: React.ElementType;
-  description: string;
-  items: FeedItem[];
-  onFavorite: (id: string) => void;
-  isLoading: boolean;
-}) {
-  if (!isLoading && items.length === 0) return null;
-
-  return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Icon className="h-4 w-4 text-[#c9a66b]" />
-          <div>
-            <h2 className="text-[15px] font-semibold text-[#f1f1f1]">{title}</h2>
-            <p className="text-[11px] text-[#aaa] mt-0.5">{description}</p>
-          </div>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="aspect-video rounded-xl bg-[#1f1f1f] animate-pulse" />
-              <div className="space-y-1.5 px-0.5">
-                <div className="h-3 w-3/4 rounded bg-white/[0.06] animate-pulse" />
-                <div className="h-2.5 w-1/2 rounded bg-white/[0.04] animate-pulse" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {items.map((item, i) => (
-            <FeedCardHydrated
-              key={item.photoId}
-              item={item}
-              onFavorite={onFavorite}
-              index={i}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ── Time ago ─────────────────────────────────────────────────
-
-function timeAgo(ts: number): string {
-  const years = Math.floor((Date.now() - ts) / (365.25 * 24 * 60 * 60 * 1000));
-  if (years === 0) return "This year";
-  if (years === 1) return "1 yr ago";
-  return `${years} yrs ago`;
 }
 
 // ── Main page ─────────────────────────────────────────────────
@@ -387,7 +348,7 @@ export default function FeedPage() {
     try {
       const res = await getNostalgiaFeed({
         mode,
-        limit: 16,
+        limit: 12,
         seed,
         cursor: reset ? undefined : (nextCursorRef.current ?? undefined),
         year: mode === "deep_dive_year" ? deepDiveYear : undefined,
@@ -428,18 +389,18 @@ export default function FeedPage() {
         if (!entries[0]?.isIntersecting || !nextCursorRef.current || isLoadingRef.current || hasError) return;
         void loadMore();
       },
-      { rootMargin: "400px" },
+      { rootMargin: "600px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasError, loadMore]);
 
-  // ── Loading/auth gates ────────────────────────────────────
+  // ── Loading gate ────────────────────────────────────────
 
   if (userLoading || aiOptInLoading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 className="h-6 w-6 animate-spin text-[#aaa]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#888]" />
       </div>
     );
   }
@@ -447,9 +408,12 @@ export default function FeedPage() {
   if (!userId) {
     return (
       <div className="flex flex-col items-center justify-center py-32 px-8 text-center">
-        <h2 className="text-xl font-semibold text-[#f1f1f1] mb-2">Sign in to view your feed</h2>
-        <p className="text-sm text-[#aaa] mb-6">Your feed is personalized to your account.</p>
-        <Link href="/login" className="px-4 py-2 rounded-full bg-primary text-black text-sm font-medium hover:brightness-110 transition-all">
+        <h2 className="text-xl font-semibold text-white mb-2">Sign in to view your feed</h2>
+        <p className="text-sm text-[#999] mb-6">Your feed is personalized to your account.</p>
+        <Link
+          href="/login"
+          className="px-5 py-2.5 rounded-full bg-primary text-black text-sm font-semibold hover:brightness-110 transition-all"
+        >
           Sign In
         </Link>
       </div>
@@ -459,17 +423,17 @@ export default function FeedPage() {
   if (aiOptIn !== true) {
     return (
       <div className="flex flex-col items-center justify-center py-32 px-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1f1f1f] border border-white/[0.08] mb-4">
-          <Sparkles className="h-7 w-7 text-[#c9a66b]" />
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.06] border border-white/[0.1] mb-5">
+          <Sparkles className="h-7 w-7 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold text-[#f1f1f1] mb-2">Enable AI Intelligence</h2>
-        <p className="text-sm text-[#aaa] max-w-sm mb-6">
+        <h2 className="text-xl font-semibold text-white mb-2">Enable AI Intelligence</h2>
+        <p className="text-sm text-[#999] max-w-sm mb-6 leading-relaxed">
           The Nostalgia Feed uses AI to surface your most meaningful memories.
           Enable AI Intelligence in Settings to get started.
         </p>
         <Link
           href="/settings"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-black text-sm font-medium hover:brightness-110 transition-all"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-black text-sm font-semibold hover:brightness-110 transition-all"
         >
           <Settings className="h-4 w-4" />
           Open Settings
@@ -479,119 +443,150 @@ export default function FeedPage() {
   }
 
   const currentMode = modeConfig[mode];
-  const showIndexingBanner = aiProgress && aiProgress.total > 0 && !aiProgress.isComplete && aiProgress.pending > 0;
+  const showIndexingBanner =
+    aiProgress && aiProgress.total > 0 && !aiProgress.isComplete && aiProgress.pending > 0;
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-[1400px] mx-auto space-y-8">
-
-      {/* ── AI indexing progress banner ── */}
-      {showIndexingBanner && (
-        <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-[#1f1f1f] border border-white/[0.06]">
-          <Sparkles className="h-4 w-4 text-[#c9a66b] shrink-0 animate-pulse" />
-          <div className="flex-1 min-w-0">
-            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden mb-1">
-              <div
-                className="h-full rounded-full bg-[#c9a66b] transition-all duration-500"
-                style={{ width: `${aiProgress.percent}%` }}
-              />
+    <div className="min-h-screen">
+      {/* ── Sticky header with mode tabs ── */}
+      <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-white/[0.06]">
+        <div className="max-w-[560px] mx-auto px-4">
+          {/* Page title */}
+          <div className="flex items-center justify-between pt-5 pb-3">
+            <div>
+              <h1 className="text-[22px] font-semibold text-white tracking-tight font-heading">
+                {currentMode.label}
+              </h1>
+              <p className="text-[12px] text-[#888] mt-0.5">{currentMode.description}</p>
             </div>
-            <p className="text-[11px] text-[#aaa]">
-              Indexing {aiProgress.processed} of {aiProgress.total} photos · {aiProgress.pending} remaining
-            </p>
+          </div>
+
+          {/* Mode tabs */}
+          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none">
+            {(Object.keys(modeConfig) as FeedMode[]).map((m) => {
+              const config = modeConfig[m];
+              const Icon = config.icon;
+              const isActive = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-medium whitespace-nowrap transition-all duration-200 shrink-0 border",
+                    isActive
+                      ? "bg-white text-black border-white shadow-sm"
+                      : "bg-transparent border-white/[0.12] text-[#bbb] hover:border-white/[0.25] hover:text-white",
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5 shrink-0", isActive ? "text-black" : "text-[#888]")} />
+                  {config.label}
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
-
-      {/* ── Mode tabs ── */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {(Object.keys(modeConfig) as FeedMode[]).map((m) => {
-          const config = modeConfig[m];
-          const Icon = config.icon;
-          const isActive = mode === m;
-          return (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={cn(
-                "flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium whitespace-nowrap transition-all duration-200",
-                isActive
-                  ? "bg-white text-black"
-                  : "bg-[#272727] text-[#f1f1f1] hover:bg-[#3f3f3f]",
-              )}
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              {config.label}
-            </button>
-          );
-        })}
       </div>
 
-      {/* ── Year selector (Deep Dive) ── */}
-      {mode === "deep_dive_year" && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-[11px] text-[#aaa] uppercase tracking-wider shrink-0">Year:</span>
-          {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - 1 - i).map((y) => (
-            <button
-              key={y}
-              onClick={() => setDeepDiveYear(y)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-150 shrink-0",
-                y === deepDiveYear
-                  ? "bg-white text-black"
-                  : "bg-[#272727] text-[#aaa] hover:bg-[#3f3f3f] hover:text-[#f1f1f1]",
-              )}
-            >
-              {y}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* ── Feed content ── */}
+      <div className="max-w-[560px] mx-auto px-4 py-6 space-y-6">
 
-      {/* ── Error state ── */}
-      {hasError && items.length === 0 && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <AlertTriangle className="h-8 w-8 text-[#aaa] mb-3" />
-          <p className="text-[#f1f1f1] font-medium mb-1">Failed to load feed</p>
-          <p className="text-[13px] text-[#aaa] mb-5">Something went wrong</p>
-          <button
-            onClick={() => loadMore(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#272727] text-[#f1f1f1] text-sm hover:bg-[#3f3f3f] transition-colors"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* ── Empty state ── */}
-      {items.length === 0 && !isLoading && !hasError && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <ImageOff className="h-10 w-10 text-[#717171] mb-4" />
-          <p className="text-[#f1f1f1] font-medium mb-2">No memories found</p>
-          <p className="text-[13px] text-[#aaa] text-center max-w-sm">{currentMode.emptyHint}</p>
-        </div>
-      )}
-
-      {/* ── Feed grid section ── */}
-      {(items.length > 0 || isLoading) && (
-        <SectionRow
-          title={currentMode.label}
-          icon={currentMode.icon}
-          description={currentMode.description}
-          items={items}
-          onFavorite={(id) => toggleFavorite({ photoId: id as any })}
-          isLoading={isLoading && items.length === 0}
-        />
-      )}
-
-      {/* ── Load more sentinel ── */}
-      <div ref={observerRef} className="flex justify-center py-4">
-        {isLoading && items.length > 0 && (
-          <div className="flex items-center gap-2 text-[#aaa] text-[13px]">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading more...
+        {/* ── AI indexing progress banner ── */}
+        {showIndexingBanner && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+            <Sparkles className="h-4 w-4 text-primary shrink-0 animate-pulse" />
+            <div className="flex-1 min-w-0">
+              <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden mb-1.5">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${aiProgress.percent}%` }}
+                />
+              </div>
+              <p className="text-[12px] text-[#888]">
+                Indexing {aiProgress.processed} of {aiProgress.total} photos
+                <span className="text-[#666]"> · {aiProgress.pending} remaining</span>
+              </p>
+            </div>
           </div>
         )}
+
+        {/* ── Year selector (Deep Dive) ── */}
+        {mode === "deep_dive_year" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4">
+            <span className="text-[11px] font-medium text-[#888] uppercase tracking-wider shrink-0">Year</span>
+            {Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - 1 - i).map((y) => (
+              <button
+                key={y}
+                onClick={() => setDeepDiveYear(y)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-[13px] font-medium transition-all duration-150 shrink-0 border",
+                  y === deepDiveYear
+                    ? "bg-white text-black border-white"
+                    : "bg-transparent border-white/[0.1] text-[#aaa] hover:border-white/[0.25] hover:text-white",
+                )}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Error state ── */}
+        {hasError && items.length === 0 && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <AlertTriangle className="h-9 w-9 text-[#888] mb-3" />
+            <p className="text-[16px] font-medium text-white mb-1">Failed to load feed</p>
+            <p className="text-[13px] text-[#888] mb-5">Something went wrong, please try again.</p>
+            <button
+              onClick={() => loadMore(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] text-white text-sm hover:bg-white/[0.12] transition-colors border border-white/[0.1]"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* ── Empty state ── */}
+        {items.length === 0 && !isLoading && !hasError && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <ImageOff className="h-10 w-10 text-[#555] mb-4" />
+            <p className="text-[16px] font-medium text-white mb-2">No memories found</p>
+            <p className="text-[13px] text-[#888] max-w-xs leading-relaxed">{currentMode.emptyHint}</p>
+          </div>
+        )}
+
+        {/* ── Initial loading skeletons ── */}
+        {isLoading && items.length === 0 && (
+          <div className="space-y-10">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <FeedCardSkeleton key={i} />
+            ))}
+          </div>
+        )}
+
+        {/* ── Feed posts ── */}
+        {items.length > 0 && (
+          <div className="space-y-10">
+            {items.map((item, i) => (
+              <FeedCardHydrated
+                key={item.photoId}
+                item={item}
+                onFavorite={(id) => toggleFavorite({ photoId: id as any })}
+                index={i}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ── Load more sentinel ── */}
+        <div ref={observerRef} className="flex justify-center py-6">
+          {isLoading && items.length > 0 && (
+            <div className="flex items-center gap-2.5 text-[#888] text-[13px]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading more memories...
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

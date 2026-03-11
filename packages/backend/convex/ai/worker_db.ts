@@ -12,20 +12,47 @@ export const leasePendingJobs = internalMutation({
     const limit = Math.max(1, Math.min(args.limit ?? DEFAULT_LIMIT, 30));
     const now = Date.now();
 
-    const pending = await ctx.db
+    const candidateIds = new Set<string>();
+    const leaseable: { _id: any; photoId: any; userId: any; [k: string]: any }[] = [];
+
+    // ── 1) Normal pending jobs ────────────────────────────────────
+    const pendingJobs = await ctx.db
       .query("aiProcessingQueue")
       .withIndex("by_status", (q) => q.eq("status", "pending"))
       .take(limit * 5);
 
-    const leaseable: typeof pending = [];
-    for (const j of pending) {
+    for (const j of pendingJobs) {
       if (leaseable.length >= limit) break;
+      // Respect backoff: skip if still within lockedUntil window
       if (j.lockedUntil && j.lockedUntil > now) continue;
       const photo = await ctx.db.get(j.photoId);
       if (!photo?.analysisImageStorageId) continue;
+      if (candidateIds.has(j._id)) continue;
+      candidateIds.add(j._id);
       leaseable.push(j);
     }
 
+    // ── 2) Crash recovery: pick up expired "processing" jobs ──────
+    // If a worker crashed mid-job, the job stays stuck as "processing"
+    // with an expired lockedUntil. Recover these so they get retried.
+    if (leaseable.length < limit) {
+      const stuckJobs = await ctx.db
+        .query("aiProcessingQueue")
+        .withIndex("by_status", (q) => q.eq("status", "processing"))
+        .filter((q) => q.lt(q.field("lockedUntil"), now))
+        .take((limit - leaseable.length) * 3);
+
+      for (const j of stuckJobs) {
+        if (leaseable.length >= limit) break;
+        const photo = await ctx.db.get(j.photoId);
+        if (!photo?.analysisImageStorageId) continue;
+        if (candidateIds.has(j._id)) continue;
+        candidateIds.add(j._id);
+        leaseable.push(j);
+      }
+    }
+
+    // ── Acquire leases ────────────────────────────────────────────
     for (const job of leaseable) {
       await ctx.db.patch(job._id, {
         status: "processing",
@@ -69,14 +96,14 @@ export const updateJob = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const { jobId, ...updates } = args;
-    const status = args.status;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined),
     );
     if (Object.keys(cleanUpdates).length > 0) {
       await ctx.db.patch(jobId, cleanUpdates);
     }
-    if (status === "completed" || status === "failed") {
+    // Only decrement on terminal outcomes — not on defer/backoff back to pending
+    if (args.status === "completed" || args.status === "failed") {
       const job = await ctx.db.get(jobId);
       if (job) {
         await ctx.runMutation(internal.users.decrementPendingAiCount, {
@@ -104,4 +131,3 @@ export const loadJobAndPhoto = internalQuery({
     return { job, photo: photo ?? null };
   },
 });
-

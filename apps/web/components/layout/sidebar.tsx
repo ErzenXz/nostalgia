@@ -22,14 +22,12 @@ import {
   Settings,
   HardDrive,
   Lock,
-  Clapperboard,
   PanelLeftClose,
   PanelLeftOpen,
   Menu,
   X,
   Users,
   Home,
-  ChevronRight,
 } from "lucide-react";
 
 // ── Navigation sections ──────────────────────────────────────────
@@ -52,7 +50,7 @@ const navSections = [
     ],
   },
   {
-    label: "AI",
+    label: "Discover",
     items: [
       { name: "People", href: "/albums/people", icon: Users, mobile: false },
       { name: "Map", href: "/map", icon: Map, mobile: false },
@@ -83,7 +81,7 @@ function StorageStats({ collapsed }: { collapsed: boolean }) {
       <div className="p-3 flex justify-center">
         <div className="relative h-8 w-8">
           <svg className="h-8 w-8 -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15" fill="none" stroke="#3f3f3f" strokeWidth="3" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#2a2a2a" strokeWidth="3" />
             <circle
               cx="18" cy="18" r="15" fill="none"
               stroke="#c9a66b" strokeWidth="3"
@@ -91,7 +89,7 @@ function StorageStats({ collapsed }: { collapsed: boolean }) {
               className="transition-all duration-500"
             />
           </svg>
-          <HardDrive className="absolute inset-0 m-auto h-3 w-3 text-[#aaa]" />
+          <HardDrive className="absolute inset-0 m-auto h-3 w-3 text-[#888]" />
         </div>
       </div>
     );
@@ -99,21 +97,21 @@ function StorageStats({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className="px-4 py-3">
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <HardDrive className="h-3 w-3 text-[#aaa]" />
-          <span className="text-[11px] text-[#aaa]">Storage</span>
+          <HardDrive className="h-3.5 w-3.5 text-[#888]" />
+          <span className="text-[12px] font-medium text-[#ccc]">Storage</span>
         </div>
-        <span className="text-[11px] text-[#aaa]">{Math.round(percent)}%</span>
+        <span className="text-[12px] text-[#888]">{Math.round(percent)}%</span>
       </div>
-      <div className="h-0.5 rounded-full bg-[#3f3f3f] overflow-hidden">
+      <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden">
         <div
           className="h-full rounded-full bg-primary transition-all duration-500"
           style={{ width: `${Math.min(percent, 100)}%` }}
         />
       </div>
-      <p className="mt-1 text-[10px] text-[#717171]">
-        {formatBytes(usedBytes)} of {formatBytes(quotaBytes)}
+      <p className="mt-1.5 text-[11px] text-[#888]">
+        {formatBytes(usedBytes)} of {formatBytes(quotaBytes)} used
       </p>
     </div>
   );
@@ -140,15 +138,24 @@ function NavItem({
       title={collapsed ? item.name : undefined}
       onClick={onClick}
       className={cn(
-        "flex items-center rounded-xl text-sm transition-all duration-150 select-none",
-        collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2 w-full",
+        "relative flex items-center rounded-lg text-[13px] transition-all duration-150 select-none group",
+        collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2.5 w-full",
         isActive
-          ? "bg-white/10 text-white font-medium"
-          : "text-[#aaa] hover:bg-white/[0.05] hover:text-white",
+          ? "bg-white/[0.09] text-white font-medium"
+          : "text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white",
       )}
     >
-      <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-white" : "text-[#aaa]")} />
-      {!collapsed && <span className="leading-none">{item.name}</span>}
+      {/* Amber left accent on active */}
+      {isActive && !collapsed && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[20px] rounded-full bg-primary" />
+      )}
+      <Icon
+        className={cn(
+          "h-[18px] w-[18px] shrink-0 transition-colors",
+          isActive ? "text-primary" : "text-[#888] group-hover:text-[#ccc]",
+        )}
+      />
+      {!collapsed && <span className="leading-none tracking-[-0.01em]">{item.name}</span>}
     </Link>
   );
 }
@@ -164,18 +171,18 @@ export function Sidebar() {
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col",
-        "bg-sidebar border-r border-white/[0.06] transition-all duration-300 ease-in-out",
-        collapsed ? "w-[72px]" : "w-60",
+        "bg-sidebar border-r border-white/[0.07] transition-all duration-300 ease-in-out",
+        collapsed ? "w-[68px]" : "w-[232px]",
       )}
     >
       {/* ── Logo ── */}
       <div
         className={cn(
-          "flex h-14 items-center shrink-0",
+          "flex h-14 shrink-0 items-center",
           collapsed ? "justify-center px-2" : "gap-2.5 px-4",
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-[0_0_12px_rgba(201,166,107,0.3)]">
           <Lock className="h-3.5 w-3.5 text-black" />
         </div>
         {!collapsed && (
@@ -186,13 +193,13 @@ export function Sidebar() {
       </div>
 
       {/* ── Upload button ── */}
-      <div className={cn("shrink-0", collapsed ? "px-2 pb-2" : "px-3 pb-3")}>
+      <div className={cn("shrink-0", collapsed ? "px-2.5 pb-3" : "px-3 pb-3")}>
         <Link
           href="/photos?upload=true"
           className={cn(
-            "flex items-center justify-center rounded-full text-sm font-medium text-black transition-all active:scale-[0.97]",
+            "flex items-center justify-center rounded-full text-[13px] font-semibold text-black transition-all active:scale-[0.97]",
             "bg-primary hover:brightness-110",
-            "shadow-[0_2px_8px_rgba(201,166,107,0.25)]",
+            "shadow-[0_2px_12px_rgba(201,166,107,0.3)]",
             collapsed ? "h-9 w-9 mx-auto" : "gap-2 px-4 py-2 w-full",
           )}
         >
@@ -202,11 +209,11 @@ export function Sidebar() {
       </div>
 
       {/* ── Nav sections ── */}
-      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "px-2 space-y-1" : "px-3 space-y-4")}>
+      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "px-2 space-y-1" : "px-3 space-y-5")}>
         {navSections.map((section, si) => (
-          <div key={si} className={collapsed ? "space-y-1" : "space-y-0.5"}>
+          <div key={si} className={cn(collapsed ? "space-y-1" : "space-y-0.5")}>
             {section.label && !collapsed && (
-              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#717171] select-none">
+              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#666] select-none">
                 {section.label}
               </p>
             )}
@@ -221,56 +228,72 @@ export function Sidebar() {
       {convexAvailable && <AiIndexingProgress collapsed={collapsed} />}
 
       {/* ── Storage ── */}
-      <div className="shrink-0 border-t border-white/[0.06]">
+      <div className="shrink-0 border-t border-white/[0.07]">
         {convexAvailable ? (
           <StorageStats collapsed={collapsed} />
         ) : (
-          <div className={cn("px-4 py-3 text-[11px] text-[#717171]", collapsed && "hidden")} />
+          <div className={cn("px-4 py-3", collapsed && "hidden")} />
         )}
       </div>
 
       {/* ── User + Settings + Collapse ── */}
-      <div className={cn("shrink-0 border-t border-white/[0.06] p-2 space-y-0.5")}>
+      <div className="shrink-0 border-t border-white/[0.07] p-2 space-y-0.5">
+        {/* User profile */}
         {!collapsed && user && (
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/[0.05] transition-colors cursor-default mb-0.5">
-            <div className="h-6 w-6 rounded-full bg-primary/30 flex items-center justify-center shrink-0">
-              <span className="text-[10px] font-semibold text-primary uppercase">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-colors cursor-default mb-0.5">
+            <div className="h-7 w-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+              <span className="text-[11px] font-bold text-primary uppercase">
                 {(user.name ?? user.email ?? "U").charAt(0)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-medium text-white truncate leading-none">
+              <p className="text-[13px] font-medium text-white truncate leading-none">
                 {user.name ?? user.email}
               </p>
               {user.name && (
-                <p className="text-[10px] text-[#717171] truncate mt-0.5 leading-none">{user.email}</p>
+                <p className="text-[11px] text-[#888] truncate mt-0.5 leading-none">{user.email}</p>
               )}
             </div>
           </div>
         )}
+
+        {/* Collapsed user avatar */}
+        {collapsed && user && (
+          <div className="flex justify-center py-1 mb-0.5">
+            <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <span className="text-[11px] font-bold text-primary uppercase">
+                {(user.name ?? user.email ?? "U").charAt(0)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Settings */}
         <Link
           href="/settings"
           title={collapsed ? "Settings" : undefined}
           className={cn(
-            "flex items-center rounded-xl text-sm text-[#aaa] hover:bg-white/[0.05] hover:text-white transition-colors",
-            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2 w-full",
+            "flex items-center rounded-lg text-[13px] text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white transition-colors",
+            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2.5 w-full",
           )}
         >
-          <Settings className="h-4 w-4 shrink-0" />
+          <Settings className="h-[18px] w-[18px] shrink-0 text-[#888]" />
           {!collapsed && <span>Settings</span>}
         </Link>
+
+        {/* Collapse toggle */}
         <button
           onClick={toggle}
           className={cn(
-            "flex items-center rounded-xl text-sm text-[#aaa] hover:bg-white/[0.05] hover:text-white transition-colors cursor-pointer",
-            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2 w-full",
+            "flex items-center rounded-lg text-[13px] text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white transition-colors cursor-pointer w-full",
+            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2.5",
           )}
         >
           {collapsed ? (
-            <PanelLeftOpen className="h-4 w-4" />
+            <PanelLeftOpen className="h-[18px] w-[18px] text-[#888]" />
           ) : (
             <>
-              <PanelLeftClose className="h-4 w-4 shrink-0" />
+              <PanelLeftClose className="h-[18px] w-[18px] shrink-0 text-[#888]" />
               <span>Collapse</span>
             </>
           )}
@@ -286,16 +309,16 @@ export function MobileHeader() {
   const { mobileOpen, setMobileOpen } = useSidebarStore();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between bg-sidebar/95 backdrop-blur-md px-4 border-b border-white/[0.06]">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between bg-sidebar/95 backdrop-blur-md px-4 border-b border-white/[0.07]">
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shadow-[0_0_8px_rgba(201,166,107,0.25)]">
           <Lock className="h-3 w-3 text-black" />
         </div>
         <span className="text-[14px] font-semibold text-white font-heading">Nostalgia</span>
       </div>
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-[#aaa] hover:text-white hover:bg-white/[0.05] transition-colors"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-white/[0.05] transition-colors"
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -320,16 +343,19 @@ export function MobileDrawer() {
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden cursor-default"
         onClick={close}
       />
-      <div className="fixed top-0 left-0 bottom-0 z-50 w-64 bg-sidebar border-r border-white/[0.06] flex flex-col md:hidden animate-in slide-in-from-left duration-200 shadow-[4px_0_32px_rgba(0,0,0,0.6)]">
+      <div className="fixed top-0 left-0 bottom-0 z-50 w-[232px] bg-sidebar border-r border-white/[0.07] flex flex-col md:hidden animate-in slide-in-from-left duration-200 shadow-[4px_0_32px_rgba(0,0,0,0.6)]">
         {/* Header */}
-        <div className="flex h-12 items-center justify-between px-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2">
+        <div className="flex h-12 items-center justify-between px-4 border-b border-white/[0.07]">
+          <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
               <Lock className="h-3 w-3 text-black" />
             </div>
             <span className="text-[14px] font-semibold text-white font-heading">Nostalgia</span>
           </div>
-          <button onClick={close} className="h-8 w-8 flex items-center justify-center rounded-lg text-[#aaa] hover:text-white hover:bg-white/[0.05]">
+          <button
+            onClick={close}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-white/[0.05]"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -339,7 +365,7 @@ export function MobileDrawer() {
           <Link
             href="/photos?upload=true"
             onClick={close}
-            className="flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-black bg-primary hover:brightness-110 shadow-[0_2px_8px_rgba(201,166,107,0.25)]"
+            className="flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-black bg-primary hover:brightness-110 shadow-[0_2px_12px_rgba(201,166,107,0.3)]"
           >
             <Upload className="h-4 w-4" />
             Upload
@@ -347,11 +373,11 @@ export function MobileDrawer() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 space-y-4">
+        <nav className="flex-1 overflow-y-auto px-3 space-y-5">
           {navSections.map((section, si) => (
             <div key={si} className="space-y-0.5">
               {section.label && (
-                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#717171] select-none">
+                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#666] select-none">
                   {section.label}
                 </p>
               )}
@@ -364,17 +390,17 @@ export function MobileDrawer() {
 
         {convexAvailable && <AiIndexingProgress collapsed={false} />}
 
-        <div className="shrink-0 border-t border-white/[0.06]">
+        <div className="shrink-0 border-t border-white/[0.07]">
           {convexAvailable && <StorageStats collapsed={false} />}
         </div>
 
-        <div className="shrink-0 border-t border-white/[0.06] p-2">
+        <div className="shrink-0 border-t border-white/[0.07] p-2">
           <Link
             href="/settings"
             onClick={close}
-            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[#aaa] hover:bg-white/[0.05] hover:text-white transition-colors"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white transition-colors"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-[18px] w-[18px] text-[#888]" />
             <span>Settings</span>
           </Link>
         </div>
@@ -389,7 +415,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-14 items-center justify-around border-t border-white/[0.06] bg-sidebar/97 backdrop-blur-md safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-[56px] items-center justify-around border-t border-white/[0.07] bg-sidebar/97 backdrop-blur-md safe-area-pb">
       {mobileNavItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
@@ -398,24 +424,28 @@ export function MobileTabBar() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
-              isActive ? "text-white" : "text-[#aaa] active:text-white",
+              "flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-colors",
+              isActive ? "text-white" : "text-[#888] active:text-white",
             )}
           >
-            <Icon className="h-5 w-5" />
-            <span className="text-[10px]">{item.name}</span>
+            <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+            <span className={cn("text-[10px] font-medium", isActive ? "text-white" : "text-[#888]")}>
+              {item.name}
+            </span>
           </Link>
         );
       })}
       <Link
         href="/settings"
         className={cn(
-          "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors",
-          pathname === "/settings" ? "text-white" : "text-[#aaa] active:text-white",
+          "flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-colors",
+          pathname === "/settings" ? "text-white" : "text-[#888] active:text-white",
         )}
       >
-        <Settings className="h-5 w-5" />
-        <span className="text-[10px]">Settings</span>
+        <Settings className={cn("h-5 w-5", pathname === "/settings" && "text-primary")} />
+        <span className={cn("text-[10px] font-medium", pathname === "/settings" ? "text-white" : "text-[#888]")}>
+          Settings
+        </span>
       </Link>
     </nav>
   );

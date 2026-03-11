@@ -11,6 +11,11 @@ import type { Id } from "../_generated/dataModel";
 const LEASE_MS = 2 * 60 * 1000; // 2 minutes (must match worker_db lease)
 const DEFAULT_LIMIT = 15;
 
+// A photo that has been awaiting a thumbnail for over 24 hours is considered
+// permanently stuck — mark it failed so the queue drains cleanly.
+const MAX_THUMBNAIL_WAIT_MS = 24 * 60 * 60 * 1000;
+
+// Retry backoff for transient errors (rate limits, network blips)
 function isRateLimitError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const anyErr = err as any;
@@ -21,7 +26,6 @@ function isRateLimitError(err: unknown): boolean {
 }
 
 function backoffMs(retryCount: number): number {
-  // Exponential backoff capped at 30 minutes.
   const base = 10_000;
   const ms = base * Math.pow(2, Math.min(10, retryCount));
   return Math.min(ms, 30 * 60 * 1000);
@@ -46,9 +50,7 @@ export const processPending = internalAction({
   }> => {
     const leasedIds: Id<"aiProcessingQueue">[] = await ctx.runMutation(
       internal.ai.worker_db.leasePendingJobs,
-      {
-        limit: args.limit ?? DEFAULT_LIMIT,
-      },
+      { limit: args.limit ?? DEFAULT_LIMIT },
     );
 
     let succeeded = 0;
@@ -56,12 +58,10 @@ export const processPending = internalAction({
     let deferred = 0;
 
     for (const jobId of leasedIds) {
-      const loaded = await ctx.runQuery(internal.ai.worker_db.loadJobAndPhoto, {
-        jobId,
-      });
-
+      const loaded = await ctx.runQuery(internal.ai.worker_db.loadJobAndPhoto, { jobId });
       if (!loaded) continue;
       const { job, photo } = loaded as any;
+      const now = Date.now();
 
       try {
         if (!photo) {
@@ -70,11 +70,37 @@ export const processPending = internalAction({
             message: "Photo not found for AI processing",
           });
         }
+
+        // ── Missing analysis thumbnail: defer or abandon ──────────
+        // The analysis thumbnail is uploaded separately by the client *after*
+        // the photo record is created. It's perfectly normal for it to be absent
+        // right after upload. Defer with short backoff instead of hard-failing.
         if (!photo.analysisImageStorageId) {
-          throw new ConvexError({
-            code: "BAD_REQUEST",
-            message: "analysis thumbnail missing",
-          });
+          const uploadAgeMs = now - (photo.uploadedAt ?? 0);
+          if (uploadAgeMs > MAX_THUMBNAIL_WAIT_MS) {
+            // Thumbnail never arrived — permanently abandon this job so the
+            // pendingAiCount counter drains correctly.
+            failed += 1;
+            await ctx.runMutation(internal.ai.worker_db.updateJob, {
+              jobId,
+              status: "failed",
+              lockedUntil: undefined,
+              processedAt: now,
+              error: "thumbnail_never_uploaded",
+              retryCount: (job?.retryCount ?? 0) + 1,
+            });
+          } else {
+            // Still within the wait window — defer for 5 minutes
+            deferred += 1;
+            await ctx.runMutation(internal.ai.worker_db.updateJob, {
+              jobId,
+              status: "pending",
+              step: "pending",
+              lockedUntil: now + 5 * 60 * 1000,
+              error: "awaiting_thumbnail",
+            });
+          }
+          continue;
         }
 
         const storageId = photo.analysisImageStorageId as any;
@@ -96,18 +122,18 @@ export const processPending = internalAction({
 
         const bytes = new Uint8Array(await blob.arrayBuffer());
 
-        // 1) Embedding
+        // ── Step 1: Embedding ─────────────────────────────────────
         const embedding = await embedImageBytesClipV2(bytes);
         await ctx.runMutation(internal.ai.worker_db.updateJob, {
           jobId,
           step: "caption",
-          lockedUntil: Date.now() + LEASE_MS,
+          lockedUntil: now + LEASE_MS,
           providerMeta: {
             jina: { model: "jina-clip-v2", dim: embedding.length },
           },
         });
 
-        // 2) Caption
+        // ── Step 2: Caption ───────────────────────────────────────
         const hintText = [
           `fileName=${photo.fileName}`,
           `takenAt=${photo.takenAt ?? photo.uploadedAt}`,
@@ -124,10 +150,10 @@ export const processPending = internalAction({
           lockedUntil: Date.now() + LEASE_MS,
         });
 
-        // 3) Tags
+        // ── Step 3: Tags ──────────────────────────────────────────
         const tags = await generateTags({ captionShort, hintText });
 
-        // Persist analysis on the photo.
+        // ── Persist results ───────────────────────────────────────
         await ctx.runMutation(internal.photos.updateAiAnalysis, {
           photoId: photo._id,
           analysisImageStorageId: photo.analysisImageStorageId,
@@ -152,11 +178,11 @@ export const processPending = internalAction({
 
         succeeded += 1;
       } catch (err) {
-        const now = Date.now();
         const currentRetry = (job?.retryCount as number | undefined) ?? 0;
         const rateLimited = isRateLimitError(err);
 
         if (rateLimited) {
+          // Transient rate limit — back off and retry later
           deferred += 1;
           await ctx.runMutation(internal.ai.worker_db.updateJob, {
             jobId,
@@ -167,6 +193,7 @@ export const processPending = internalAction({
             retryCount: currentRetry + 1,
           });
         } else {
+          // Hard failure — mark failed, decrement pendingAiCount via updateJob
           failed += 1;
           await ctx.runMutation(internal.ai.worker_db.updateJob, {
             jobId,

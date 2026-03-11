@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main
         className={cn(
           "relative z-10 min-h-screen transition-all duration-300 ease-in-out",
-          collapsed ? "md:pl-[68px]" : "md:pl-64",
+          collapsed ? "md:pl-[68px]" : "md:pl-[232px]",
           "pt-12 pb-16 md:pt-0 md:pb-0",
         )}
       >
