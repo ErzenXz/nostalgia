@@ -34,6 +34,10 @@ function loadTurnstileScript() {
       'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]',
     );
     if (existing) {
+      if (window.turnstile) {
+        resolve();
+        return;
+      }
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () =>
         reject(new Error("Failed to load Turnstile script")),
@@ -42,10 +46,21 @@ function loadTurnstileScript() {
     }
 
     const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
+    script.crossOrigin = "anonymous";
+    script.onload = () => {
+      // Wait a bit for turnstile to fully initialize
+      const checkTurnstile = () => {
+        if (window.turnstile) {
+          resolve();
+        } else {
+          setTimeout(checkTurnstile, 50);
+        }
+      };
+      checkTurnstile();
+    };
     script.onerror = () => reject(new Error("Failed to load Turnstile script"));
     document.head.appendChild(script);
   });
