@@ -168,11 +168,11 @@ export default function LoginClient() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-2xl font-serif font-bold text-foreground">Welcome back</h1>
-        <p className="mt-2 text-[14px] text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-foreground tracking-tight">Welcome back</h1>
+        <p className="mt-2 text-[15px] text-muted-foreground">
           Sign in to your intelligent photo library
         </p>
       </div>
@@ -189,7 +189,7 @@ export default function LoginClient() {
         <Button
           type="button"
           variant="outline"
-          className="h-11 border-border bg-card hover:bg-muted text-foreground font-medium text-[13px] flex items-center justify-center gap-2 rounded-lg transition-colors"
+          className="h-12 border-border bg-background hover:bg-muted text-foreground font-medium text-[14px] flex items-center justify-center gap-2 rounded-xl transition-colors shadow-sm"
           onClick={() => handleSocial("google")}
           disabled={isLoading}
           title="Google"
@@ -206,7 +206,7 @@ export default function LoginClient() {
         <Button
           type="button"
           variant="outline"
-          className="h-11 border-border bg-card hover:bg-muted text-foreground font-medium text-[13px] flex items-center justify-center gap-2 rounded-lg transition-colors"
+          className="h-12 border-border bg-background hover:bg-muted text-foreground font-medium text-[14px] flex items-center justify-center gap-2 rounded-xl transition-colors shadow-sm"
           onClick={() => handleSocial("github")}
           disabled={isLoading}
           title="GitHub"
@@ -217,7 +217,7 @@ export default function LoginClient() {
         <Button
           type="button"
           variant="outline"
-          className="h-11 border-border bg-card hover:bg-muted text-foreground font-medium text-[13px] flex items-center justify-center gap-2 rounded-lg transition-colors"
+          className="h-12 border-border bg-background hover:bg-muted text-foreground font-medium text-[14px] flex items-center justify-center gap-2 rounded-xl transition-colors shadow-sm"
           onClick={handlePasskey}
           disabled={isLoading}
           title="Passkey"
@@ -228,54 +228,54 @@ export default function LoginClient() {
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-4 py-1">
+      <div className="flex items-center gap-4 py-2">
         <div className="h-px flex-1 bg-border" />
-        <span className="text-[12px] font-medium text-muted-foreground uppercase tracking-widest">or</span>
+        <span className="text-[12px] font-semibold text-muted-foreground uppercase tracking-widest">or</span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
       {/* Email / Password form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="relative">
-          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
           <Input
             id="email"
             type="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="pl-10 h-11 border-border bg-card focus:border-primary placeholder:text-muted-foreground/60 text-[14px]"
+            className="pl-12 h-12 rounded-xl border-border bg-background focus:border-primary placeholder:text-muted-foreground/50 text-[15px]"
             required
           />
         </div>
 
         <div className="relative">
-          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
+          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 pr-10 h-11 border-border bg-card focus:border-primary placeholder:text-muted-foreground/60 text-[14px]"
+            className="pl-12 pr-12 h-12 rounded-xl border-border bg-background focus:border-primary placeholder:text-muted-foreground/50 text-[15px]"
             required
           />
           <button
             type="button"
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setShowPassword((v) => !v)}
           >
-            {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
 
         <Button
           type="submit"
-          className="w-full h-11 bg-primary text-primary-foreground hover:opacity-90 font-semibold text-[14px] rounded-lg transition-opacity mt-2"
+          className="w-full h-12 bg-primary text-primary-foreground hover:opacity-90 font-semibold text-[15px] rounded-xl transition-opacity mt-4 shadow-md"
           disabled={isLoading || (Boolean(turnstileSiteKey) && !captchaToken)}
         >
           {isLoading ? "Signing in…" : "Sign In"}
-          {!isLoading && <ArrowRight className="h-4 w-4 ml-2" />}
+          {!isLoading && <ArrowRight className="h-5 w-5 ml-2" />}
         </Button>
       </form>
 
@@ -285,7 +285,7 @@ export default function LoginClient() {
       )}
 
       {/* Footer */}
-      <p className="text-center text-[14px] text-muted-foreground mt-6">
+      <p className="text-center text-[14px] text-muted-foreground mt-8">
         Don't have an account?{" "}
         <Link href="/register" className="font-semibold text-primary hover:underline transition-all">
           Sign up
