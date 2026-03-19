@@ -3,23 +3,34 @@
 import { useAction, useMutation, useQuery } from "convex/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@repo/backend/convex/_generated/api";
 import type { Id } from "@repo/backend/convex/_generated/dataModel";
 import { useAiOptInForUserId } from "@/hooks/use-ai-opt-in";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
 import { usePhotoUrl } from "@/hooks/use-photo-url";
-import { cn } from "@/lib/utils";
+import { cn, formatDate, formatRelativeDate, formatBytes } from "@/lib/utils";
 import {
   AlertTriangle,
+  Calendar,
+  ChevronRight,
   Heart,
   ImageOff,
   Loader2,
+  Lock,
+  MapPin,
   RefreshCw,
   Settings,
+  Shuffle,
   Sparkles,
+  Telescope,
+  Users,
+  Play,
+  MoreHorizontal,
 } from "lucide-react";
+
+type FeedMode = "nostalgia" | "on_this_day" | "deep_dive_year" | "serendipity";
 
 interface FeedItem {
   photoId: string;
@@ -49,8 +60,61 @@ type PhotoRecord = {
   isFavorite?: boolean;
 };
 
-const HOME_EMPTY_HINT =
-  "Upload more photos and this home feed will start balancing fresh additions with your strongest older memories.";
+type ChannelRecord = {
+  _id: Id<"channels">;
+  name: string;
+  description?: string;
+  visibility: "private" | "family" | "public";
+  memberCount: number;
+  mediaCount: number;
+  updatedAt?: number;
+};
+
+type ChannelMediaRecord = {
+  _id: Id<"channelMedia">;
+  photoId: Id<"photos">;
+  sharedAt: number;
+};
+
+type MemberRecord = {
+  name?: string;
+  email?: string;
+};
+
+const modeConfig: Record<
+  FeedMode,
+  {
+    label: string;
+    icon: typeof Sparkles;
+    description: string;
+    emptyHint: string;
+  }
+> = {
+  nostalgia: {
+    label: "For You",
+    icon: Sparkles,
+    description: "A ranked view of photos that feel most worth reopening.",
+    emptyHint: "Add more photos across different moments to improve rediscovery.",
+  },
+  on_this_day: {
+    label: "Following",
+    icon: Calendar,
+    description: "Photos taken on this date in earlier years.",
+    emptyHint: "Photos with past dates will appear here once the library has them.",
+  },
+  deep_dive_year: {
+    label: "Popular",
+    icon: Telescope,
+    description: "A focused pass through one year in your archive.",
+    emptyHint: "Pick a year that contains photos to explore it here.",
+  },
+  serendipity: {
+    label: "Featured",
+    icon: Shuffle,
+    description: "Unexpected photos that have not been surfaced in a while.",
+    emptyHint: "The more history you have, the better the surprises get.",
+  },
+};
 
 function formatDuration(mimeType?: string) {
   if (mimeType?.startsWith("video/")) {
@@ -114,17 +178,9 @@ function FeedCard({
 
   const isVideo = photo.mimeType?.startsWith("video/");
   const duration = formatDuration(photo.mimeType);
-  const badgeLabel = item.reason.toLowerCase().includes("added")
-    ? "Fresh upload"
-    : item.score >= 0.9
-      ? "Top pick"
-      : "Rediscovered";
 
   return (
-    <Link
-      href={`/photos/${item.photoId}`}
-      className="group block relative overflow-hidden rounded-xl bg-muted aspect-[3/4] w-full"
-    >
+    <Link href={`/photos/${item.photoId}`} className="group block relative overflow-hidden rounded-xl bg-muted aspect-[3/4] w-full">
       <CardImage
         storageKey={photo.storageKey}
         thumbnailStorageKey={photo.thumbnailStorageKey}
@@ -132,10 +188,10 @@ function FeedCard({
         isEncrypted={photo.isEncrypted}
         alt={item.captionShort || photo.fileName}
       />
-
+      
       {/* Overlay Gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
-
+      
       {/* Top Right Duration or Match Score */}
       <div className="absolute top-3 right-3 flex items-center gap-2">
         {duration ? (
@@ -159,15 +215,12 @@ function FeedCard({
       {/* Bottom Content */}
       <div className="absolute bottom-0 left-0 right-0 p-4">
         <p className="text-[11px] font-medium text-white/70 uppercase tracking-wider mb-1">
-          {badgeLabel}
+          {item.reason === "nostalgia" ? "Recommended" : "Rediscovered"}
         </p>
         <h3 className="text-[16px] font-semibold text-white leading-tight mb-3 line-clamp-2">
-          {item.captionShort ||
-            photo.description ||
-            photo.locationName ||
-            photo.fileName}
+          {item.captionShort || photo.description || photo.locationName || photo.fileName}
         </h3>
-
+        
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-[10px] text-white font-bold overflow-hidden">
             {photo.locationName ? photo.locationName.charAt(0) : "U"}
@@ -186,12 +239,7 @@ function FeedCard({
             }}
             className="text-white hover:scale-110 transition-transform"
           >
-            <Heart
-              className={cn(
-                "h-5 w-5",
-                liked ? "fill-white text-white" : "text-white",
-              )}
-            />
+            <Heart className={cn("h-5 w-5", liked ? "fill-white text-white" : "text-white")} />
           </button>
         </div>
       </div>
@@ -215,6 +263,8 @@ function FeedCardSkeleton() {
 }
 
 export default function FeedPage() {
+  const [mode, setMode] = useState<FeedMode>("nostalgia");
+  const [deepDiveYear, setDeepDiveYear] = useState(() => new Date().getFullYear() - 1);
   const [seed] = useState(() => crypto.randomUUID());
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedCursor, setFeedCursor] = useState<string | null>(null);
@@ -222,18 +272,27 @@ export default function FeedPage() {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
 
-  const { userId, isLoading: userLoading } = useCurrentUser();
+  const { user, userId, isLoading: userLoading } = useCurrentUser();
   const { aiOptIn, isLoading: aiLoading } = useAiOptInForUserId(
     userId as Id<"users"> | null,
   );
   const getNostalgiaFeed = useAction(api.feed.nostalgia.getNostalgiaFeed);
   const toggleFavorite = useMutation(api.photos.toggleFavorite);
 
+  const storageStats = useQuery(api.users.getStorageStats, userId ? { userId } : "skip");
   const aiProgress = useQuery(
     api.users.getAiProgress,
     userId && aiOptIn === true ? { userId } : "skip",
   );
+  const recentPhotosResult = useQuery(
+    api.photos.listByUser,
+    userId ? { userId, limit: 12 } : "skip",
+  );
+  const favoritePhotos = useQuery(api.photos.listFavorites, userId ? { userId } : "skip");
+  const channels = useQuery(api.channels.listByUser, userId ? { userId } : "skip");
 
+  const recentPhotos = (recentPhotosResult?.photos ?? []) as PhotoRecord[];
+  
   const aiReady =
     aiOptIn === true &&
     !!aiProgress &&
@@ -255,15 +314,16 @@ export default function FeedPage() {
 
   const loadFeed = useCallback(
     async (reset = false) => {
-      if (!userId) return;
+      if (!userId || aiOptIn !== true) return;
       setFeedLoading(true);
       setFeedError(null);
       try {
         const res = await getNostalgiaFeed({
-          mode: "nostalgia",
-          limit: 12,
+          mode,
+          limit: 12, // Increased limit for grid layout
           seed,
-          cursor: reset ? undefined : (feedCursorRef.current ?? undefined),
+          cursor: reset ? undefined : feedCursorRef.current ?? undefined,
+          year: mode === "deep_dive_year" ? deepDiveYear : undefined,
         });
         const items = (res.items ?? []) as FeedItem[];
         setFeedItems((prev) => (reset ? items : mergeUnique(prev, items)));
@@ -271,12 +331,12 @@ export default function FeedPage() {
         feedCursorRef.current = nextCursor;
         setFeedCursor(nextCursor);
       } catch {
-        setFeedError("We could not load the home feed.");
+        setFeedError("We could not load the rediscovery feed.");
       } finally {
         setFeedLoading(false);
       }
     },
-    [getNostalgiaFeed, mergeUnique, seed, userId],
+    [aiOptIn, deepDiveYear, getNostalgiaFeed, mergeUnique, mode, seed, userId],
   );
 
   useEffect(() => {
@@ -284,8 +344,10 @@ export default function FeedPage() {
     setFeedItems([]);
     setFeedCursor(null);
     setFeedError(null);
-    void loadFeed(true);
-  }, [aiLoading, loadFeed, userId, userLoading]);
+    if (aiOptIn === true) {
+      void loadFeed(true);
+    }
+  }, [aiOptIn, aiLoading, deepDiveYear, loadFeed, mode, userId, userLoading]);
 
   const showIndexingBanner = aiReady;
 
@@ -293,10 +355,10 @@ export default function FeedPage() {
     return (
       <div className="min-h-screen px-4 py-6 md:px-8">
         <div className="max-w-[1600px] mx-auto space-y-8">
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="h-4 w-16 rounded bg-muted animate-pulse" />
-            <div className="mt-3 h-8 w-48 rounded bg-muted animate-pulse" />
-            <div className="mt-3 h-4 w-96 max-w-full rounded bg-muted animate-pulse" />
+          <div className="flex gap-6 border-b border-border pb-2">
+            <div className="h-6 w-20 rounded bg-muted animate-pulse" />
+            <div className="h-6 w-20 rounded bg-muted animate-pulse" />
+            <div className="h-6 w-20 rounded bg-muted animate-pulse" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <FeedCardSkeleton />
@@ -313,9 +375,7 @@ export default function FeedPage() {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
         <div className="max-w-md w-full rounded-xl border border-border bg-card p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-semibold text-foreground">
-            Sign in to continue
-          </h1>
+          <h1 className="text-2xl font-semibold text-foreground">Sign in to continue</h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
             Your home view is private and tied to your account.
           </p>
@@ -330,46 +390,49 @@ export default function FeedPage() {
     );
   }
 
+  const modeCopy = modeConfig[mode];
+
   return (
     <div className="min-h-screen px-4 py-6 md:px-8">
       <div className="max-w-[1600px] mx-auto">
-        <div className="mb-8 rounded-2xl border border-border bg-card p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-primary">
-                Home
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-                One intelligent feed for your library
-              </h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-                Fresh uploads get priority, then the ranking folds in favorites,
-                faces, anniversaries, location context, and the moments you tend
-                to revisit.
-              </p>
-            </div>
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-8 border-b border-border mb-8 overflow-x-auto scrollbar-none pb-[-1px]">
+          {aiOptIn === true ? (
+            (Object.keys(modeConfig) as FeedMode[]).map((m) => {
+              const config = modeConfig[m];
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    "whitespace-nowrap py-4 text-[15px] font-semibold transition-colors relative",
+                    active
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground/80"
+                  )}
+                >
+                  {config.label}
+                  {active && (
+                    <div className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-foreground" />
+                  )}
+                </button>
+              );
+            })
+          ) : (
             <Link
               href="/settings"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-[14px] font-medium text-foreground transition-colors hover:bg-muted"
+              className="py-4 text-[15px] font-semibold text-foreground flex items-center gap-2"
             >
               <Settings className="h-4 w-4" />
-              {aiOptIn === true ? "Tune AI" : "Enable AI"}
+              Enable AI Rediscovery
             </Link>
-          </div>
+          )}
+          <div className="flex-1" />
+          
+          {/* Top Right Upload/More Actions could go here */}
         </div>
-
-        {aiOptIn !== true && (
-          <div className="mb-8 rounded-xl border border-border bg-muted/20 p-4">
-            <p className="text-[14px] font-medium text-foreground">
-              Home is active without AI.
-            </p>
-            <p className="mt-1 text-[14px] text-muted-foreground">
-              Turn on AI analysis to improve captions, tags, and ranking
-              quality, but your uploaded photos will still show up here either
-              way.
-            </p>
-          </div>
-        )}
 
         {showIndexingBanner && (
           <div className="mb-8 rounded-xl border border-border bg-card p-4">
@@ -384,82 +447,94 @@ export default function FeedPage() {
                 </div>
                 <p className="mt-2 text-[13px] text-muted-foreground font-medium">
                   Indexing {aiProgress.processed} of {aiProgress.total} photos
-                  <span className="opacity-70">
-                    {" "}
-                    · {aiProgress.pending} remaining
-                  </span>
+                  <span className="opacity-70"> · {aiProgress.pending} remaining</span>
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {feedError && (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center mb-8">
-            <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-4" />
-            <p className="text-[15px] font-medium text-foreground mb-4">
-              {feedError}
+        {aiOptIn === true ? (
+          <>
+            {feedError && (
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center mb-8">
+                <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-4" />
+                <p className="text-[15px] font-medium text-foreground mb-4">{feedError}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadFeed(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-background border border-border px-4 py-2 text-[14px] font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {!feedError && feedItems.length === 0 && feedLoading && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <FeedCardSkeleton key={i} />
+                ))}
+              </div>
+            )}
+
+            {!feedError && feedItems.length === 0 && !feedLoading && (
+              <div className="flex flex-col items-center justify-center py-24 text-center rounded-xl border border-dashed border-border bg-muted/20">
+                <ImageOff className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                <p className="text-[18px] font-semibold text-foreground">
+                  No posts yet
+                </p>
+                <p className="mt-2 text-[15px] text-muted-foreground max-w-md">
+                  {modeCopy.emptyHint}
+                </p>
+              </div>
+            )}
+
+            {feedItems.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {feedItems.map((item) => (
+                  <FeedCardWrapper
+                    key={item.photoId}
+                    photoId={item.photoId}
+                    item={item}
+                    onFavorite={(id) => toggleFavorite({ photoId: id as Id<"photos"> })}
+                  />
+                ))}
+              </div>
+            )}
+
+            {feedItems.length > 0 && feedCursor && (
+              <div className="flex justify-center py-12">
+                <button
+                  type="button"
+                  onClick={() => void loadFeed()}
+                  className="rounded-full bg-secondary px-8 py-3 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  disabled={feedLoading}
+                >
+                  {feedLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Load more"
+                  )}
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-center rounded-xl border border-border bg-card">
+            <Sparkles className="h-12 w-12 text-primary mb-4" />
+            <p className="text-[18px] font-semibold text-foreground">AI intelligence is off</p>
+            <p className="mt-2 max-w-md text-[15px] text-muted-foreground">
+              Turn it on in settings to unlock video feeds and automatic curation.
             </p>
-            <button
-              type="button"
-              onClick={() => void loadFeed(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-background border border-border px-4 py-2 text-[14px] font-medium text-foreground transition-colors hover:bg-muted"
+            <Link
+              href="/settings"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-[14px] font-semibold text-primary-foreground transition-all hover:opacity-90"
             >
-              <RefreshCw className="h-4 w-4" />
-              Retry
-            </button>
-          </div>
-        )}
-
-        {!feedError && feedItems.length === 0 && feedLoading && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <FeedCardSkeleton key={i} />
-            ))}
-          </div>
-        )}
-
-        {!feedError && feedItems.length === 0 && !feedLoading && (
-          <div className="flex flex-col items-center justify-center py-24 text-center rounded-xl border border-dashed border-border bg-muted/20">
-            <ImageOff className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-            <p className="text-[18px] font-semibold text-foreground">
-              No photos yet
-            </p>
-            <p className="mt-2 text-[15px] text-muted-foreground max-w-md">
-              {HOME_EMPTY_HINT}
-            </p>
-          </div>
-        )}
-
-        {feedItems.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {feedItems.map((item) => (
-              <FeedCardWrapper
-                key={item.photoId}
-                photoId={item.photoId}
-                item={item}
-                onFavorite={(id) =>
-                  toggleFavorite({ photoId: id as Id<"photos"> })
-                }
-              />
-            ))}
-          </div>
-        )}
-
-        {feedItems.length > 0 && feedCursor && (
-          <div className="flex justify-center py-12">
-            <button
-              type="button"
-              onClick={() => void loadFeed()}
-              className="rounded-full bg-secondary px-8 py-3 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-              disabled={feedLoading}
-            >
-              {feedLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                "Load more"
-              )}
-            </button>
+              <Settings className="h-4 w-4" />
+              Enable AI
+            </Link>
           </div>
         )}
       </div>
@@ -476,9 +551,10 @@ function FeedCardWrapper({
   item: FeedItem;
   onFavorite: (id: string) => void;
 }) {
-  const photo = useQuery(api.photos.getById, {
-    photoId: photoId as Id<"photos">,
-  }) as PhotoRecord | null | undefined;
+  const photo = useQuery(api.photos.getById, { photoId: photoId as Id<"photos"> }) as
+    | PhotoRecord
+    | null
+    | undefined;
 
   if (photo === undefined) {
     return <FeedCardSkeleton />;

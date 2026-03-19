@@ -470,7 +470,7 @@ export const getNostalgiaFeed = action({
     const cursorNumber = Number.parseInt(cursor, 10);
 
     // Keep one durable session regardless of which legacy mode the client asks for.
-    const sessionMode = "home";
+    const sessionMode = "nostalgia";
     const existing: any = await ctx.runQuery(
       internal.feed.nostalgia.getSession,
       {
