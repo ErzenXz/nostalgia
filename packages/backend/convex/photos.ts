@@ -40,6 +40,33 @@ export const listByUser = query({
   },
 });
 
+export const listVideos = query({
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+    cursor: v.optional(v.string()),
+  },
+  returns: v.object({
+    videos: v.any(),
+    continueCursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    const results = await ctx.db
+      .query("photos")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .paginate({ numItems: limit, cursor: args.cursor ?? null });
+
+    return {
+      videos: results.page.filter((p) => !p.isTrashed && typeof p.mimeType === "string" && p.mimeType.startsWith("video/")),
+      continueCursor: results.continueCursor,
+      isDone: results.isDone,
+    };
+  },
+});
+
 export const listByDate = query({
   args: {
     userId: v.id("users"),

@@ -55,36 +55,36 @@ function useSmartAlbums(photos: any[], people: any[]) {
     if (people && people.length > 0) {
       smart.push({
         id: "people",
-        icon: <Users className="h-10 w-10" />,
+        icon: <Users className="h-6 w-6" />,
         label: "People",
         subtitle: "Faces",
         count: people.reduce((s: number, p: any) => s + (p.photoCount ?? 0), 0) || people.length,
         href: "/albums/people",
-        gradient: "bg-gradient-to-br from-blue-950/50 to-[#0a0908]",
+        gradient: "bg-blue-500/10 text-blue-500",
       });
     }
 
     if (topPlace) {
       smart.push({
         id: "places",
-        icon: <MapPin className="h-10 w-10" />,
+        icon: <MapPin className="h-6 w-6" />,
         label: topPlace[0],
         subtitle: "Top Location",
         count: topPlace[1],
         href: "/map",
-        gradient: "bg-gradient-to-br from-emerald-950/50 to-[#0a0908]",
+        gradient: "bg-emerald-500/10 text-emerald-500",
       });
     }
 
     if (topYear) {
       smart.push({
         id: "year",
-        icon: <CalendarDays className="h-10 w-10" />,
+        icon: <CalendarDays className="h-6 w-6" />,
         label: `${topYear[0]}`,
         subtitle: "Best Year",
         count: topYear[1],
         href: `/photos?year=${topYear[0]}`,
-        gradient: "bg-gradient-to-br from-amber-950/60 to-[#0a0908]",
+        gradient: "bg-amber-500/10 text-amber-500",
       });
     }
 
@@ -92,12 +92,12 @@ function useSmartAlbums(photos: any[], people: any[]) {
     if (favorites.length > 0) {
       smart.push({
         id: "favorites",
-        icon: <Sparkles className="h-10 w-10" />,
+        icon: <Sparkles className="h-6 w-6" />,
         label: "Favorites",
         subtitle: "Starred",
         count: favorites.length,
         href: "/favorites",
-        gradient: "bg-gradient-to-br from-rose-950/50 to-[#0a0908]",
+        gradient: "bg-rose-500/10 text-rose-500",
       });
     }
 
@@ -154,7 +154,7 @@ export default function AlbumsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-800/40" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -167,21 +167,21 @@ export default function AlbumsPage() {
       >
         <Button
           size="sm"
-          className="bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 shadow-[0_2px_8px_rgba(201,166,107,0.2)] font-mono uppercase tracking-wider text-[10px]"
+          className="bg-primary text-primary-foreground hover:opacity-90 font-medium text-[13px] rounded-full px-4"
           onClick={() => setShowCreate(true)}
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4 mr-1.5" />
           New Album
         </Button>
       </PageHeader>
 
       {/* ── Smart Albums Strip ── */}
       {smartAlbums.length > 0 && (
-        <div className="px-4 md:px-8 pt-5 pb-3">
-          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-800/40 mb-3">
+        <div className="px-4 md:px-8 pt-5 pb-3 border-b border-border mb-4">
+          <p className="text-[13px] font-semibold text-foreground mb-3">
             Smart Albums
           </p>
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1">
+          <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2">
             {smartAlbums.map((sa) => (
               <SmartAlbumCard
                 key={sa.id}
@@ -199,49 +199,49 @@ export default function AlbumsPage() {
 
       {/* ── Divider ── */}
       {smartAlbums.length > 0 && albumList.length > 0 && (
-        <div className="flex items-center gap-4 mx-4 md:mx-8 my-1">
-          <div className="h-px flex-1 bg-amber-900/10" />
-          <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-900/30 shrink-0">
+        <div className="px-4 md:px-8">
+          <p className="text-[13px] font-semibold text-foreground mb-3">
             Your Albums
           </p>
-          <div className="h-px flex-1 bg-amber-900/10" />
         </div>
       )}
 
       {/* ── Album Grid ── */}
       {albumList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-amber-900/30">
+        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
           <FolderOpen className="h-12 w-12 opacity-30 mb-4" />
-          <p className="text-sm font-mono text-amber-900/40">
+          <p className="text-[14px] font-medium text-foreground">
             Create your first album
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 font-mono uppercase tracking-wider text-[10px]"
+            className="mt-4 bg-primary text-primary-foreground hover:opacity-90 font-medium text-[13px] rounded-full px-4"
             onClick={() => setShowCreate(true)}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4 mr-1.5" />
             New Album
           </Button>
         </div>
       ) : (
-        <AlbumGrid albums={albumList} />
+        <div className="px-4 md:px-8">
+          <AlbumGrid albums={albumList} />
+        </div>
       )}
 
       {/* ── Create Album Dialog ── */}
       <Dialog open={showCreate} onClose={() => setShowCreate(false)}>
-        <DialogContent className="sm:max-w-sm bg-[#0f0e0d] border-amber-900/20">
+        <DialogContent className="sm:max-w-sm bg-background border-border shadow-lg rounded-xl">
           <DialogHeader>
-            <DialogTitle className="font-heading text-foreground/90">
+            <DialogTitle className="text-[18px] font-semibold text-foreground">
               New Album
             </DialogTitle>
           </DialogHeader>
-          <div className="py-3 space-y-3">
+          <div className="py-4 space-y-4">
             <Input
               placeholder="Album name"
               value={newAlbumName}
               onChange={(e) => setNewAlbumName(e.target.value)}
-              className="border-amber-900/25 bg-[#0c0b0a] focus:border-amber-700/40 placeholder:text-amber-900/30"
+              className="border-border bg-muted/50 focus:border-primary placeholder:text-muted-foreground"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter") void handleCreate();
@@ -251,17 +251,17 @@ export default function AlbumsPage() {
               placeholder="Description (optional)"
               value={newAlbumDesc}
               onChange={(e) => setNewAlbumDesc(e.target.value)}
-              className="border-amber-900/25 bg-[#0c0b0a] focus:border-amber-700/40 placeholder:text-amber-900/30"
+              className="border-border bg-muted/50 focus:border-primary placeholder:text-muted-foreground"
               onKeyDown={(e) => {
                 if (e.key === "Enter") void handleCreate();
               }}
             />
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="border-amber-900/25 text-amber-800/50 font-mono uppercase tracking-wider text-[10px]"
+              className="border-border text-foreground hover:bg-muted font-medium text-[13px] rounded-full"
               onClick={() => setShowCreate(false)}
             >
               Cancel
@@ -269,7 +269,7 @@ export default function AlbumsPage() {
             <Button
               size="sm"
               disabled={!newAlbumName.trim() || isCreating}
-              className="bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 font-mono uppercase tracking-wider text-[10px]"
+              className="bg-primary text-primary-foreground hover:opacity-90 font-medium text-[13px] rounded-full"
               onClick={() => void handleCreate()}
             >
               {isCreating ? (

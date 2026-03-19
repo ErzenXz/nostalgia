@@ -1,109 +1,107 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { PageHeader } from "@/components/layout/page-header";
 import { PhotoGrid } from "@/components/photos/photo-grid";
 import { Lightbox } from "@/components/photos/lightbox";
+import { Trash2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Trash2, RotateCcw, Loader2 } from "lucide-react";
 
 export default function TrashPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isEmptying, setIsEmptying] = useState(false);
   const { userId, isLoading: userLoading } = useCurrentUser();
 
-  const trashedPhotos = useQuery(
+  const photos = useQuery(
     api.photos.listTrashed,
     userId ? { userId } : "skip",
   );
 
+  const toggleFavorite = useMutation(api.photos.toggleFavorite);
   const restorePhoto = useMutation(api.photos.restore);
   const deletePermanently = useMutation(api.photos.deletePermanently);
-  const toggleFavorite = useMutation(api.photos.toggleFavorite);
 
-  const isLoading = userLoading || (userId && trashedPhotos === undefined);
-  const photos = trashedPhotos ?? [];
+  const isLoading = userLoading || (userId && photos === undefined);
+  const trashedPhotos = photos ?? [];
 
-  const handleRestore = useCallback(
-    (photoId: string) => {
-      restorePhoto({ photoId: photoId as any });
-    },
-    [restorePhoto],
-  );
-
-  const handleEmptyTrash = useCallback(async () => {
-    if (photos.length === 0) return;
-    const confirmed = window.confirm(
-      `Permanently delete ${photos.length} photo${photos.length > 1 ? "s" : ""}? This cannot be undone.`,
-    );
-    if (!confirmed) return;
-
+  const handleEmptyTrash = async () => {
+    if (trashedPhotos.length === 0) return;
     setIsEmptying(true);
     try {
-      for (const photo of photos) {
-        await deletePermanently({ photoId: photo._id as any });
-      }
-    } catch (err) {
-      console.error("Failed to empty trash:", err);
+      await Promise.all(
+        trashedPhotos.map((p: any) =>
+          deletePermanently({ photoId: p._id as any }),
+        ),
+      );
     } finally {
       setIsEmptying(false);
     }
-  }, [photos, deletePermanently]);
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Trash"
-        description={`${photos.length} items - permanently deleted after 30 days`}
-      >
-        <Button
-          variant="destructive"
-          size="sm"
-          disabled={photos.length === 0 || isEmptying}
-          onClick={handleEmptyTrash}
-        >
-          {isEmptying ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="h-4 w-4" />
-          )}
-          Empty Trash
-        </Button>
-      </PageHeader>
+    <div className="min-h-screen px-0 py-6 md:px-6">
+      <div className="mx-auto max-w-[1600px] space-y-8">
+        <div className="px-4 md:px-8">
+          <PageHeader
+            title="Trash"
+            description={`${trashedPhotos.length} items · Auto-deletes after 30 days`}
+          >
+            {trashedPhotos.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="rounded-full px-4 text-[13px] font-medium"
+                onClick={() => void handleEmptyTrash()}
+                disabled={isEmptying}
+              >
+                {isEmptying ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-1.5 h-4 w-4" />
+                )}
+                Empty Trash
+              </Button>
+            )}
+          </PageHeader>
+        </div>
 
-      <PhotoGrid
-        photos={photos}
-        onPhotoClick={(_, index) => setLightboxIndex(index)}
-        onFavorite={(id) => toggleFavorite({ photoId: id as any })}
-        emptyMessage="Trash is empty"
-        emptyIcon={<Trash2 className="h-12 w-12 opacity-50" />}
-      />
-
-      {lightboxIndex !== null && (
-        <Lightbox
-          photos={photos}
-          currentIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onNavigate={setLightboxIndex}
+        <PhotoGrid
+          photos={trashedPhotos}
+          onPhotoClick={(_, index) => setLightboxIndex(index)}
           onFavorite={(id) => toggleFavorite({ photoId: id as any })}
-          onArchive={handleRestore}
-          onTrash={(id) => {
-            deletePermanently({ photoId: id as any });
-            setLightboxIndex(null);
-          }}
+          emptyMessage="Trash is empty"
+          emptyIcon={<Trash2 className="h-12 w-12 opacity-50" />}
         />
-      )}
-    </>
+
+        {lightboxIndex !== null && (
+          <Lightbox
+            photos={trashedPhotos}
+            currentIndex={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+            onNavigate={setLightboxIndex}
+            onFavorite={(id: string) => toggleFavorite({ photoId: id as any })}
+            onRestore={(id: string) => {
+              restorePhoto({ photoId: id as any });
+              setLightboxIndex(null);
+            }}
+            onTrash={(id: string) => {
+              deletePermanently({ photoId: id as any });
+              setLightboxIndex(null);
+            }}
+          />
+        )}
+      </div>
+    </div>
   );
 }

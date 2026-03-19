@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { IBM_Plex_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
-const inter = Inter({
+const uiSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-ui-sans",
+  weight: ["400", "500", "600", "700"],
 });
 
-const playfair = Playfair_Display({
+const displaySerif = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-serif",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -55,11 +57,18 @@ export default async function RootLayout({
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? process.env.CONVEX_URL ?? null;
 
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
-        <Providers initialToken={token} convexUrl={convexUrl}>
-          {children}
-        </Providers>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${uiSans.variable} ${displaySerif.variable} font-sans antialiased bg-background text-foreground`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Providers initialToken={token} convexUrl={convexUrl}>
+            {children}
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -5,7 +5,6 @@ import { useAction, useMutation } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useAiOptIn } from "@/hooks/use-ai-opt-in";
-import { PageHeader } from "@/components/layout/page-header";
 import { SearchBar } from "@/components/search/search-bar";
 import { PhotoGrid } from "@/components/photos/photo-grid";
 import { Lightbox } from "@/components/photos/lightbox";
@@ -124,7 +123,7 @@ export default function SearchPage() {
 
   if (userLoading || aiOptInLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -132,123 +131,126 @@ export default function SearchPage() {
 
   if (!userId) {
     return (
-      <>
-        <PageHeader title="Search" description="Find any photo with AI" />
-        <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Sign in to search your photos
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-md mb-6">
-            Search is personalized to your account.
-          </p>
-          <Link href="/login">
-            <Button variant="outline" size="sm">
-              Go to Login
-            </Button>
-          </Link>
-        </div>
-      </>
+      <div className="flex flex-col items-center justify-center min-h-screen px-8 text-center bg-background">
+        <h3 className="text-[18px] font-semibold text-foreground mb-2">
+          Sign in to search your photos
+        </h3>
+        <p className="text-[14px] text-muted-foreground max-w-md mb-8">
+          Search is personalized to your account.
+        </p>
+        <Link href="/login">
+          <Button variant="outline" size="sm" className="rounded-full px-6 font-medium border-border hover:bg-muted">
+            Go to Login
+          </Button>
+        </Link>
+      </div>
     );
   }
 
   return (
-    <>
-      <PageHeader title="Search" description="Find any photo with AI" />
-
-      <div className="p-8 space-y-6">
-        <SearchBar onSearch={handleSearch} className="max-w-2xl" />
-
-        {!query ? (
-          <div className="space-y-8">
-            {/* Categories */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Explore
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.name}
-                    className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-3 text-sm text-foreground hover:bg-accent hover:border-muted-foreground/20 transition-all duration-150"
-                    onClick={() => handleSearch(cat.name)}
-                  >
-                    <span className="text-base">{cat.emoji}</span>
-                    <span className="text-xs font-medium">{cat.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* AI Features banner */}
-            <div
-              className={cn(
-                "rounded-xl border p-5",
-                aiOptIn === true
-                  ? "border-purple-500/20 bg-gradient-to-r from-purple-500/[0.06] to-primary/[0.04]"
-                  : "border-border bg-card",
-              )}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Sparkles
-                      className={cn(
-                        "h-4.5 w-4.5",
-                        aiOptIn === true ? "text-purple-400" : "text-muted-foreground",
-                      )}
-                    />
-                    <h3 className="text-sm font-semibold text-foreground">
-                      AI-Powered Search
-                    </h3>
-                    {aiOptIn === true && (
-                      <span className="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-medium text-purple-400">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground max-w-lg leading-relaxed">
-                    Search naturally — try &quot;photos of my dog at the
-                    beach&quot; or &quot;birthday party last summer&quot;. AI
-                    understands context, objects, scenes, and emotions.
-                  </p>
-                </div>
-                {aiOptIn !== true && (
-                  <Link
-                    href="/settings"
-                    className="shrink-0 ml-4 flex items-center gap-1.5 rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                  >
-                    <Settings className="h-3 w-3" />
-                    Enable
-                  </Link>
-                )}
-              </div>
-            </div>
+    <div className="min-h-screen px-4 py-6 md:px-8">
+      <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="text-center space-y-2 mt-4 md:mt-8 mb-8">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">Search</h1>
+            <p className="text-[15px] text-muted-foreground">Find any photo with AI</p>
           </div>
-        ) : (
+          <SearchBar onSearch={handleSearch} className="w-full" />
+
+          {!query ? (
+            <div className="space-y-10">
+              {/* Categories */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[14px] font-medium text-muted-foreground">
+                    Explore
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.name}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-[15px] font-medium text-foreground hover:bg-muted transition-colors shadow-sm"
+                      onClick={() => handleSearch(cat.name)}
+                    >
+                      <span className="text-lg">{cat.emoji}</span>
+                      <span>{cat.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* AI Features banner */}
+              <div
+                className={cn(
+                  "rounded-2xl border p-6",
+                  aiOptIn === true
+                    ? "border-primary/20 bg-primary/5"
+                    : "border-border bg-card shadow-sm",
+                )}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles
+                        className={cn(
+                          "h-5 w-5",
+                          aiOptIn === true ? "text-primary" : "text-muted-foreground",
+                        )}
+                      />
+                      <h3 className="text-[16px] font-semibold text-foreground">
+                        AI-Powered Search
+                      </h3>
+                      {aiOptIn === true && (
+                        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary ml-1">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[14px] text-muted-foreground leading-relaxed mt-2 max-w-lg">
+                      Search naturally — try &quot;photos of my dog at the
+                      beach&quot; or &quot;birthday party last summer&quot;. AI
+                      understands context, objects, scenes, and emotions.
+                    </p>
+                  </div>
+                  {aiOptIn !== true && (
+                    <Link
+                      href="/settings"
+                      className="shrink-0 ml-4 flex items-center gap-1.5 rounded-full border border-border bg-background px-4 py-2 text-[13px] font-medium text-foreground hover:bg-muted transition-colors"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Enable
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {query && (
           <div>
             {/* Results header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <span className="text-sm text-muted-foreground">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <span className="text-[16px] font-medium text-muted-foreground">
                   {isSearching
                     ? "Searching..."
                     : hasSearched
                       ? `${photos.length} result${photos.length !== 1 ? "s" : ""} for`
                       : "Results for"}{" "}
-                  &quot;{query}&quot;
+                  <span className="text-foreground font-semibold">"{query}"</span>
                 </span>
                 {isSearching && (
-                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-2" />
                 )}
               </div>
               {activeTags.size > 0 && (
                 <button
                   onClick={() => setActiveTags(new Set())}
-                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Clear filters
                 </button>
@@ -257,10 +259,10 @@ export default function SearchPage() {
 
             {/* Tag chips for filtering */}
             {allTags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                <div className="flex items-center gap-1 mr-1">
-                  <Tag className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[11px] text-muted-foreground">
+              <div className="flex flex-wrap gap-2 mb-8">
+                <div className="flex items-center gap-1.5 mr-2">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[14px] font-medium text-muted-foreground">
                     Filter:
                   </span>
                 </div>
@@ -269,15 +271,15 @@ export default function SearchPage() {
                     key={tag}
                     onClick={() => toggleTag(tag)}
                     className={cn(
-                      "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-all duration-150",
+                      "inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[13px] font-medium transition-all duration-150",
                       activeTags.has(tag)
-                        ? "bg-purple-500/20 border-purple-500/30 text-purple-300"
-                        : "bg-secondary border-border text-muted-foreground hover:bg-accent",
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border text-foreground hover:bg-muted",
                     )}
                   >
                     {tag}
                     {activeTags.has(tag) && (
-                      <X className="h-2.5 w-2.5" />
+                      <X className="h-3.5 w-3.5" />
                     )}
                   </button>
                 ))}
@@ -286,27 +288,29 @@ export default function SearchPage() {
 
             {/* No results state */}
             {hasSearched && !isSearching && photos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary mb-4">
-                  <SearchX className="h-7 w-7 text-muted-foreground/50" />
+              <div className="flex flex-col items-center justify-center py-32 text-muted-foreground border border-dashed border-border rounded-2xl bg-muted/20">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary mb-6 shadow-sm border border-border">
+                  <SearchX className="h-8 w-8 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm font-medium text-foreground mb-1">
+                <p className="text-[18px] font-semibold text-foreground mb-2">
                   No results found
                 </p>
-                <p className="text-xs text-muted-foreground max-w-sm text-center">
+                <p className="text-[15px] text-muted-foreground max-w-md text-center">
                   {aiOptIn
                     ? "Try different words or check your spelling. AI search works best with descriptive phrases."
                     : "Enable AI Intelligence in Settings to unlock semantic photo search."}
                 </p>
               </div>
             ) : (
-              <PhotoGrid
-                photos={photos}
-                onPhotoClick={(_, index) => setLightboxIndex(index)}
-                onFavorite={(id) => toggleFavorite({ photoId: id as any })}
-                emptyMessage={isSearching ? "Searching..." : "No results"}
-                emptyIcon={<SearchIcon className="h-12 w-12 opacity-50" />}
-              />
+              <div className="-mx-4 md:-mx-8">
+                <PhotoGrid
+                  photos={photos}
+                  onPhotoClick={(_, index) => setLightboxIndex(index)}
+                  onFavorite={(id) => toggleFavorite({ photoId: id as any })}
+                  emptyMessage={isSearching ? "Searching..." : "No results"}
+                  emptyIcon={<SearchIcon className="h-12 w-12 opacity-50" />}
+                />
+              </div>
             )}
 
             {lightboxIndex !== null && (
@@ -325,6 +329,6 @@ export default function SearchPage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

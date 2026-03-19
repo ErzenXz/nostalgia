@@ -17,18 +17,25 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-6 md:px-8 py-5",
-        "border-b border-white/[0.06]",
+        "sticky top-0 z-30 flex flex-col gap-4 border-b border-border bg-background/95 px-4 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between md:px-8",
         className,
       )}
     >
-      <div>
-        <h1 className="text-xl font-semibold text-[#f1f1f1]">{title}</h1>
+      <div className="min-w-0">
+        <h1 className="truncate text-[22px] font-serif font-bold tracking-tight text-foreground">
+          {title}
+        </h1>
         {description && (
-          <p className="mt-0.5 text-[12px] text-[#aaa]">{description}</p>
+          <p className="mt-1 truncate text-[13px] font-medium text-muted-foreground">
+            {description}
+          </p>
         )}
       </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      {children && (
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

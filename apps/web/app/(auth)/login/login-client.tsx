@@ -16,14 +16,13 @@ import {
   Github,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
 
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function LoginClient() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirectTo = params.get("redirect") ?? "/photos";
+  const redirectTo = params.get("redirect") ?? "/feed";
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -111,23 +110,23 @@ export default function LoginClient() {
 
   if (step === "twoFactor") {
     return (
-      <div className="space-y-5">
-        <div>
-          <h1 className="text-xl font-heading font-semibold text-foreground/95">Two-factor</h1>
-          <p className="mt-0.5 text-[10px] font-mono text-amber-800/50 uppercase tracking-wider">
-            Enter code from your authenticator
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-serif font-bold text-foreground">Two-factor authentication</h1>
+          <p className="mt-2 text-[14px] text-muted-foreground">
+            Enter code from your authenticator app
           </p>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-900/30 bg-red-950/20 px-3 py-2">
-            <p className="text-xs text-red-400 text-center">{error}</p>
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
+            <p className="text-[13px] font-medium text-destructive text-center">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleVerifyTwoFactor} className="space-y-4">
+        <form onSubmit={handleVerifyTwoFactor} className="space-y-5">
           <div className="relative">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-800/40" />
+            <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               id="twoFactorCode"
               inputMode="numeric"
@@ -135,31 +134,31 @@ export default function LoginClient() {
               placeholder="123456"
               value={twoFactorCode}
               onChange={(e) => setTwoFactorCode(e.target.value)}
-              className="pl-9 border-amber-900/25 bg-[#0c0b0a] focus:border-amber-700/40 font-mono tracking-[0.3em] text-center"
+              className="pl-11 h-12 text-lg tracking-[0.2em] text-center border-border bg-card focus:border-primary placeholder:text-muted-foreground/50"
               required
               autoFocus
             />
           </div>
 
-          <label className="flex items-center gap-2 text-[11px] font-mono text-amber-800/50 cursor-pointer">
+          <label className="flex items-center justify-center gap-2 text-[13px] font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
             <input
               type="checkbox"
               checked={trustDevice}
               onChange={(e) => setTrustDevice(e.target.checked)}
-              className="accent-amber-500"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-primary"
             />
             Trust this device for 30 days
           </label>
 
-          <Button type="submit" className="w-full bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 font-mono uppercase tracking-wider" disabled={isLoading}>
-            {isLoading ? "Verifying…" : "Verify"}
-            {!isLoading && <ArrowRight className="h-4 w-4" />}
+          <Button type="submit" className="w-full h-11 bg-primary text-primary-foreground hover:opacity-90 font-semibold text-[14px] rounded-lg transition-opacity" disabled={isLoading}>
+            {isLoading ? "Verifying…" : "Verify code"}
+            {!isLoading && <ArrowRight className="h-4 w-4 ml-2" />}
           </Button>
         </form>
 
         <button
           type="button"
-          className="w-full text-[11px] font-mono text-amber-800/50 hover:text-amber-600/70 transition-colors"
+          className="w-full text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => { setStep("credentials"); setTwoFactorCode(""); }}
         >
           ← Back to sign in
@@ -169,28 +168,28 @@ export default function LoginClient() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-heading font-semibold text-foreground/95">Welcome back</h1>
-        <p className="mt-0.5 text-[10px] font-mono text-amber-800/50 uppercase tracking-wider">
-          Sign in to your vault
+      <div className="text-center">
+        <h1 className="text-2xl font-serif font-bold text-foreground">Welcome back</h1>
+        <p className="mt-2 text-[14px] text-muted-foreground">
+          Sign in to your intelligent photo library
         </p>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-red-900/30 bg-red-950/20 px-3 py-2">
-          <p className="text-xs text-red-400 text-center">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3">
+          <p className="text-[13px] font-medium text-destructive text-center">{error}</p>
         </div>
       )}
 
       {/* Social / Passkey — compact icon row */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         <Button
           type="button"
           variant="outline"
-          className="border-amber-900/25 bg-[#0c0b0a] hover:border-amber-700/40 hover:bg-amber-950/30 text-amber-800/60 hover:text-amber-400 h-10 justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider"
+          className="h-11 border-border bg-card hover:bg-muted text-foreground font-medium text-[13px] flex items-center justify-center gap-2 rounded-lg transition-colors"
           onClick={() => handleSocial("google")}
           disabled={isLoading}
           title="Google"
@@ -207,7 +206,7 @@ export default function LoginClient() {
         <Button
           type="button"
           variant="outline"
-          className="border-amber-900/25 bg-[#0c0b0a] hover:border-amber-700/40 hover:bg-amber-950/30 text-amber-800/60 hover:text-amber-400 h-10 justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider"
+          className="h-11 border-border bg-card hover:bg-muted text-foreground font-medium text-[13px] flex items-center justify-center gap-2 rounded-lg transition-colors"
           onClick={() => handleSocial("github")}
           disabled={isLoading}
           title="GitHub"
@@ -218,7 +217,7 @@ export default function LoginClient() {
         <Button
           type="button"
           variant="outline"
-          className="border-amber-900/25 bg-[#0c0b0a] hover:border-amber-700/40 hover:bg-amber-950/30 text-amber-800/60 hover:text-amber-400 h-10 justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider"
+          className="h-11 border-border bg-card hover:bg-muted text-foreground font-medium text-[13px] flex items-center justify-center gap-2 rounded-lg transition-colors"
           onClick={handlePasskey}
           disabled={isLoading}
           title="Passkey"
@@ -229,54 +228,54 @@ export default function LoginClient() {
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-amber-900/15" />
-        <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-amber-900/40">or</span>
-        <div className="h-px flex-1 bg-amber-900/15" />
+      <div className="flex items-center gap-4 py-1">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-[12px] font-medium text-muted-foreground uppercase tracking-widest">or</span>
+        <div className="h-px flex-1 bg-border" />
       </div>
 
       {/* Email / Password form */}
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-800/35 pointer-events-none" />
+          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
           <Input
             id="email"
             type="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="pl-9 border-amber-900/22 bg-[#0c0b0a] focus:border-amber-700/40 placeholder:text-amber-900/30 text-sm"
+            className="pl-10 h-11 border-border bg-card focus:border-primary placeholder:text-muted-foreground/60 text-[14px]"
             required
           />
         </div>
 
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-800/35 pointer-events-none" />
+          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground pointer-events-none" />
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-9 pr-9 border-amber-900/22 bg-[#0c0b0a] focus:border-amber-700/40 placeholder:text-amber-900/30 text-sm"
+            className="pl-10 pr-10 h-11 border-border bg-card focus:border-primary placeholder:text-muted-foreground/60 text-[14px]"
             required
           />
           <button
             type="button"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-800/35 hover:text-amber-600/60 transition-colors"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setShowPassword((v) => !v)}
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
           </button>
         </div>
 
         <Button
           type="submit"
-          className="w-full bg-gradient-to-b from-amber-500 to-amber-600 text-amber-950 hover:from-amber-400 hover:to-amber-500 shadow-[0_2px_8px_rgba(201,166,107,0.25)] font-mono uppercase tracking-wider"
+          className="w-full h-11 bg-primary text-primary-foreground hover:opacity-90 font-semibold text-[14px] rounded-lg transition-opacity mt-2"
           disabled={isLoading || (Boolean(turnstileSiteKey) && !captchaToken)}
         >
           {isLoading ? "Signing in…" : "Sign In"}
-          {!isLoading && <ArrowRight className="h-4 w-4" />}
+          {!isLoading && <ArrowRight className="h-4 w-4 ml-2" />}
         </Button>
       </form>
 
@@ -286,10 +285,10 @@ export default function LoginClient() {
       )}
 
       {/* Footer */}
-      <p className="text-center text-[11px] font-mono text-amber-900/40">
-        No account?{" "}
-        <Link href="/register" className="text-amber-700/60 hover:text-amber-500/80 transition-colors">
-          Sign up free
+      <p className="text-center text-[14px] text-muted-foreground mt-6">
+        Don't have an account?{" "}
+        <Link href="/register" className="font-semibold text-primary hover:underline transition-all">
+          Sign up
         </Link>
       </p>
     </div>

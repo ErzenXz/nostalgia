@@ -34,41 +34,45 @@ export default function FavoritesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <>
-      <PageHeader
-        title="Favorites"
-        description={`${favoritePhotos.length} favorites`}
-      />
+    <div className="min-h-screen px-0 py-6 md:px-6">
+      <div className="mx-auto max-w-[1600px] space-y-8">
+        <div className="px-4 md:px-8">
+          <PageHeader
+            title="Favorites"
+            description={`${favoritePhotos.length} favorites`}
+          />
+        </div>
 
-      <PhotoGrid
-        photos={favoritePhotos}
-        onPhotoClick={(_, index) => setLightboxIndex(index)}
-        onFavorite={handleFavorite}
-        emptyMessage="No favorite photos yet"
-        emptyIcon={<Heart className="h-12 w-12 opacity-50" />}
-      />
-
-      {lightboxIndex !== null && (
-        <Lightbox
+        <PhotoGrid
           photos={favoritePhotos}
-          currentIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onNavigate={setLightboxIndex}
+          onPhotoClick={(_, index) => setLightboxIndex(index)}
           onFavorite={handleFavorite}
-          onArchive={(id) => archivePhoto({ photoId: id as any })}
-          onTrash={(id) => {
-            trashPhoto({ photoId: id as any });
-            setLightboxIndex(null);
-          }}
+          emptyMessage="No favorite photos yet"
+          emptyIcon={<Heart className="h-12 w-12 opacity-50" />}
         />
-      )}
-    </>
+
+        {lightboxIndex !== null && (
+          <Lightbox
+            photos={favoritePhotos}
+            currentIndex={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+            onNavigate={setLightboxIndex}
+            onFavorite={handleFavorite}
+            onArchive={(id) => archivePhoto({ photoId: id as any })}
+            onTrash={(id) => {
+              trashPhoto({ photoId: id as any });
+              setLightboxIndex(null);
+            }}
+          />
+        )}
+      </div>
+    </div>
   );
 }

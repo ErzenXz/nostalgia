@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useMemo, useRef, type ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { cn, formatDate, groupPhotosByDate } from "@/lib/utils";
-import { Heart, Check, MapPin } from "lucide-react";
+import { Heart, Check, MapPin, Play } from "lucide-react";
 import { usePhotoUrls } from "@/hooks/use-photo-url";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
 
@@ -84,7 +85,7 @@ export function PhotoGrid({
   const grouped = groupPhotosByDate(photos);
 
   return (
-    <div className="space-y-6 px-4 md:px-8 py-6">
+    <div className="space-y-8 px-4 md:px-8 py-6 max-w-[1600px] mx-auto">
       {Array.from(grouped.entries()).map(([dateKey, datePhotos]) => {
         // Pick the most common location name in this day group
         const locationCounts = new Map<string, number>();
@@ -109,29 +110,29 @@ export function PhotoGrid({
         >
           <div
             className={cn(
-              "mb-3 flex items-center gap-3",
+              "mb-4 flex items-center gap-3",
               stickyHeaders &&
-                "sticky top-0 z-20 bg-background/90 backdrop-blur-sm py-2 -mx-4 md:-mx-8 px-4 md:px-8",
+                "sticky top-16 z-20 bg-background/95 backdrop-blur-md py-3 -mx-4 md:-mx-8 px-4 md:px-8",
             )}
           >
-            <span className="text-[11px] font-medium text-[#aaa]">
+            <span className="text-[16px] font-semibold text-foreground">
               {formatDate(new Date(dateKey))}
             </span>
             {topLocation && (
               <>
-                <span className="text-[#717171] text-[11px]">·</span>
-                <span className="flex items-center gap-1 text-[11px] text-[#717171]">
-                  <svg className="h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                <span className="text-muted-foreground text-[11px]">·</span>
+                <span className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                  <MapPin className="h-3 w-3 shrink-0" />
                   {topLocation}
                 </span>
               </>
             )}
-            <div className="h-px flex-1 bg-white/[0.04]" />
-            <span className="text-[11px] text-[#717171] shrink-0">
+            <div className="h-px flex-1 bg-border/50" />
+            <span className="text-[12px] font-medium text-muted-foreground shrink-0 bg-muted px-2.5 py-0.5 rounded-full">
               {(datePhotos as Photo[]).length}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {datePhotos.map((photo, index) => {
               const isSelected = selectedIds.has(photo._id);
               const isHovered = hoveredId === photo._id;
@@ -153,7 +154,7 @@ export function PhotoGrid({
                     if (selectable) {
                       toggleSelection(photo._id);
                     } else {
-                      onPhotoClick?.(photo, index);
+                      onPhotoClick?.(photo as any, index);
                     }
                   }}
                   onToggleSelection={() => toggleSelection(photo._id)}
@@ -167,6 +168,13 @@ export function PhotoGrid({
       })}
     </div>
   );
+}
+
+function formatDuration(mimeType?: string) {
+  if (mimeType?.startsWith("video/")) {
+    return "0:00"; // Placeholder for video duration
+  }
+  return null;
 }
 
 function PhotoGridCell({
@@ -205,12 +213,13 @@ function PhotoGridCell({
 
   const displayUrl = photo.isEncrypted ? decryptedUrl : signedUrl;
   const isVideo = photo.mimeType.startsWith("video/");
+  const duration = formatDuration(photo.mimeType);
 
   return (
     <div
       className={cn(
-        "photo-grid-item group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-secondary/50",
-        isSelected && "ring-2 ring-primary/70 ring-offset-2 ring-offset-background",
+        "photo-grid-item group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-xl bg-muted",
+        isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
       onMouseEnter={() => onHover(photo._id)}
       onMouseLeave={() => onHover(null)}
@@ -230,87 +239,90 @@ function PhotoGridCell({
             src={displayUrl}
             alt={photo.description || photo.fileName}
             fill
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, (max-width: 1536px) 16vw, 12.5vw"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 20vw"
             unoptimized
           />
         )
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary/60 to-muted/60 animate-pulse" />
+        <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Vignette overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-30 transition-opacity duration-300 group-hover:opacity-50"
-        style={{
-          background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)",
-        }}
-      />
+      {/* Overlay Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
 
-      {/* Warm tint on hover */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-15"
-        style={{
-          background: "linear-gradient(135deg, rgba(255,200,150,0.4) 0%, rgba(200,150,100,0.3) 100%)",
-        }}
-      />
+      {/* Top Right Duration or Tag */}
+      {duration && (
+        <div className="absolute top-3 right-3 flex items-center gap-2 z-10 pointer-events-none">
+          <span className="text-[12px] font-medium text-white drop-shadow-md">
+            {duration}
+          </span>
+        </div>
+      )}
+
+      {/* Center Play Button Overlay for Videos */}
+      {isVideo && (
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/20">
+            <Play className="h-8 w-8 text-white fill-white ml-1" />
+          </div>
+        </div>
+      )}
 
       {/* Selection checkbox */}
-      {(selectable || isHovered) && (
+      {(selectable || isHovered || isSelected) && (
         <button
           type="button"
           className={cn(
-            "absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200",
+            "absolute left-3 top-3 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200",
             "backdrop-blur-sm",
             isSelected
-              ? "border-primary bg-primary/90"
-              : "border-white/60 bg-black/40 opacity-0 group-hover:opacity-100",
+              ? "border-primary bg-primary"
+              : "border-white/80 bg-black/20 opacity-0 group-hover:opacity-100",
           )}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelection();
           }}
         >
-          {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+          {isSelected && <Check className="h-3.5 w-3.5 text-primary-foreground stroke-[3]" />}
         </button>
       )}
 
-      {/* Favorite button */}
-      {isHovered && !selectable && (
-        <button
-          type="button"
-          className="absolute right-2 top-2 z-10 rounded-full bg-black/40 p-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 hover:bg-black/60 backdrop-blur-sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavorite();
-          }}
-        >
-          <Heart
-            className={cn(
-              "h-4 w-4 transition-all",
-              photo.isFavorite ? "fill-red-500 text-red-500" : "text-white/80 hover:text-white",
-            )}
-          />
-        </button>
-      )}
-
-      {/* Bottom gradient for text */}
-      {isHovered && !selectable && (photo.locationName || photo.takenAt) && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 via-black/40 to-transparent p-2 pt-8 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          {photo.locationName && (
-            <div className="flex items-center gap-1 text-white/80">
-              <MapPin className="h-2.5 w-2.5" />
-              <span className="truncate text-[10px] font-light tracking-wide">
-                {photo.locationName}
-              </span>
-            </div>
-          )}
+      {/* Progress Bar (Decorative) for Videos */}
+      {isVideo && (
+        <div className="absolute top-4 left-4 right-16 h-1 bg-white/30 rounded-full overflow-hidden z-10 pointer-events-none">
+          <div className="h-full bg-white w-0 group-hover:w-1/3 rounded-full transition-all duration-1000 ease-out" />
         </div>
       )}
 
-      {/* Film strip highlight */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      {/* Bottom Content */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 z-10 pointer-events-none">
+        <h3 className="text-[16px] font-semibold text-white leading-tight mb-3 line-clamp-2 drop-shadow-sm">
+          {photo.description || photo.locationName || photo.fileName}
+        </h3>
+        
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <div className="h-6 w-6 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-[10px] text-white font-bold overflow-hidden shrink-0">
+            {photo.locationName ? photo.locationName.charAt(0) : "U"}
+          </div>
+          <span className="text-[13px] font-medium text-white/90 drop-shadow-sm truncate">
+            {photo.locationName || "You"}
+          </span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onFavorite();
+            }}
+            className="text-white hover:scale-110 transition-transform p-1 opacity-0 group-hover:opacity-100"
+          >
+            <Heart className={cn("h-5 w-5", photo.isFavorite ? "fill-destructive text-destructive" : "text-white")} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

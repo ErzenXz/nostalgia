@@ -41,7 +41,7 @@ const CoverCell = memo(function CoverCell({
   const url = photo.isEncrypted ? decryptedUrl : signedUrl;
 
   return (
-    <div className={cn("relative overflow-hidden bg-amber-950/20", className)}>
+    <div className={cn("relative overflow-hidden bg-muted", className)}>
       {url ? (
         <Image
           src={url}
@@ -52,7 +52,7 @@ const CoverCell = memo(function CoverCell({
           unoptimized
         />
       ) : (
-        <div className="absolute inset-0 bg-amber-950/30 animate-pulse" />
+        <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
     </div>
   );
@@ -67,8 +67,8 @@ function AlbumMosaicCover({ albumId }: { albumId: string }) {
 
   if (!coverPhotos || coverPhotos.length === 0) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-amber-950/30 to-[#0a0908]">
-        <FolderOpen className="h-8 w-8 text-amber-800/25" />
+      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+        <FolderOpen className="h-8 w-8 text-muted-foreground opacity-50" />
       </div>
     );
   }
@@ -79,8 +79,8 @@ function AlbumMosaicCover({ albumId }: { albumId: string }) {
 
   if (validPhotos.length === 0) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-amber-950/30 to-[#0a0908]">
-        <FolderOpen className="h-8 w-8 text-amber-800/25" />
+      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+        <FolderOpen className="h-8 w-8 text-muted-foreground opacity-50" />
       </div>
     );
   }
@@ -91,7 +91,7 @@ function AlbumMosaicCover({ albumId }: { albumId: string }) {
 
   if (validPhotos.length < 4) {
     return (
-      <div className="absolute inset-0 grid grid-cols-2 gap-[1px] bg-[#0a0908]">
+      <div className="absolute inset-0 grid grid-cols-2 gap-[1px] bg-background">
         {validPhotos.map((p) => (
           <CoverCell key={p._id} photo={p} className="w-full h-full" />
         ))}
@@ -101,7 +101,7 @@ function AlbumMosaicCover({ albumId }: { albumId: string }) {
 
   // 2×2 mosaic
   return (
-    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[1px] bg-[#0a0908]">
+    <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[1px] bg-background">
       {validPhotos.slice(0, 4).map((p) => (
         <CoverCell key={p._id} photo={p} className="w-full h-full" />
       ))}
@@ -120,40 +120,40 @@ export function AlbumCard({ album, className }: { album: Album; className?: stri
     <Link
       href={`/albums/${album._id}`}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl film-print transition-all duration-300 hover:-translate-y-0.5",
+        "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:shadow-md",
         className,
       )}
     >
       {/* Cover */}
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden border-b border-border">
         <AlbumMosaicCover albumId={album._id} />
 
         {/* Overlay gradient for text legibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0908]/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         {/* Shared badge */}
         {album.isShared && (
-          <div className="absolute top-2 right-2 rounded-sm bg-black/50 backdrop-blur-sm px-1.5 py-1">
-            <Share2 className="h-2.5 w-2.5 text-amber-400/70" />
+          <div className="absolute top-2 right-2 rounded-full bg-background/80 backdrop-blur-md p-1.5 shadow-sm border border-border">
+            <Share2 className="h-3 w-3 text-foreground" />
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="px-3 pt-2.5 pb-3">
-        <h3 className="text-[13px] font-heading font-medium text-foreground/90 truncate">
+      <div className="px-4 py-3">
+        <h3 className="text-[14px] font-semibold text-foreground truncate">
           {album.name}
         </h3>
         <div className="mt-1 flex items-center gap-2">
-          <div className="flex items-center gap-1 text-[9px] font-mono text-amber-800/45 uppercase tracking-wider">
-            <Images className="h-2.5 w-2.5" />
+          <div className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+            <Images className="h-3.5 w-3.5" />
             {album.photoCount}
           </div>
-          <span className="text-amber-900/20">·</span>
-          <span className="text-[9px] font-mono text-amber-800/40">{yearRange}</span>
+          <span className="text-border">·</span>
+          <span className="text-[12px] font-medium text-muted-foreground">{yearRange}</span>
         </div>
         {album.description && (
-          <p className="mt-1 text-[10px] text-amber-800/40 line-clamp-1">{album.description}</p>
+          <p className="mt-1.5 text-[12px] text-muted-foreground line-clamp-1">{album.description}</p>
         )}
       </div>
     </Link>
@@ -181,21 +181,19 @@ export function SmartAlbumCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex flex-col justify-end overflow-hidden rounded-xl shrink-0 w-[160px] h-[120px] transition-all duration-300 hover:-translate-y-0.5",
-        gradient ??
-          "bg-gradient-to-br from-amber-950/60 to-[#0a0908]",
-        "border border-amber-900/20 hover:border-amber-700/35",
+        "group relative flex flex-col justify-end overflow-hidden rounded-xl shrink-0 w-[160px] h-[120px] transition-all duration-300 hover:-translate-y-0.5 border border-border",
+        gradient ?? "bg-muted text-foreground",
       )}
     >
       <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-30 transition-opacity">
-        <div className="text-amber-500">{icon}</div>
+        {icon}
       </div>
-      <div className="relative z-10 px-3 pb-3">
-        <p className="text-[9px] font-mono text-amber-700/50 uppercase tracking-wider mb-0.5">
+      <div className="relative z-10 px-4 pb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-70">
           {subtitle ?? "Smart Album"}
         </p>
-        <h3 className="text-[13px] font-heading font-medium text-foreground/85 leading-tight">{label}</h3>
-        <p className="text-[9px] font-mono text-amber-800/45 mt-0.5">{count} photos</p>
+        <h3 className="text-[15px] font-semibold leading-tight mb-0.5">{label}</h3>
+        <p className="text-[12px] font-medium opacity-80">{count} photos</p>
       </div>
     </Link>
   );
@@ -212,15 +210,15 @@ export function AlbumGrid({
 }) {
   if (albums.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-amber-900/30">
-        <FolderOpen className="h-12 w-12 mb-3 opacity-30" />
-        <p className="text-sm font-mono text-amber-900/40">{emptyMessage ?? "No albums yet"}</p>
+      <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+        <FolderOpen className="h-12 w-12 mb-4 opacity-50" />
+        <p className="text-[14px] font-medium">{emptyMessage ?? "No albums yet"}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 px-4 md:px-8 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {albums.map((album) => (
         <AlbumCard key={album._id} album={album} />
       ))}

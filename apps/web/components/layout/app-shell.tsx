@@ -2,37 +2,31 @@
 
 import { type ReactNode } from "react";
 import {
-  Sidebar,
+  TopNavbar,
   MobileHeader,
   MobileDrawer,
   MobileTabBar,
 } from "./sidebar";
 import { PageTransition } from "./page-transition";
 import { NavProgress } from "./nav-progress";
-import { useSidebarStore } from "@/store/sidebar";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const collapsed = useSidebarStore((s) => s.collapsed);
-
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative min-h-screen overflow-x-clip bg-background text-foreground pt-16">
       <NavProgress />
 
-      {/* Desktop sidebar */}
-      <Sidebar />
+      <TopNavbar />
 
-      {/* Mobile header + drawer + bottom bar */}
       <MobileHeader />
       <MobileDrawer />
       <MobileTabBar />
 
-      {/* Main content area */}
       <main
         className={cn(
-          "relative z-10 min-h-screen transition-all duration-300 ease-in-out",
-          collapsed ? "md:pl-[68px]" : "md:pl-[232px]",
-          "pt-12 pb-16 md:pt-0 md:pb-0",
+          "relative z-10 min-h-screen",
+          "mx-auto max-w-7xl",
+          "pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0"
         )}
       >
         <PageTransition>{children}</PageTransition>

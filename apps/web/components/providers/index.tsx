@@ -23,9 +23,11 @@ export function Providers({
           position="bottom-right"
           toastOptions={{
             style: {
-              background: "#111113",
-              border: "1px solid #27272a",
-              color: "#fafafa",
+              background: "rgba(23, 19, 17, 0.96)",
+              border: "1px solid rgba(205, 168, 107, 0.1)",
+              color: "#f5f0e8",
+              backdropFilter: "blur(8px)",
+              boxShadow: "0 8px 24px rgba(0, 0, 0, 0.28)",
             },
           }}
         />

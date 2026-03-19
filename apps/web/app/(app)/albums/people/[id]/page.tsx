@@ -28,8 +28,8 @@ const HeroAvatar = memo(function HeroAvatar({ photo }: { photo: any | null }) {
 
   if (!url) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-950/40 to-[#0a0908]">
-        <Users className="h-10 w-10 text-amber-800/30" />
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <Users className="h-10 w-10 text-muted-foreground opacity-50" />
       </div>
     );
   }
@@ -96,99 +96,103 @@ export default function PersonDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-800/40" />
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen">
       {/* ── Cinematic person header ── */}
-      <div className="relative bg-[#0a0908] border-b border-amber-900/12">
+      <div className="relative bg-background border-b border-border">
         {/* Blurred background */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 scale-110">
             <HeroAvatar photo={coverPhoto ?? null} />
           </div>
-          <div className="absolute inset-0 backdrop-blur-2xl bg-[#0a0908]/70" />
+          <div className="absolute inset-0 backdrop-blur-3xl bg-background/80" />
         </div>
 
-        {/* Back button */}
-        <div className="relative z-10 px-4 md:px-8 pt-4">
-          <Link href="/albums/people">
-            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm bg-black/40 backdrop-blur-sm border border-white/10 text-[10px] font-mono text-white/60 hover:text-white/90 transition-colors uppercase tracking-wider">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              People
-            </button>
-          </Link>
-        </div>
-
-        {/* Person info */}
-        <div className="relative z-10 flex items-center gap-5 px-4 md:px-8 py-6 pb-8">
-          {/* Circular avatar */}
-          <div className="relative w-20 h-20 rounded-full overflow-hidden ring-2 ring-amber-600/30 shrink-0">
-            <HeroAvatar photo={coverPhoto ?? null} />
+        <div className="relative z-10 max-w-[1600px] mx-auto">
+          {/* Back button */}
+          <div className="px-4 md:px-8 pt-6">
+            <Link href="/albums/people">
+              <button className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary/80 backdrop-blur-md border border-border text-[13px] font-medium text-foreground hover:bg-secondary transition-colors shadow-sm">
+                <ArrowLeft className="h-4 w-4" />
+                Back to People
+              </button>
+            </Link>
           </div>
 
-          <div>
-            {editing ? (
-              <div className="flex items-center gap-2">
-                <input
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleRename();
-                    if (e.key === "Escape") setEditing(false);
-                  }}
-                  autoFocus
-                  className="bg-transparent border-b-2 border-amber-500/60 text-xl font-heading text-foreground/90 outline-none min-w-[150px]"
-                />
-                <button
-                  onClick={() => void handleRename()}
-                  className="text-amber-500/80 hover:text-amber-400"
-                >
-                  <Check className="h-5 w-5" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 group">
-                <h1 className="text-xl font-heading font-semibold text-foreground/95">
-                  {label}
-                </h1>
-                <button
-                  onClick={startEdit}
-                  className="opacity-0 group-hover:opacity-100 text-amber-800/40 hover:text-amber-600/70 transition-all"
-                  title="Rename"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+          {/* Person info */}
+          <div className="flex items-center gap-6 px-4 md:px-8 py-8 pb-10">
+            {/* Circular avatar */}
+            <div className="relative w-24 h-24 rounded-full overflow-hidden border border-border shrink-0 shadow-sm">
+              <HeroAvatar photo={coverPhoto ?? null} />
+            </div>
 
-            <p className="mt-1 text-[10px] font-mono text-amber-800/50 uppercase tracking-wider">
-              {photoList.length} photo{photoList.length !== 1 ? "s" : ""}
-            </p>
+            <div>
+              {editing ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void handleRename();
+                      if (e.key === "Escape") setEditing(false);
+                    }}
+                    autoFocus
+                    className="bg-transparent border-b-2 border-primary text-2xl font-semibold text-foreground outline-none min-w-[200px] pb-1"
+                  />
+                  <button
+                    onClick={() => void handleRename()}
+                    className="text-primary hover:text-primary/80 transition-colors bg-primary/10 p-1.5 rounded-full"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 group">
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                    {label}
+                  </h1>
+                  <button
+                    onClick={startEdit}
+                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground transition-all bg-secondary p-1.5 rounded-full"
+                    title="Rename"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              <p className="mt-2 text-[14px] font-medium text-muted-foreground">
+                {photoList.length} photo{photoList.length !== 1 ? "s" : ""}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── Photo grid ── */}
-      {photoList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-amber-900/30">
-          <Images className="h-12 w-12 opacity-30 mb-4" />
-          <p className="text-xs font-mono text-amber-900/40">No photos found for this person</p>
-        </div>
-      ) : (
-        <PhotoGrid
-          photos={photoList}
-          onPhotoClick={(_, index) => setLightboxIndex(index)}
-          onFavorite={(id) => toggleFavorite({ photoId: id as any })}
-          emptyMessage="No photos found"
-          emptyIcon={<Images className="h-12 w-12 opacity-50" />}
-          stickyHeaders
-        />
-      )}
+      <div className="max-w-[1600px] mx-auto py-6">
+        {photoList.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 text-muted-foreground border border-dashed border-border mx-4 md:mx-8 rounded-2xl bg-muted/20">
+            <Images className="h-12 w-12 opacity-50 mb-4" />
+            <p className="text-[15px] font-medium text-foreground">No photos found for this person</p>
+          </div>
+        ) : (
+          <PhotoGrid
+            photos={photoList}
+            onPhotoClick={(_, index) => setLightboxIndex(index)}
+            onFavorite={(id) => toggleFavorite({ photoId: id as any })}
+            emptyMessage="No photos found"
+            emptyIcon={<Images className="h-12 w-12 opacity-50" />}
+            stickyHeaders
+          />
+        )}
+      </div>
 
       {/* ── Lightbox ── */}
       {lightboxIndex !== null && (
@@ -204,6 +208,6 @@ export default function PersonDetailPage() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }

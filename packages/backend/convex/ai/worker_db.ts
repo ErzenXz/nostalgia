@@ -25,8 +25,6 @@ export const leasePendingJobs = internalMutation({
       if (leaseable.length >= limit) break;
       // Respect backoff: skip if still within lockedUntil window
       if (j.lockedUntil && j.lockedUntil > now) continue;
-      const photo = await ctx.db.get(j.photoId);
-      if (!photo?.analysisImageStorageId) continue;
       if (candidateIds.has(j._id)) continue;
       candidateIds.add(j._id);
       leaseable.push(j);
@@ -44,8 +42,6 @@ export const leasePendingJobs = internalMutation({
 
       for (const j of stuckJobs) {
         if (leaseable.length >= limit) break;
-        const photo = await ctx.db.get(j.photoId);
-        if (!photo?.analysisImageStorageId) continue;
         if (candidateIds.has(j._id)) continue;
         candidateIds.add(j._id);
         leaseable.push(j);

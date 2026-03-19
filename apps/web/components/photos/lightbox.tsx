@@ -58,6 +58,8 @@ interface LightboxProps {
   onFavorite?: (photoId: string) => void;
   onArchive?: (photoId: string) => void;
   onTrash?: (photoId: string) => void;
+  onRestore?: (photoId: string) => void;
+  isTrashView?: boolean;
 }
 
 function LightboxImage({
@@ -169,18 +171,18 @@ export function Lightbox({
   if (!photo) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col">
       {/* Top toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={handleClose}
-            className="flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-200"
+            className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
           >
             <X className="h-4 w-4" />
-            <span className="text-sm">Close</span>
+            <span>Close</span>
           </button>
-          <span className="text-sm text-zinc-500">
+          <span className="text-[13px] font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
             {currentIndex + 1} / {photos.length}
           </span>
         </div>
@@ -189,70 +191,67 @@ export function Lightbox({
           <ActionButton
             onClick={() => onFavorite?.(photo._id)}
             active={photo.isFavorite}
-            activeColor="text-red-500"
+            activeColor="text-destructive fill-destructive"
             tooltip="Favorite"
           >
-            <Heart
-              className={cn(
-                "h-4 w-4",
-                photo.isFavorite && "fill-red-500",
-              )}
-            />
+            <Heart className="h-4.5 w-4.5" />
           </ActionButton>
           <ActionButton onClick={() => onArchive?.(photo._id)} tooltip="Archive">
-            <Archive className="h-4 w-4" />
+            <Archive className="h-4.5 w-4.5" />
           </ActionButton>
           <ActionButton tooltip="Share">
-            <Share2 className="h-4 w-4" />
+            <Share2 className="h-4.5 w-4.5" />
           </ActionButton>
           <ActionButton tooltip="Download">
-            <Download className="h-4 w-4" />
+            <Download className="h-4.5 w-4.5" />
           </ActionButton>
           <ActionButton
             onClick={() => setShowInfo((v) => !v)}
             active={showInfo}
-            activeColor="text-blue-400"
+            activeColor="text-foreground bg-muted"
             tooltip="Info"
           >
-            <Info className="h-4 w-4" />
+            <Info className="h-4.5 w-4.5" />
           </ActionButton>
           <ActionButton
             onClick={() => onTrash?.(photo._id)}
             tooltip="Delete"
             destructive
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4.5 w-4.5" />
           </ActionButton>
         </div>
       </div>
 
       {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Image container */}
-        <div className="relative flex-1 flex items-center justify-center bg-black">
+        <div className="relative flex-1 flex items-center justify-center p-4 md:p-8">
           {/* Navigation arrows */}
           {currentIndex > 0 && (
             <button
-              className="absolute left-4 z-10 flex items-center justify-center h-10 w-10 rounded-full bg-zinc-800/80 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-200"
+              className="absolute left-4 md:left-8 z-10 flex items-center justify-center h-12 w-12 rounded-full bg-background/80 backdrop-blur-md border border-border text-foreground transition-transform hover:scale-105 shadow-sm"
               onClick={goPrev}
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-6 w-6" />
             </button>
           )}
           
-          <LightboxImage
-            storageKey={photo.storageKey}
-            alt={photo.description || photo.fileName}
-            mimeType={photo.mimeType}
-            isEncrypted={(photo as any).isEncrypted}
-          />
+          <div className="relative w-full h-full rounded-lg overflow-hidden flex items-center justify-center">
+            <LightboxImage
+              storageKey={photo.storageKey}
+              alt={photo.description || photo.fileName}
+              mimeType={photo.mimeType}
+              isEncrypted={(photo as any).isEncrypted}
+            />
+          </div>
           
           {currentIndex < photos.length - 1 && (
             <button
-              className="absolute right-4 z-10 flex items-center justify-center h-10 w-10 rounded-full bg-zinc-800/80 text-zinc-400 transition-colors hover:bg-zinc-700 hover:text-zinc-200"
+              className="absolute right-4 md:right-8 z-10 flex items-center justify-center h-12 w-12 rounded-full bg-background/80 backdrop-blur-md border border-border text-foreground transition-transform hover:scale-105 shadow-sm"
               onClick={goNext}
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-6 w-6" />
             </button>
           )}
         </div>
@@ -260,28 +259,30 @@ export function Lightbox({
         {/* Info panel - slides in from right */}
         <div
           className={cn(
-            "w-80 border-l border-zinc-800 bg-zinc-900 overflow-y-auto transition-all duration-300",
+            "absolute right-0 top-0 bottom-0 w-80 border-l border-border bg-card/95 backdrop-blur-xl overflow-y-auto transition-transform duration-300 shadow-2xl z-20",
             showInfo ? "translate-x-0" : "translate-x-full"
           )}
         >
-          <div className="p-5">
+          <div className="p-6">
             {/* File name */}
             <div className="mb-6">
-              <h3 className="text-base font-medium text-zinc-100 truncate">
+              <h3 className="text-[15px] font-semibold text-foreground truncate">
                 {photo.fileName}
               </h3>
-              <p className="mt-1 text-xs text-zinc-500">
-                {(photo.sizeBytes / 1024 / 1024).toFixed(1)} MB • {photo.mimeType}
+              <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+                {(photo.sizeBytes / 1024 / 1024).toFixed(1)} MB • {photo.mimeType.split("/").pop()?.toUpperCase()}
               </p>
             </div>
 
             {/* AI Processing Status */}
-            <AiProcessingStatus photoId={photo._id} />
+            <div className="mb-6">
+              <AiProcessingStatus photoId={photo._id} />
+            </div>
 
             {/* Description */}
             {photo.description && (
-              <InfoSection icon={<Sparkles className="h-4 w-4 text-purple-400" />} title="Story">
-                <p className="text-sm text-zinc-300 leading-relaxed">
+              <InfoSection icon={<Sparkles className="h-4.5 w-4.5 text-primary" />} title="Story">
+                <p className="text-[13px] text-foreground leading-relaxed">
                   {photo.description}
                 </p>
               </InfoSection>
@@ -289,13 +290,13 @@ export function Lightbox({
 
             {/* Tags */}
             {photo.aiTags && photo.aiTags.length > 0 && (
-              <InfoSection icon={<Tag className="h-4 w-4 text-blue-400" />} title="Tags">
+              <InfoSection icon={<Tag className="h-4.5 w-4.5 text-muted-foreground" />} title="Tags">
                 <div className="flex flex-wrap gap-1.5">
                   {photo.aiTags.map((tag) => (
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="text-xs"
+                      className="text-[11px] font-medium px-2 py-0.5"
                     >
                       {tag}
                     </Badge>
@@ -305,18 +306,18 @@ export function Lightbox({
             )}
 
             {/* Date */}
-            <InfoSection icon={<Calendar className="h-4 w-4 text-green-400" />} title="Date">
-              <p className="text-sm text-zinc-300">
+            <InfoSection icon={<Calendar className="h-4.5 w-4.5 text-muted-foreground" />} title="Date">
+              <p className="text-[13px] font-medium text-foreground">
                 {formatDate(photo.takenAt ?? photo.uploadedAt)}
               </p>
             </InfoSection>
 
             {/* Location */}
             {photo.locationName && (
-              <InfoSection icon={<MapPin className="h-4 w-4 text-red-400" />} title="Location">
-                <p className="text-sm text-zinc-300">{photo.locationName}</p>
+              <InfoSection icon={<MapPin className="h-4.5 w-4.5 text-muted-foreground" />} title="Location">
+                <p className="text-[13px] font-medium text-foreground">{photo.locationName}</p>
                 {photo.latitude && photo.longitude && (
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-[11px] text-muted-foreground">
                     {photo.latitude.toFixed(4)}, {photo.longitude.toFixed(4)}
                   </p>
                 )}
@@ -325,11 +326,11 @@ export function Lightbox({
 
             {/* Camera */}
             {(photo.cameraMake || photo.cameraModel) && (
-              <InfoSection icon={<Camera className="h-4 w-4 text-orange-400" />} title="Camera">
-                <p className="text-sm text-zinc-300">
+              <InfoSection icon={<Camera className="h-4.5 w-4.5 text-muted-foreground" />} title="Camera">
+                <p className="text-[13px] font-medium text-foreground">
                   {[photo.cameraMake, photo.cameraModel].filter(Boolean).join(" ")}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-medium">
                   {photo.focalLength && <span>{photo.focalLength}</span>}
                   {photo.aperture && <span>f/{photo.aperture}</span>}
                   {photo.iso && <span>ISO {photo.iso}</span>}
@@ -341,11 +342,11 @@ export function Lightbox({
             {/* Colors */}
             {photo.dominantColors && photo.dominantColors.length > 0 && (
               <InfoSection title="Palette">
-                <div className="flex gap-2">
+                <div className="flex gap-2.5">
                   {photo.dominantColors.map((color, i) => (
                     <div
                       key={i}
-                      className="h-6 w-6 rounded border border-zinc-700"
+                      className="h-8 w-8 rounded-full border border-border shadow-sm"
                       style={{ backgroundColor: color }}
                     />
                   ))}
@@ -354,11 +355,14 @@ export function Lightbox({
             )}
 
             {/* File info */}
-            <div className="mt-6 pt-4 border-t border-zinc-800">
-              <p className="text-xs text-zinc-600 mb-2">Technical</p>
-              <div className="space-y-1 text-xs text-zinc-500">
+            <div className="mt-8 pt-5 border-t border-border">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Technical Details</p>
+              <div className="space-y-1.5 text-[12px] text-muted-foreground">
                 {photo.width && photo.height && (
-                  <p>{photo.width} × {photo.height} px</p>
+                  <p className="flex justify-between">
+                    <span>Dimensions</span>
+                    <span className="font-medium text-foreground">{photo.width} × {photo.height} px</span>
+                  </p>
                 )}
               </div>
             </div>
@@ -367,26 +371,21 @@ export function Lightbox({
       </div>
 
       {/* Bottom info bar - minimal */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-800 bg-zinc-900">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-background/80 backdrop-blur-md">
+        <div className="flex items-center gap-6">
           {photo.locationName && (
-            <div className="flex items-center gap-1.5 text-zinc-400">
-              <MapPin className="h-3.5 w-3.5" />
-              <span className="text-xs">{photo.locationName}</span>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              <span className="text-[12px] font-medium">{photo.locationName}</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-zinc-400">
-            <Calendar className="h-3.5 w-3.5" />
-            <span className="text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span className="text-[12px] font-medium">
               {formatDate(photo.takenAt ?? photo.uploadedAt)}
             </span>
           </div>
         </div>
-        {photo.description && (
-          <p className="max-w-md truncate text-xs text-zinc-500">
-            {photo.description}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -413,11 +412,10 @@ function ActionButton({
       onClick={onClick}
       title={tooltip}
       className={cn(
-        "rounded-lg p-2 text-zinc-400 transition-colors",
-        "hover:bg-zinc-800 hover:text-zinc-200",
-        active && "bg-zinc-800",
+        "rounded-full p-2.5 text-muted-foreground transition-colors",
+        "hover:bg-muted hover:text-foreground",
         active && activeColor,
-        destructive && "hover:bg-red-500/10 hover:text-red-400",
+        destructive && "hover:bg-destructive/10 hover:text-destructive",
       )}
     >
       {children}
@@ -436,10 +434,10 @@ function InfoSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-5">
-      <div className="mb-2 flex items-center gap-2">
+    <div className="mb-6">
+      <div className="mb-2.5 flex items-center gap-2">
         {icon}
-        <span className="text-xs font-medium text-zinc-400">
+        <span className="text-[13px] font-semibold text-foreground">
           {title}
         </span>
       </div>

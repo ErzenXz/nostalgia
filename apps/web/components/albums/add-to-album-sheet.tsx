@@ -105,7 +105,7 @@ export function AddToAlbumSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-amber-900/12 shrink-0">
           <div>
-            <h2 className="text-sm font-heading font-medium text-foreground/90">Add to Album</h2>
+            <h2 className="text-sm font-serif font-medium text-foreground/90">Add to Album</h2>
             <p className="text-[9px] font-mono text-amber-800/45 uppercase tracking-wider mt-0.5">
               {photoIds.length} photo{photoIds.length !== 1 ? "s" : ""}
             </p>
@@ -194,7 +194,7 @@ export function AddToAlbumSheet({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-heading font-medium text-foreground/85 truncate">{album.name}</p>
+                    <p className="text-sm font-serif font-medium text-foreground/85 truncate">{album.name}</p>
                     <p className="text-[9px] font-mono text-amber-800/40 mt-0.5 uppercase tracking-wider">
                       {album.photoCount} photos
                     </p>

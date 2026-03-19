@@ -31,8 +31,8 @@ const PersonCover = memo(function PersonCover({
 
   if (!photo || !url) {
     return (
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-950/30 to-[#0a0908] flex items-center justify-center">
-        <Users className="h-8 w-8 text-amber-800/30" />
+      <div className="absolute inset-0 bg-muted flex items-center justify-center">
+        <Users className="h-8 w-8 text-muted-foreground" />
       </div>
     );
   }
@@ -71,15 +71,15 @@ function PersonCard({ person }: { person: any }) {
   const label = person.name || `Person ${person._id.slice(-4)}`;
 
   return (
-    <div className="group flex flex-col items-center gap-2">
+    <div className="group flex flex-col items-center gap-3">
       {/* Circular avatar */}
       <Link href={`/albums/people/${person._id}`} className="relative block">
-        <div className="relative w-[88px] h-[88px] rounded-full overflow-hidden ring-2 ring-amber-900/20 group-hover:ring-amber-700/40 transition-all duration-300">
+        <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary transition-all duration-300">
           <PersonCover photo={coverPhoto ?? null} />
         </div>
         {person.photoCount > 0 && (
-          <div className="absolute -bottom-1 -right-1 min-w-[20px] h-5 rounded-full bg-amber-600/80 border border-[#0a0908] flex items-center justify-center px-1">
-            <span className="text-[9px] font-mono text-amber-950 font-semibold">
+          <div className="absolute bottom-0 right-0 min-w-[24px] h-6 rounded-full bg-primary border-2 border-background flex items-center justify-center px-1.5 shadow-sm">
+            <span className="text-[11px] font-semibold text-primary-foreground">
               {person.photoCount}
             </span>
           </div>
@@ -88,7 +88,7 @@ function PersonCard({ person }: { person: any }) {
 
       {/* Name / edit */}
       {editing ? (
-        <div className="flex items-center gap-1 w-full max-w-[110px]">
+        <div className="flex items-center gap-1 w-full max-w-[120px]">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -97,22 +97,22 @@ function PersonCard({ person }: { person: any }) {
               if (e.key === "Escape") setEditing(false);
             }}
             autoFocus
-            className="flex-1 min-w-0 text-[11px] font-mono text-center bg-transparent border-b border-amber-700/40 text-foreground/90 outline-none"
+            className="flex-1 min-w-0 text-[13px] font-medium text-center bg-transparent border-b border-primary text-foreground outline-none"
           />
-          <button onClick={() => void handleRename()} className="text-amber-500/70 hover:text-amber-400">
-            <Check className="h-3 w-3" />
+          <button onClick={() => void handleRename()} className="text-primary hover:text-primary/80">
+            <Check className="h-4 w-4" />
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-1 group/name">
-          <p className="text-[11px] font-mono text-amber-800/60 text-center max-w-[100px] truncate">
+        <div className="flex items-center gap-1.5 group/name">
+          <p className="text-[13px] font-medium text-foreground text-center max-w-[110px] truncate">
             {label}
           </p>
           <button
             onClick={() => setEditing(true)}
-            className="opacity-0 group-hover/name:opacity-100 text-amber-900/30 hover:text-amber-700/50 transition-all"
+            className="opacity-0 group-hover/name:opacity-100 text-muted-foreground hover:text-foreground transition-all"
           >
-            <Edit2 className="h-2.5 w-2.5" />
+            <Edit2 className="h-3 w-3" />
           </button>
         </div>
       )}
@@ -132,8 +132,8 @@ export default function PeoplePage() {
     <>
       <PageHeader title="People" description="Faces in your photos">
         <Link href="/albums">
-          <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border border-amber-900/20 text-[10px] font-mono text-amber-800/50 hover:text-amber-600/70 hover:border-amber-800/35 uppercase tracking-wider transition-colors">
-            <ArrowLeft className="h-3.5 w-3.5" />
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-[12px] font-medium text-foreground hover:bg-muted transition-colors">
+            <ArrowLeft className="h-4 w-4" />
             Albums
           </button>
         </Link>
@@ -141,21 +141,21 @@ export default function PeoplePage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-amber-800/40" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : !people || people.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-amber-900/30">
+        <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
           <Users className="h-12 w-12 opacity-30 mb-4" />
-          <p className="text-sm font-mono text-amber-900/40">
+          <p className="text-[15px] font-medium text-foreground">
             No faces detected yet
           </p>
-          <p className="text-[10px] font-mono text-amber-900/30 mt-1 text-center max-w-xs">
+          <p className="text-[13px] mt-1 text-center max-w-sm">
             Enable AI processing in Settings to detect and group faces in your photos
           </p>
         </div>
       ) : (
-        <div className="px-4 md:px-8 py-6">
-          <div className="grid grid-cols-3 gap-y-8 gap-x-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+        <div className="px-4 md:px-8 py-8">
+          <div className="grid grid-cols-2 gap-y-10 gap-x-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
             {people.map((person: any) => (
               <PersonCard key={person._id} person={person} />
             ))}

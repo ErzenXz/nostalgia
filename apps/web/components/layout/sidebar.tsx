@@ -22,12 +22,12 @@ import {
   Settings,
   HardDrive,
   Lock,
-  PanelLeftClose,
-  PanelLeftOpen,
   Menu,
   X,
   Users,
   Home,
+  MonitorPlay,
+  Heart as HeartOutline,
 } from "lucide-react";
 
 // ── Navigation sections ──────────────────────────────────────────
@@ -36,8 +36,8 @@ const navSections = [
     label: null,
     items: [
       { name: "Home", href: "/feed", icon: Home, mobile: true },
-      { name: "Photos", href: "/photos", icon: Images, mobile: true },
       { name: "Search", href: "/search", icon: Search, mobile: true },
+      { name: "Photos", href: "/photos", icon: Images, mobile: true },
     ],
   },
   {
@@ -66,6 +66,9 @@ const navSections = [
 
 const mobileNavItems = navSections.flatMap((s) => s.items).filter((i) => i.mobile);
 
+const interactiveBase =
+  "flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-[14px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
 // ── Storage stats ────────────────────────────────────────────────
 
 function StorageStats({ collapsed }: { collapsed: boolean }) {
@@ -78,41 +81,31 @@ function StorageStats({ collapsed }: { collapsed: boolean }) {
 
   if (collapsed) {
     return (
-      <div className="p-3 flex justify-center">
-        <div className="relative h-8 w-8">
-          <svg className="h-8 w-8 -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15" fill="none" stroke="#2a2a2a" strokeWidth="3" />
-            <circle
-              cx="18" cy="18" r="15" fill="none"
-              stroke="#c9a66b" strokeWidth="3"
-              strokeDasharray={`${percent * 0.942} 94.2`}
-              className="transition-all duration-500"
-            />
-          </svg>
-          <HardDrive className="absolute inset-0 m-auto h-3 w-3 text-[#888]" />
+      <div className="px-2 py-3">
+        <div className="flex items-center justify-center rounded-lg border border-border bg-muted/30 px-2 py-3">
+          <div className="text-center">
+            <HardDrive className="mx-auto h-4 w-4 text-muted-foreground" />
+            <p className="mt-1 text-[11px] font-medium text-foreground">{Math.round(percent)}%</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5">
-          <HardDrive className="h-3.5 w-3.5 text-[#888]" />
-          <span className="text-[12px] font-medium text-[#ccc]">Storage</span>
+    <div className="px-3 py-3">
+      <div className="rounded-lg border border-border bg-muted/30 px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <HardDrive className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[12px] font-medium text-foreground">Storage</span>
+          </div>
+          <span className="text-[12px] text-muted-foreground">{Math.round(percent)}%</span>
         </div>
-        <span className="text-[12px] text-[#888]">{Math.round(percent)}%</span>
+        <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
+          {formatBytes(usedBytes)} of {formatBytes(quotaBytes)} used
+        </p>
       </div>
-      <div className="h-1 rounded-full bg-white/[0.08] overflow-hidden">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${Math.min(percent, 100)}%` }}
-        />
-      </div>
-      <p className="mt-1.5 text-[11px] text-[#888]">
-        {formatBytes(usedBytes)} of {formatBytes(quotaBytes)} used
-      </p>
     </div>
   );
 }
@@ -137,169 +130,102 @@ function NavItem({
       href={item.href}
       title={collapsed ? item.name : undefined}
       onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
-        "relative flex items-center rounded-lg text-[13px] transition-all duration-150 select-none group",
-        collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2.5 w-full",
+        interactiveBase,
+        "select-none group",
+        collapsed ? "h-12 w-12 justify-center px-0" : "w-full",
         isActive
-          ? "bg-white/[0.09] text-white font-medium"
-          : "text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white",
+          ? "bg-accent text-accent-foreground font-semibold"
+          : "text-foreground hover:bg-muted/50",
       )}
     >
-      {/* Amber left accent on active */}
-      {isActive && !collapsed && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[20px] rounded-full bg-primary" />
-      )}
       <Icon
         className={cn(
-          "h-[18px] w-[18px] shrink-0 transition-colors",
-          isActive ? "text-primary" : "text-[#888] group-hover:text-[#ccc]",
+          "h-[22px] w-[22px] shrink-0 transition-transform group-hover:scale-110 duration-200",
+          isActive ? "text-foreground stroke-[2.5]" : "text-foreground stroke-[1.5]",
         )}
       />
-      {!collapsed && <span className="leading-none tracking-[-0.01em]">{item.name}</span>}
+      {!collapsed && <span className="leading-none">{item.name}</span>}
     </Link>
   );
 }
 
-// ── Desktop Sidebar ───────────────────────────────────────────────
+// ── Top Navbar ───────────────────────────────────────────────────
 
-export function Sidebar() {
-  const convexAvailable = useConvexAvailable();
-  const { collapsed, toggle } = useSidebarStore();
+export function TopNavbar() {
   const { user } = useCurrentUser();
+  const pathname = usePathname();
+
+  const topNavItems = [
+    { name: "Home", href: "/feed", icon: Home },
+    { name: "Search", href: "/search", icon: Search },
+    { name: "Videos", href: "/videos", icon: MonitorPlay },
+    { name: "Photos", href: "/photos", icon: Images },
+    { name: "Activity", href: "/favorites", icon: HeartOutline },
+  ];
 
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col",
-        "bg-sidebar border-r border-white/[0.07] transition-all duration-300 ease-in-out",
-        collapsed ? "w-[68px]" : "w-[232px]",
-      )}
-    >
-      {/* ── Logo ── */}
-      <div
-        className={cn(
-          "flex h-14 shrink-0 items-center",
-          collapsed ? "justify-center px-2" : "gap-2.5 px-4",
-        )}
-      >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-[0_0_12px_rgba(201,166,107,0.3)]">
-          <Lock className="h-3.5 w-3.5 text-black" />
+    <header className="fixed top-0 left-0 right-0 z-40 hidden md:flex h-16 items-center justify-between border-b border-border bg-background px-6">
+      <Link href="/feed" className="flex items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Lock className="h-4 w-4" />
         </div>
-        {!collapsed && (
-          <span className="text-[15px] font-semibold text-white tracking-tight font-heading">
-            Nostalgia
-          </span>
-        )}
-      </div>
+        <span className="text-[20px] font-serif font-bold tracking-tight text-foreground">
+          Nostalgia
+        </span>
+      </Link>
 
-      {/* ── Upload button ── */}
-      <div className={cn("shrink-0", collapsed ? "px-2.5 pb-3" : "px-3 pb-3")}>
-        <Link
-          href="/photos?upload=true"
-          className={cn(
-            "flex items-center justify-center rounded-full text-[13px] font-semibold text-black transition-all active:scale-[0.97]",
-            "bg-primary hover:brightness-110",
-            "shadow-[0_2px_12px_rgba(201,166,107,0.3)]",
-            collapsed ? "h-9 w-9 mx-auto" : "gap-2 px-4 py-2 w-full",
-          )}
-        >
-          <Upload className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Upload</span>}
-        </Link>
-      </div>
-
-      {/* ── Nav sections ── */}
-      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "px-2 space-y-1" : "px-3 space-y-5")}>
-        {navSections.map((section, si) => (
-          <div key={si} className={cn(collapsed ? "space-y-1" : "space-y-0.5")}>
-            {section.label && !collapsed && (
-              <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#666] select-none">
-                {section.label}
-              </p>
-            )}
-            {section.items.map((item) => (
-              <NavItem key={item.href} item={item} collapsed={collapsed} />
-            ))}
-          </div>
-        ))}
+      <nav className="flex items-center justify-center gap-6 absolute left-1/2 -translate-x-1/2">
+        {topNavItems.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-muted/50 relative group"
+            >
+              <Icon 
+                className={cn(
+                  "h-6 w-6 transition-transform group-hover:scale-110 duration-200",
+                  isActive ? "text-foreground stroke-[2.5]" : "text-muted-foreground stroke-[1.5]"
+                )} 
+              />
+              {isActive && (
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-foreground" />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* ── AI indexing ── */}
-      {convexAvailable && <AiIndexingProgress collapsed={collapsed} />}
-
-      {/* ── Storage ── */}
-      <div className="shrink-0 border-t border-white/[0.07]">
-        {convexAvailable ? (
-          <StorageStats collapsed={collapsed} />
-        ) : (
-          <div className={cn("px-4 py-3", collapsed && "hidden")} />
-        )}
-      </div>
-
-      {/* ── User + Settings + Collapse ── */}
-      <div className="shrink-0 border-t border-white/[0.07] p-2 space-y-0.5">
-        {/* User profile */}
-        {!collapsed && user && (
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-colors cursor-default mb-0.5">
-            <div className="h-7 w-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-              <span className="text-[11px] font-bold text-primary uppercase">
-                {(user.name ?? user.email ?? "U").charAt(0)}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-white truncate leading-none">
-                {user.name ?? user.email}
-              </p>
-              {user.name && (
-                <p className="text-[11px] text-[#888] truncate mt-0.5 leading-none">{user.email}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Collapsed user avatar */}
-        {collapsed && user && (
-          <div className="flex justify-center py-1 mb-0.5">
-            <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <span className="text-[11px] font-bold text-primary uppercase">
-                {(user.name ?? user.email ?? "U").charAt(0)}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Settings */}
+      <div className="flex items-center gap-4">
+        <Link
+          href="/photos?upload=true"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+        >
+          <Upload className="h-5 w-5" />
+        </Link>
         <Link
           href="/settings"
-          title={collapsed ? "Settings" : undefined}
-          className={cn(
-            "flex items-center rounded-lg text-[13px] text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white transition-colors",
-            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2.5 w-full",
-          )}
+          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-muted/50"
         >
-          <Settings className="h-[18px] w-[18px] shrink-0 text-[#888]" />
-          {!collapsed && <span>Settings</span>}
+          <Settings className="h-5 w-5 text-muted-foreground" />
         </Link>
-
-        {/* Collapse toggle */}
-        <button
-          onClick={toggle}
-          className={cn(
-            "flex items-center rounded-lg text-[13px] text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white transition-colors cursor-pointer w-full",
-            collapsed ? "h-10 w-10 mx-auto justify-center" : "gap-3 px-3 py-2.5",
-          )}
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-[18px] w-[18px] text-[#888]" />
-          ) : (
-            <>
-              <PanelLeftClose className="h-[18px] w-[18px] shrink-0 text-[#888]" />
-              <span>Collapse</span>
-            </>
-          )}
-        </button>
+        {user && (
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted overflow-hidden">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name || "User"} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-[12px] font-semibold uppercase text-foreground">
+                {(user.name ?? user.email ?? "U").charAt(0)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
-    </aside>
+    </header>
   );
 }
 
@@ -309,18 +235,20 @@ export function MobileHeader() {
   const { mobileOpen, setMobileOpen } = useSidebarStore();
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex md:hidden h-12 items-center justify-between bg-sidebar/95 backdrop-blur-md px-4 border-b border-white/[0.07]">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shadow-[0_0_8px_rgba(201,166,107,0.25)]">
-          <Lock className="h-3 w-3 text-black" />
+    <div className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-border bg-background px-4 md:hidden">
+      <Link href="/feed" className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
+          <Lock className="h-3.5 w-3.5" />
         </div>
-        <span className="text-[14px] font-semibold text-white font-heading">Nostalgia</span>
-      </div>
+        <span className="text-[18px] font-serif font-bold tracking-tight text-foreground">
+          Nostalgia
+        </span>
+      </Link>
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-white/[0.05] transition-colors"
+        className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
     </div>
   );
@@ -340,44 +268,32 @@ export function MobileDrawer() {
       <button
         type="button"
         aria-label="Close navigation"
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden cursor-default"
+        className="fixed inset-0 z-50 cursor-default bg-black/40 backdrop-blur-sm md:hidden"
         onClick={close}
       />
-      <div className="fixed top-0 left-0 bottom-0 z-50 w-[232px] bg-sidebar border-r border-white/[0.07] flex flex-col md:hidden animate-in slide-in-from-left duration-200 shadow-[4px_0_32px_rgba(0,0,0,0.6)]">
-        {/* Header */}
-        <div className="flex h-12 items-center justify-between px-4 border-b border-white/[0.07]">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-              <Lock className="h-3 w-3 text-black" />
+      <div className="fixed top-0 left-0 bottom-0 z-50 flex w-[280px] max-w-[82vw] flex-col border-r border-border bg-background md:hidden shadow-2xl">
+        <div className="flex h-14 items-center justify-between border-b border-border px-4">
+          <Link href="/feed" onClick={close} className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
+              <Lock className="h-3.5 w-3.5" />
             </div>
-            <span className="text-[14px] font-semibold text-white font-heading">Nostalgia</span>
-          </div>
+            <span className="text-[18px] font-serif font-bold tracking-tight text-foreground">
+              Nostalgia
+            </span>
+          </Link>
           <button
             onClick={close}
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-[#888] hover:text-white hover:bg-white/[0.05]"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
-        {/* Upload */}
-        <div className="px-3 py-3 shrink-0">
-          <Link
-            href="/photos?upload=true"
-            onClick={close}
-            className="flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-black bg-primary hover:brightness-110 shadow-[0_2px_12px_rgba(201,166,107,0.3)]"
-          >
-            <Upload className="h-4 w-4" />
-            Upload
-          </Link>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 space-y-5">
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
           {navSections.map((section, si) => (
-            <div key={si} className="space-y-0.5">
+            <div key={si} className={cn(si > 0 && "mt-6", "space-y-1")}>
               {section.label && (
-                <p className="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#666] select-none">
+                <p className="px-3 pb-2 text-[12px] font-semibold text-muted-foreground select-none">
                   {section.label}
                 </p>
               )}
@@ -390,17 +306,32 @@ export function MobileDrawer() {
 
         {convexAvailable && <AiIndexingProgress collapsed={false} />}
 
-        <div className="shrink-0 border-t border-white/[0.07]">
+        <div className="shrink-0 border-t border-border">
           {convexAvailable && <StorageStats collapsed={false} />}
         </div>
 
-        <div className="shrink-0 border-t border-white/[0.07] p-2">
+        <div className="shrink-0 border-t border-border p-3">
+          <Link
+            href="/photos?upload=true"
+            onClick={close}
+            className={cn(
+              interactiveBase,
+              "w-full justify-center bg-primary text-primary-foreground shadow-sm hover:opacity-90 mb-2",
+            )}
+          >
+            <Upload className="h-[20px] w-[20px]" />
+            <span className="font-semibold">Upload</span>
+          </Link>
+          
           <Link
             href="/settings"
             onClick={close}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-[#b8b8b8] hover:bg-white/[0.05] hover:text-white transition-colors"
+            className={cn(
+              interactiveBase,
+              "w-full text-foreground hover:bg-muted/50",
+            )}
           >
-            <Settings className="h-[18px] w-[18px] text-[#888]" />
+            <Settings className="h-[22px] w-[22px] text-inherit" />
             <span>Settings</span>
           </Link>
         </div>
@@ -415,7 +346,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden h-[56px] items-center justify-around border-t border-white/[0.07] bg-sidebar/97 backdrop-blur-md safe-area-pb">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[64px] items-stretch justify-around border-t border-border bg-background/95 backdrop-blur-md safe-area-pb md:hidden">
       {mobileNavItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
@@ -423,29 +354,40 @@ export function MobileTabBar() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-colors",
-              isActive ? "text-white" : "text-[#888] active:text-white",
+              "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2 text-[10px] transition-colors",
+              isActive
+                ? "text-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
-            <span className={cn("text-[10px] font-medium", isActive ? "text-white" : "text-[#888]")}>
-              {item.name}
-            </span>
+            <Icon 
+              className={cn(
+                "h-6 w-6 transition-transform duration-200", 
+                isActive ? "text-foreground stroke-[2.5] scale-110" : "text-muted-foreground stroke-[1.5]"
+              )} 
+            />
+            {/* Instagram doesn't show text on bottom bar, clean look */}
           </Link>
         );
       })}
       <Link
         href="/settings"
+        aria-current={pathname === "/settings" ? "page" : undefined}
         className={cn(
-          "flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-colors",
-          pathname === "/settings" ? "text-white" : "text-[#888] active:text-white",
+          "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-2 text-[10px] transition-colors",
+          pathname === "/settings"
+            ? "text-foreground font-semibold"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
-        <Settings className={cn("h-5 w-5", pathname === "/settings" && "text-primary")} />
-        <span className={cn("text-[10px] font-medium", pathname === "/settings" ? "text-white" : "text-[#888]")}>
-          Settings
-        </span>
+        <Settings 
+          className={cn(
+            "h-6 w-6 transition-transform duration-200", 
+            pathname === "/settings" ? "text-foreground stroke-[2.5] scale-110" : "text-muted-foreground stroke-[1.5]"
+          )} 
+        />
       </Link>
     </nav>
   );

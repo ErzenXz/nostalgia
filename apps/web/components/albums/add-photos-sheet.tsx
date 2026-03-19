@@ -181,7 +181,7 @@ export function AddPhotosSheet({
           <X className="h-5 w-5" />
         </button>
         <div className="flex-1">
-          <h2 className="text-sm font-heading font-medium text-foreground/90">Add Photos</h2>
+          <h2 className="text-sm font-serif font-medium text-foreground/90">Add Photos</h2>
           <p className="text-[9px] font-mono text-amber-800/40 uppercase tracking-wider">
             {availablePhotos.length} available · {selectedIds.size} selected
           </p>

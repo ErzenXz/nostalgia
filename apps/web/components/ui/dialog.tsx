@@ -65,7 +65,7 @@ export const DialogTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn("text-lg font-heading font-semibold text-foreground", className)}
+    className={cn("text-lg font-serif font-bold text-foreground", className)}
     {...props}
   />
 ));
