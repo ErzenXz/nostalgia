@@ -179,9 +179,13 @@ function anniversarySignal(
 function metadataSignal(photo: any): number {
   const signals = [
     !!photo.locationName,
+    !!photo.titleShort,
     typeof photo.captionShort === "string" &&
       photo.captionShort.trim().length > 0,
     Array.isArray(photo.aiTagsV2) && photo.aiTagsV2.length > 0,
+    Array.isArray(photo.hashtags) && photo.hashtags.length > 0,
+    Array.isArray(photo.activityLabels) && photo.activityLabels.length > 0,
+    typeof photo.sceneType === "string" && photo.sceneType.trim().length > 0,
     typeof photo.description === "string" &&
       photo.description.trim().length > 0,
   ];
@@ -389,6 +393,14 @@ function selectWithMMR(
   return picked;
 }
 
+function buildMomentKey(photo: any) {
+  const timestamp = photo.takenAt ?? photo.uploadedAt ?? photo._creationTime;
+  const bucket = Math.floor(timestamp / (6 * 60 * 60 * 1000));
+  const location = (photo.locationName ?? "unknown").toLowerCase();
+  const scene = (photo.sceneType ?? "unknown").toLowerCase();
+  return `${bucket}:${location}:${scene}`;
+}
+
 // ─── Feed session queries ─────────────────────────────────────────
 
 export const getSession = internalQuery({
@@ -546,12 +558,40 @@ export const getNostalgiaFeed = action({
     const recentPool = scored.filter(
       (candidate) => candidate.signals.freshness >= 0.35,
     );
+    const topByMoment = new Map<
+      string,
+      ScoredCandidate & { tieBreak: number }
+    >();
+    for (const candidate of scored) {
+      const momentKey = buildMomentKey(candidate.photo);
+      const existingBest = topByMoment.get(momentKey);
+      if (!existingBest || candidate.score > existingBest.score) {
+        topByMoment.set(momentKey, candidate);
+      }
+    }
+    const momentRepresentatives = Array.from(topByMoment.values()).sort(
+      (a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.tieBreak - a.tieBreak;
+      },
+    );
     const recentTarget = Math.min(
       recentPool.length,
       Math.max(0, Math.min(4, Math.ceil(limit / 3))),
     );
+    const momentTarget = Math.min(
+      momentRepresentatives.length,
+      Math.max(0, Math.ceil(limit / 2)),
+    );
 
     const selectedScored = [
+      ...selectWithMMR(
+        momentRepresentatives,
+        momentTarget,
+        selectedIds,
+        selectedVecs,
+        0.72,
+      ),
       ...selectWithMMR(
         recentPool,
         recentTarget,
@@ -561,7 +601,7 @@ export const getNostalgiaFeed = action({
       ),
       ...selectWithMMR(
         scored,
-        limit - recentTarget,
+        limit - selectedIds.size,
         selectedIds,
         selectedVecs,
         HOME_MMR_LAMBDA,
@@ -581,7 +621,9 @@ export const getNostalgiaFeed = action({
           nostalgia: candidate.signals.nostalgia,
           coherence: candidate.signals.coherence,
         },
+        titleShort: photo.titleShort ?? null,
         captionShort: photo.captionShort ?? null,
+        hashtags: photo.hashtags ?? null,
         aiTagsV2: photo.aiTagsV2 ?? null,
         locationName: photo.locationName ?? null,
         detectedFaces: photo.detectedFaces ?? null,

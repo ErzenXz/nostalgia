@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState, useCallback, useRef } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
@@ -97,7 +99,12 @@ export default function SearchPage() {
 
   // Collect all unique tags from results
   const allTags = Array.from(
-    new Set(results.flatMap((r: any) => r.photo?.aiTagsV2 ?? [])),
+    new Set(
+      results.flatMap((r: any) => [
+        ...(r.photo?.hashtags ?? []).map((tag: string) => `#${tag}`),
+        ...(r.photo?.aiTagsV2 ?? []),
+      ]),
+    ),
   ).slice(0, 20);
 
   const toggleTag = useCallback((tag: string) => {
@@ -113,7 +120,10 @@ export default function SearchPage() {
   const filteredResults =
     activeTags.size > 0
       ? results.filter((r: any) => {
-          const tags: string[] = r.photo?.aiTagsV2 ?? [];
+          const tags: string[] = [
+            ...(r.photo?.hashtags ?? []).map((tag: string) => `#${tag}`),
+            ...(r.photo?.aiTagsV2 ?? []),
+          ];
           return Array.from(activeTags).some((t) => tags.includes(t));
         })
       : results;
@@ -252,7 +262,7 @@ export default function SearchPage() {
                       ? `${photos.length} result${photos.length !== 1 ? "s" : ""} for`
                       : "Results for"}{" "}
                   <span className="text-foreground font-semibold">
-                    "{query}"
+                    &quot;{query}&quot;
                   </span>
                 </span>
                 {isSearching && (

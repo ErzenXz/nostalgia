@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 
 // Maximum number of times we'll retry a failed AI job before giving up.
 const MAX_AI_RETRIES = 5;
+const METADATA_BACKFILL_VERSION = 2;
 
 // ─── Cron Handler: Trash Cleanup ─────────────────────────────────
 // Permanently delete photos that have been in the trash for 30+ days
@@ -30,16 +31,17 @@ export const cleanupTrashedPhotos = internalMutation({
         .collect();
       for (const ap of albumPhotos) await ctx.db.delete(ap._id);
 
-      const photoPeople = await ctx.db
-        .query("photoPeople")
-        .withIndex("by_photo", (q) => q.eq("photoId", photo._id))
-        .collect();
-      for (const pp of photoPeople) await ctx.db.delete(pp._id);
+      await ctx.runMutation(internal.people.removePhotoAssociations, {
+        photoId: photo._id,
+      });
 
       const user = await ctx.db.get(photo.userId);
       if (user) {
         await ctx.db.patch(photo.userId, {
-          usedStorageBytes: Math.max(0, user.usedStorageBytes - photo.sizeBytes),
+          usedStorageBytes: Math.max(
+            0,
+            user.usedStorageBytes - photo.sizeBytes,
+          ),
         });
       }
 
@@ -178,6 +180,65 @@ export const recoverStuckProcessingJobs = internalMutation({
   },
 });
 
+export const queueMetadataBackfill = internalMutation({
+  args: {},
+  returns: undefined,
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    let queued = 0;
+    const maxQueued = 40;
+
+    for (const user of users) {
+      if (user.aiOptIn !== true) continue;
+      if (queued >= maxQueued) break;
+
+      const photos = await ctx.db
+        .query("photos")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .order("desc")
+        .take(300);
+
+      for (const photo of photos) {
+        if (queued >= maxQueued) break;
+        if (photo.isTrashed || photo.isArchived) continue;
+        if (!photo.analysisImageStorageId) continue;
+
+        const needsBackfill =
+          (photo.aiProcessingVersion ?? 0) < METADATA_BACKFILL_VERSION ||
+          !photo.titleShort ||
+          !photo.sceneType ||
+          !photo.mood ||
+          !photo.indoorOutdoor ||
+          !Array.isArray(photo.activityLabels) ||
+          photo.activityLabels.length === 0 ||
+          !Array.isArray(photo.hashtags) ||
+          photo.hashtags.length === 0;
+
+        if (!needsBackfill) continue;
+
+        const existingJob = await ctx.db
+          .query("aiProcessingQueue")
+          .withIndex("by_photo", (q) => q.eq("photoId", photo._id))
+          .unique();
+
+        if (
+          existingJob &&
+          (existingJob.status === "pending" ||
+            existingJob.status === "processing")
+        ) {
+          continue;
+        }
+
+        await ctx.runMutation(internal.ai.uploads.enqueuePhotoAnalysis, {
+          userId: user._id,
+          photoId: photo._id,
+        });
+        queued += 1;
+      }
+    }
+  },
+});
+
 // ─── Cron Schedule ───────────────────────────────────────────────
 
 const crons = cronJobs();
@@ -216,6 +277,12 @@ crons.interval(
   { minutes: 1 },
   internal.ai.worker.processPending,
   {},
+);
+
+crons.interval(
+  "queue ai metadata backfill",
+  { minutes: 20 },
+  internal.crons.queueMetadataBackfill,
 );
 
 export default crons;

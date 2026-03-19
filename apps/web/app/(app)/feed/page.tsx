@@ -3,31 +3,25 @@
 import { useAction, useMutation, useQuery } from "convex/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@repo/backend/convex/_generated/api";
 import type { Id } from "@repo/backend/convex/_generated/dataModel";
 import { useAiOptInForUserId } from "@/hooks/use-ai-opt-in";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
 import { usePhotoUrl } from "@/hooks/use-photo-url";
-import { cn, formatDate, formatRelativeDate, formatBytes } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   Calendar,
-  ChevronRight,
   Heart,
   ImageOff,
   Loader2,
-  Lock,
-  MapPin,
   RefreshCw,
   Settings,
   Shuffle,
   Sparkles,
   Telescope,
-  Users,
-  Play,
-  MoreHorizontal,
 } from "lucide-react";
 
 type FeedMode = "nostalgia" | "on_this_day" | "deep_dive_year" | "serendipity";
@@ -40,7 +34,9 @@ interface FeedItem {
   reason: string;
   score: number;
   scoreBreakdown: { nostalgia: number; coherence: number };
+  titleShort: string | null;
   captionShort: string | null;
+  hashtags?: string[] | null;
   aiTagsV2: string[] | null;
   locationName?: string | null;
   detectedFaces?: number | null;
@@ -60,27 +56,6 @@ type PhotoRecord = {
   isFavorite?: boolean;
 };
 
-type ChannelRecord = {
-  _id: Id<"channels">;
-  name: string;
-  description?: string;
-  visibility: "private" | "family" | "public";
-  memberCount: number;
-  mediaCount: number;
-  updatedAt?: number;
-};
-
-type ChannelMediaRecord = {
-  _id: Id<"channelMedia">;
-  photoId: Id<"photos">;
-  sharedAt: number;
-};
-
-type MemberRecord = {
-  name?: string;
-  email?: string;
-};
-
 const modeConfig: Record<
   FeedMode,
   {
@@ -94,13 +69,15 @@ const modeConfig: Record<
     label: "For You",
     icon: Sparkles,
     description: "A ranked view of photos that feel most worth reopening.",
-    emptyHint: "Add more photos across different moments to improve rediscovery.",
+    emptyHint:
+      "Add more photos across different moments to improve rediscovery.",
   },
   on_this_day: {
     label: "Following",
     icon: Calendar,
     description: "Photos taken on this date in earlier years.",
-    emptyHint: "Photos with past dates will appear here once the library has them.",
+    emptyHint:
+      "Photos with past dates will appear here once the library has them.",
   },
   deep_dive_year: {
     label: "Popular",
@@ -180,7 +157,10 @@ function FeedCard({
   const duration = formatDuration(photo.mimeType);
 
   return (
-    <Link href={`/photos/${item.photoId}`} className="group block relative overflow-hidden rounded-xl bg-muted aspect-[3/4] w-full">
+    <Link
+      href={`/photos/${item.photoId}`}
+      className="group block relative overflow-hidden rounded-xl bg-muted aspect-[3/4] w-full"
+    >
       <CardImage
         storageKey={photo.storageKey}
         thumbnailStorageKey={photo.thumbnailStorageKey}
@@ -188,10 +168,10 @@ function FeedCard({
         isEncrypted={photo.isEncrypted}
         alt={item.captionShort || photo.fileName}
       />
-      
+
       {/* Overlay Gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none" />
-      
+
       {/* Top Right Duration or Match Score */}
       <div className="absolute top-3 right-3 flex items-center gap-2">
         {duration ? (
@@ -218,9 +198,13 @@ function FeedCard({
           {item.reason === "nostalgia" ? "Recommended" : "Rediscovered"}
         </p>
         <h3 className="text-[16px] font-semibold text-white leading-tight mb-3 line-clamp-2">
-          {item.captionShort || photo.description || photo.locationName || photo.fileName}
+          {item.titleShort ||
+            item.captionShort ||
+            photo.description ||
+            photo.locationName ||
+            photo.fileName}
         </h3>
-        
+
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-[10px] text-white font-bold overflow-hidden">
             {photo.locationName ? photo.locationName.charAt(0) : "U"}
@@ -239,7 +223,12 @@ function FeedCard({
             }}
             className="text-white hover:scale-110 transition-transform"
           >
-            <Heart className={cn("h-5 w-5", liked ? "fill-white text-white" : "text-white")} />
+            <Heart
+              className={cn(
+                "h-5 w-5",
+                liked ? "fill-white text-white" : "text-white",
+              )}
+            />
           </button>
         </div>
       </div>
@@ -264,7 +253,7 @@ function FeedCardSkeleton() {
 
 export default function FeedPage() {
   const [mode, setMode] = useState<FeedMode>("nostalgia");
-  const [deepDiveYear, setDeepDiveYear] = useState(() => new Date().getFullYear() - 1);
+  const [deepDiveYear] = useState(() => new Date().getFullYear() - 1);
   const [seed] = useState(() => crypto.randomUUID());
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [feedCursor, setFeedCursor] = useState<string | null>(null);
@@ -272,27 +261,18 @@ export default function FeedPage() {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
 
-  const { user, userId, isLoading: userLoading } = useCurrentUser();
+  const { userId, isLoading: userLoading } = useCurrentUser();
   const { aiOptIn, isLoading: aiLoading } = useAiOptInForUserId(
     userId as Id<"users"> | null,
   );
   const getNostalgiaFeed = useAction(api.feed.nostalgia.getNostalgiaFeed);
   const toggleFavorite = useMutation(api.photos.toggleFavorite);
 
-  const storageStats = useQuery(api.users.getStorageStats, userId ? { userId } : "skip");
   const aiProgress = useQuery(
     api.users.getAiProgress,
     userId && aiOptIn === true ? { userId } : "skip",
   );
-  const recentPhotosResult = useQuery(
-    api.photos.listByUser,
-    userId ? { userId, limit: 12 } : "skip",
-  );
-  const favoritePhotos = useQuery(api.photos.listFavorites, userId ? { userId } : "skip");
-  const channels = useQuery(api.channels.listByUser, userId ? { userId } : "skip");
 
-  const recentPhotos = (recentPhotosResult?.photos ?? []) as PhotoRecord[];
-  
   const aiReady =
     aiOptIn === true &&
     !!aiProgress &&
@@ -322,7 +302,7 @@ export default function FeedPage() {
           mode,
           limit: 12, // Increased limit for grid layout
           seed,
-          cursor: reset ? undefined : feedCursorRef.current ?? undefined,
+          cursor: reset ? undefined : (feedCursorRef.current ?? undefined),
           year: mode === "deep_dive_year" ? deepDiveYear : undefined,
         });
         const items = (res.items ?? []) as FeedItem[];
@@ -375,7 +355,9 @@ export default function FeedPage() {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
         <div className="max-w-md w-full rounded-xl border border-border bg-card p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-semibold text-foreground">Sign in to continue</h1>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Sign in to continue
+          </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
             Your home view is private and tied to your account.
           </p>
@@ -410,7 +392,7 @@ export default function FeedPage() {
                     "whitespace-nowrap py-4 text-[15px] font-semibold transition-colors relative",
                     active
                       ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground/80"
+                      : "text-muted-foreground hover:text-foreground/80",
                   )}
                 >
                   {config.label}
@@ -430,7 +412,7 @@ export default function FeedPage() {
             </Link>
           )}
           <div className="flex-1" />
-          
+
           {/* Top Right Upload/More Actions could go here */}
         </div>
 
@@ -447,7 +429,10 @@ export default function FeedPage() {
                 </div>
                 <p className="mt-2 text-[13px] text-muted-foreground font-medium">
                   Indexing {aiProgress.processed} of {aiProgress.total} photos
-                  <span className="opacity-70"> · {aiProgress.pending} remaining</span>
+                  <span className="opacity-70">
+                    {" "}
+                    · {aiProgress.pending} remaining
+                  </span>
                 </p>
               </div>
             </div>
@@ -459,7 +444,9 @@ export default function FeedPage() {
             {feedError && (
               <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center mb-8">
                 <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-4" />
-                <p className="text-[15px] font-medium text-foreground mb-4">{feedError}</p>
+                <p className="text-[15px] font-medium text-foreground mb-4">
+                  {feedError}
+                </p>
                 <button
                   type="button"
                   onClick={() => void loadFeed(true)}
@@ -498,7 +485,9 @@ export default function FeedPage() {
                     key={item.photoId}
                     photoId={item.photoId}
                     item={item}
-                    onFavorite={(id) => toggleFavorite({ photoId: id as Id<"photos"> })}
+                    onFavorite={(id) =>
+                      toggleFavorite({ photoId: id as Id<"photos"> })
+                    }
                   />
                 ))}
               </div>
@@ -524,9 +513,12 @@ export default function FeedPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center rounded-xl border border-border bg-card">
             <Sparkles className="h-12 w-12 text-primary mb-4" />
-            <p className="text-[18px] font-semibold text-foreground">AI intelligence is off</p>
+            <p className="text-[18px] font-semibold text-foreground">
+              AI intelligence is off
+            </p>
             <p className="mt-2 max-w-md text-[15px] text-muted-foreground">
-              Turn it on in settings to unlock video feeds and automatic curation.
+              Turn it on in settings to unlock video feeds and automatic
+              curation.
             </p>
             <Link
               href="/settings"
@@ -551,10 +543,9 @@ function FeedCardWrapper({
   item: FeedItem;
   onFavorite: (id: string) => void;
 }) {
-  const photo = useQuery(api.photos.getById, { photoId: photoId as Id<"photos"> }) as
-    | PhotoRecord
-    | null
-    | undefined;
+  const photo = useQuery(api.photos.getById, {
+    photoId: photoId as Id<"photos">,
+  }) as PhotoRecord | null | undefined;
 
   if (photo === undefined) {
     return <FeedCardSkeleton />;

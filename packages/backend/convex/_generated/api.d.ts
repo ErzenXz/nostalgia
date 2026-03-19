@@ -9,6 +9,7 @@
  */
 
 import type * as ai_auth_util from "../ai/auth_util.js";
+import type * as ai_faces from "../ai/faces.js";
 import type * as ai_jina from "../ai/jina.js";
 import type * as ai_openai from "../ai/openai.js";
 import type * as ai_search from "../ai/search.js";
@@ -23,6 +24,7 @@ import type * as crons from "../crons.js";
 import type * as feed_nostalgia from "../feed/nostalgia.js";
 import type * as http from "../http.js";
 import type * as memories from "../memories.js";
+import type * as moments from "../moments.js";
 import type * as people from "../people.js";
 import type * as photos from "../photos.js";
 import type * as processing from "../processing.js";
@@ -37,6 +39,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "ai/auth_util": typeof ai_auth_util;
+  "ai/faces": typeof ai_faces;
   "ai/jina": typeof ai_jina;
   "ai/openai": typeof ai_openai;
   "ai/search": typeof ai_search;
@@ -51,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "feed/nostalgia": typeof feed_nostalgia;
   http: typeof http;
   memories: typeof memories;
+  moments: typeof moments;
   people: typeof people;
   photos: typeof photos;
   processing: typeof processing;

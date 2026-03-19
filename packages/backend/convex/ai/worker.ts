@@ -6,12 +6,14 @@ import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
+import { detectFaceEmbeddings } from "./faces";
 import { embedImageBytesClipV2, JINA_CLIP_MODEL } from "./jina";
-import { captionImageShort, generateTags } from "./openai";
+import { generatePhotoMetadata } from "./openai";
 import type { Id } from "../_generated/dataModel";
 
 const LEASE_MS = 2 * 60 * 1000; // 2 minutes (must match worker_db lease)
 const DEFAULT_LIMIT = 15;
+const AI_PROCESSING_VERSION = 2;
 
 // A photo that has been awaiting a thumbnail for over 24 hours is considered
 // permanently stuck — mark it failed so the queue drains cleanly.
@@ -54,21 +56,106 @@ function backoffMs(retryCount: number): number {
   return Math.min(ms, 30 * 60 * 1000);
 }
 
+function deriveFallbackTitle(photo: any) {
+  if (photo.locationName) return `Moment in ${photo.locationName}`;
+  return photo.mimeType?.startsWith("video/")
+    ? "Library video moment"
+    : "Library photo moment";
+}
+
 function deriveFallbackCaption(photo: any) {
   const parts = [
     photo.locationName
-      ? `Photo in ${photo.locationName}`
-      : "Photo from your library",
-    photo.fileName ? `(${photo.fileName})` : null,
+      ? `A moment in ${photo.locationName}`
+      : "A moment from your library",
+    photo.fileName ? `from ${photo.fileName}` : null,
   ].filter(Boolean);
   return parts.join(" ");
 }
 
-function deriveFallbackTags(photo: any, caption: string) {
+function deriveFallbackDescription(
+  photo: any,
+  caption: string,
+  peopleContext: {
+    totalFaces: number;
+    namedPeople: string[];
+    unnamedMatchedCount: number;
+  },
+) {
+  const details = [
+    caption,
+    peopleContext.namedPeople.length > 0
+      ? `Recognized people include ${peopleContext.namedPeople.join(", ")}.`
+      : peopleContext.totalFaces > 0
+        ? `${peopleContext.totalFaces} face${peopleContext.totalFaces === 1 ? "" : "s"} detected in the frame.`
+        : null,
+    photo.locationName
+      ? `The image is associated with ${photo.locationName}.`
+      : null,
+  ].filter(Boolean);
+  return details.join(" ");
+}
+
+function deriveFallbackPeopleSummary(peopleContext: {
+  totalFaces: number;
+  namedPeople: string[];
+  unnamedMatchedCount: number;
+}) {
+  if (peopleContext.namedPeople.length > 0) {
+    return `People seen: ${peopleContext.namedPeople.join(", ")}.`;
+  }
+  if (peopleContext.totalFaces > 0) {
+    return `${peopleContext.totalFaces} face${
+      peopleContext.totalFaces === 1 ? "" : "s"
+    } detected.`;
+  }
+  return "";
+}
+
+function deriveFallbackHashtags(
+  photo: any,
+  caption: string,
+  peopleContext: {
+    totalFaces: number;
+    namedPeople: string[];
+  },
+) {
   const seed = [
     caption,
     photo.locationName,
     photo.fileName,
+    ...peopleContext.namedPeople,
+    peopleContext.totalFaces > 0 ? "people" : null,
+    photo.mimeType?.startsWith("video/") ? "video" : "photo",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return Array.from(
+    new Set(
+      seed
+        .split(/[^a-z0-9]+/g)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 3 && token.length <= 24),
+    ),
+  ).slice(0, 5);
+}
+
+function deriveFallbackTags(
+  photo: any,
+  caption: string,
+  peopleContext: {
+    totalFaces: number;
+    namedPeople: string[];
+  },
+) {
+  const seed = [
+    caption,
+    photo.locationName,
+    photo.fileName,
+    ...peopleContext.namedPeople,
+    peopleContext.totalFaces > 0 ? "people" : null,
     photo.mimeType?.startsWith("video/") ? "video" : "photo",
   ]
     .filter(Boolean)
@@ -83,6 +170,40 @@ function deriveFallbackTags(photo: any, caption: string) {
         .filter((token) => token.length >= 3 && token.length <= 24),
     ),
   ).slice(0, 16);
+}
+
+function deriveFallbackSceneType(photo: any) {
+  if (photo.locationName) return "place moment";
+  return photo.mimeType?.startsWith("video/") ? "video scene" : "photo scene";
+}
+
+function deriveFallbackMood(peopleContext: {
+  totalFaces: number;
+  namedPeople: string[];
+}) {
+  if (peopleContext.namedPeople.length > 0 || peopleContext.totalFaces >= 2) {
+    return "social";
+  }
+  return "quiet";
+}
+
+function deriveFallbackIndoorOutdoor() {
+  return "unknown" as const;
+}
+
+function deriveFallbackActivities(
+  photo: any,
+  peopleContext: { totalFaces: number },
+  tags: string[],
+) {
+  const activities = new Set<string>();
+  if (peopleContext.totalFaces > 0) activities.add("people");
+  if (photo.locationName) activities.add("travel");
+  for (const tag of tags) {
+    if (activities.size >= 8) break;
+    activities.add(tag);
+  }
+  return Array.from(activities).slice(0, 8);
 }
 
 export const processPending = internalAction({
@@ -198,34 +319,88 @@ export const processPending = internalAction({
           },
         });
 
-        // ── Step 2: Caption ───────────────────────────────────────
-        const hintText = [
+        const hintParts = [
           `fileName=${photo.fileName}`,
           `takenAt=${photo.takenAt ?? photo.uploadedAt}`,
           photo.locationName ? `location=${photo.locationName}` : null,
           photo.cameraModel ? `camera=${photo.cameraModel}` : null,
-        ]
-          .filter(Boolean)
-          .join(" ");
+        ];
 
-        let captionShort = deriveFallbackCaption(photo);
+        let detectedFaces: { embedding: number[]; confidence: number }[] = [];
         try {
-          captionShort = await captionImageShort({ imageUrl, hintText });
+          detectedFaces = await detectFaceEmbeddings(bytes);
         } catch (error) {
           if (isTransientError(error)) {
             throw error;
           }
         }
+
+        const peopleContext = await ctx.runQuery(
+          internal.people.previewFaceMatches,
+          {
+            userId: photo.userId,
+            faces: detectedFaces,
+          },
+        );
         await ctx.runMutation(internal.ai.worker_db.updateJob, {
           jobId,
           step: "tags",
           lockedUntil: Date.now() + LEASE_MS,
         });
+        const hintText = [
+          ...hintParts,
+          peopleContext.totalFaces > 0
+            ? `faceCount=${peopleContext.totalFaces}`
+            : null,
+          peopleContext.namedPeople.length > 0
+            ? `namedPeople=${peopleContext.namedPeople.join(", ")}`
+            : null,
+          peopleContext.unnamedMatchedCount > 0
+            ? `unnamedMatchedPeople=${peopleContext.unnamedMatchedCount}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
 
-        // ── Step 3: Tags ──────────────────────────────────────────
-        let tags = deriveFallbackTags(photo, captionShort);
+        // ── Step 2: Metadata ──────────────────────────────────────
+        let titleShort = deriveFallbackTitle(photo);
+        let captionShort = deriveFallbackCaption(photo);
+        let description = deriveFallbackDescription(
+          photo,
+          captionShort,
+          peopleContext,
+        );
+        let peopleSummary = deriveFallbackPeopleSummary(peopleContext);
+        let visibleText = "";
+        let sceneType = deriveFallbackSceneType(photo);
+        let mood = deriveFallbackMood(peopleContext);
+        let indoorOutdoor: "indoor" | "outdoor" | "mixed" | "unknown" =
+          deriveFallbackIndoorOutdoor();
+        let hashtags = deriveFallbackHashtags(
+          photo,
+          captionShort,
+          peopleContext,
+        );
+        let tags = deriveFallbackTags(photo, captionShort, peopleContext);
+        let activityLabels = deriveFallbackActivities(
+          photo,
+          peopleContext,
+          tags,
+        );
+
         try {
-          tags = await generateTags({ captionShort, hintText });
+          const metadata = await generatePhotoMetadata({ imageUrl, hintText });
+          titleShort = metadata.titleShort;
+          captionShort = metadata.captionShort;
+          description = metadata.description;
+          peopleSummary = metadata.peopleSummary;
+          visibleText = metadata.visibleText;
+          sceneType = metadata.sceneType;
+          mood = metadata.mood;
+          indoorOutdoor = metadata.indoorOutdoor;
+          activityLabels = metadata.activityLabels;
+          hashtags = metadata.hashtags;
+          tags = metadata.aiTagsV2;
         } catch (error) {
           if (isTransientError(error)) {
             throw error;
@@ -236,15 +411,30 @@ export const processPending = internalAction({
         await ctx.runMutation(internal.photos.updateAiAnalysis, {
           photoId: photo._id,
           analysisImageStorageId: photo.analysisImageStorageId,
-          description: captionShort,
+          titleShort,
+          description,
+          peopleSummary: peopleSummary || undefined,
+          visibleText: visibleText || undefined,
+          sceneType: sceneType || undefined,
+          mood: mood || undefined,
+          indoorOutdoor: indoorOutdoor || undefined,
+          activityLabels,
           embeddingClipV2: embedding ?? undefined,
           embeddingClipV2Dim: embedding?.length,
           embeddingClipV2Model: embedding ? JINA_CLIP_MODEL : undefined,
           captionShort,
-          captionShortV: 1,
+          captionShortV: AI_PROCESSING_VERSION,
+          hashtags,
           aiTagsV2: tags,
+          detectedFaces: detectedFaces.length,
           aiProcessedAt: Date.now(),
-          aiProcessingVersion: 1,
+          aiProcessingVersion: AI_PROCESSING_VERSION,
+        });
+
+        await ctx.runMutation(internal.people.syncPhotoFaces, {
+          userId: photo.userId,
+          photoId: photo._id,
+          faces: detectedFaces,
         });
 
         await ctx.runMutation(internal.ai.worker_db.updateJob, {

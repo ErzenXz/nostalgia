@@ -13,9 +13,18 @@
     "@ai-sdk/openai": "^3.0.29",
     "@better-auth/passkey": "1.4.9",
     "@convex-dev/better-auth": "^0.10.10",
+    "@tensorflow/tfjs-backend-cpu": "4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "4.22.0",
+    "@tensorflow/tfjs-converter": "4.22.0",
+    "@tensorflow/tfjs-core": "4.22.0",
+    "@tensorflow/tfjs-layers": "4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "@vladmandic/human": "^3.3.6",
     "ai": "^6.0.86",
     "better-auth": "1.4.9",
     "convex": "^1.21.0",
+    "jpeg-js": "^0.4.4",
+    "sharp": "^0.34.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {

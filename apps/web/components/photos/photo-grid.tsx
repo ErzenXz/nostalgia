@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, type ReactNode } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState, useCallback, useMemo, type ReactNode } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { cn, formatDate, groupPhotosByDate } from "@/lib/utils";
 import { Heart, Check, MapPin, Play } from "lucide-react";
 import { usePhotoUrls } from "@/hooks/use-photo-url";
@@ -20,8 +21,12 @@ interface Photo {
   takenAt?: number;
   uploadedAt: number;
   isFavorite: boolean;
+  titleShort?: string;
+  captionShort?: string;
   description?: string;
   aiTags?: string[];
+  aiTagsV2?: string[];
+  hashtags?: string[];
   latitude?: number;
   longitude?: number;
   locationName?: string;
@@ -91,79 +96,84 @@ export function PhotoGrid({
         const locationCounts = new Map<string, number>();
         for (const p of datePhotos as Photo[]) {
           if (p.locationName) {
-            locationCounts.set(p.locationName, (locationCounts.get(p.locationName) ?? 0) + 1);
+            locationCounts.set(
+              p.locationName,
+              (locationCounts.get(p.locationName) ?? 0) + 1,
+            );
           }
         }
         const topLocation =
           locationCounts.size > 0
-            ? Array.from(locationCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0]
+            ? Array.from(locationCounts.entries()).sort(
+                (a, b) => b[1] - a[1],
+              )[0]?.[0]
             : null;
 
         return (
-        <div
-          key={dateKey}
-          ref={(el) => {
-            if (el && dateRefs?.current) {
-              dateRefs.current.set(dateKey, el);
-            }
-          }}
-        >
           <div
-            className={cn(
-              "mb-4 flex items-center gap-3",
-              stickyHeaders &&
-                "sticky top-16 z-20 bg-background/95 backdrop-blur-md py-3 -mx-4 md:-mx-8 px-4 md:px-8",
-            )}
+            key={dateKey}
+            ref={(el) => {
+              if (el && dateRefs?.current) {
+                dateRefs.current.set(dateKey, el);
+              }
+            }}
           >
-            <span className="text-[16px] font-semibold text-foreground">
-              {formatDate(new Date(dateKey))}
-            </span>
-            {topLocation && (
-              <>
-                <span className="text-muted-foreground text-[11px]">·</span>
-                <span className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {topLocation}
-                </span>
-              </>
-            )}
-            <div className="h-px flex-1 bg-border/50" />
-            <span className="text-[12px] font-medium text-muted-foreground shrink-0 bg-muted px-2.5 py-0.5 rounded-full">
-              {(datePhotos as Photo[]).length}
-            </span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {datePhotos.map((photo, index) => {
-              const isSelected = selectedIds.has(photo._id);
-              const isHovered = hoveredId === photo._id;
-              const imageKey = photo.thumbnailStorageKey || photo.storageKey;
-              const signedUrl = photoUrls.get(imageKey) ?? null;
+            <div
+              className={cn(
+                "mb-4 flex items-center gap-3",
+                stickyHeaders &&
+                  "sticky top-16 z-20 bg-background/95 backdrop-blur-md py-3 -mx-4 md:-mx-8 px-4 md:px-8",
+              )}
+            >
+              <span className="text-[16px] font-semibold text-foreground">
+                {formatDate(new Date(dateKey))}
+              </span>
+              {topLocation && (
+                <>
+                  <span className="text-muted-foreground text-[11px]">·</span>
+                  <span className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    {topLocation}
+                  </span>
+                </>
+              )}
+              <div className="h-px flex-1 bg-border/50" />
+              <span className="text-[12px] font-medium text-muted-foreground shrink-0 bg-muted px-2.5 py-0.5 rounded-full">
+                {(datePhotos as Photo[]).length}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {datePhotos.map((photo, index) => {
+                const isSelected = selectedIds.has(photo._id);
+                const isHovered = hoveredId === photo._id;
+                const imageKey = photo.thumbnailStorageKey || photo.storageKey;
+                const signedUrl = photoUrls.get(imageKey) ?? null;
 
-              return (
-                <PhotoGridCell
-                  key={photo._id}
-                  photo={photo}
-                  index={index}
-                  signedUrl={signedUrl}
-                  imageKey={imageKey}
-                  isSelected={isSelected}
-                  isHovered={isHovered}
-                  selectable={selectable}
-                  onHover={setHoveredId}
-                  onClick={() => {
-                    if (selectable) {
-                      toggleSelection(photo._id);
-                    } else {
-                      onPhotoClick?.(photo as any, index);
-                    }
-                  }}
-                  onToggleSelection={() => toggleSelection(photo._id)}
-                  onFavorite={() => onFavorite?.(photo._id)}
-                />
-              );
-            })}
+                return (
+                  <PhotoGridCell
+                    key={photo._id}
+                    photo={photo}
+                    index={index}
+                    signedUrl={signedUrl}
+                    imageKey={imageKey}
+                    isSelected={isSelected}
+                    isHovered={isHovered}
+                    selectable={selectable}
+                    onHover={setHoveredId}
+                    onClick={() => {
+                      if (selectable) {
+                        toggleSelection(photo._id);
+                      } else {
+                        onPhotoClick?.(photo as any, index);
+                      }
+                    }}
+                    onToggleSelection={() => toggleSelection(photo._id)}
+                    onFavorite={() => onFavorite?.(photo._id)}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
         );
       })}
     </div>
@@ -179,7 +189,6 @@ function formatDuration(mimeType?: string) {
 
 function PhotoGridCell({
   photo,
-  index: _index,
   signedUrl,
   imageKey,
   isSelected,
@@ -202,7 +211,8 @@ function PhotoGridCell({
   onToggleSelection: () => void;
   onFavorite: () => void;
 }) {
-  const isThumb = !!photo.thumbnailStorageKey && imageKey === photo.thumbnailStorageKey;
+  const isThumb =
+    !!photo.thumbnailStorageKey && imageKey === photo.thumbnailStorageKey;
   const mimeTypeForKey = isThumb ? "image/jpeg" : photo.mimeType;
   const decryptedUrl = useDecryptedBlobUrl({
     cacheKey: imageKey,
@@ -219,7 +229,8 @@ function PhotoGridCell({
     <div
       className={cn(
         "photo-grid-item group relative aspect-[3/4] w-full cursor-pointer overflow-hidden rounded-xl bg-muted",
-        isSelected && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+        isSelected &&
+          "ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
       onMouseEnter={() => onHover(photo._id)}
       onMouseLeave={() => onHover(null)}
@@ -237,7 +248,7 @@ function PhotoGridCell({
         ) : (
           <Image
             src={displayUrl}
-            alt={photo.description || photo.fileName}
+            alt={photo.titleShort || photo.description || photo.fileName}
             fill
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 20vw"
@@ -285,7 +296,9 @@ function PhotoGridCell({
             onToggleSelection();
           }}
         >
-          {isSelected && <Check className="h-3.5 w-3.5 text-primary-foreground stroke-[3]" />}
+          {isSelected && (
+            <Check className="h-3.5 w-3.5 text-primary-foreground stroke-[3]" />
+          )}
         </button>
       )}
 
@@ -299,9 +312,13 @@ function PhotoGridCell({
       {/* Bottom Content */}
       <div className="absolute bottom-0 left-0 right-0 p-4 z-10 pointer-events-none">
         <h3 className="text-[16px] font-semibold text-white leading-tight mb-3 line-clamp-2 drop-shadow-sm">
-          {photo.description || photo.locationName || photo.fileName}
+          {photo.titleShort ||
+            photo.captionShort ||
+            photo.description ||
+            photo.locationName ||
+            photo.fileName}
         </h3>
-        
+
         <div className="flex items-center gap-2 pointer-events-auto">
           <div className="h-6 w-6 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-[10px] text-white font-bold overflow-hidden shrink-0">
             {photo.locationName ? photo.locationName.charAt(0) : "U"}
@@ -319,7 +336,14 @@ function PhotoGridCell({
             }}
             className="text-white hover:scale-110 transition-transform p-1 opacity-0 group-hover:opacity-100"
           >
-            <Heart className={cn("h-5 w-5", photo.isFavorite ? "fill-destructive text-destructive" : "text-white")} />
+            <Heart
+              className={cn(
+                "h-5 w-5",
+                photo.isFavorite
+                  ? "fill-destructive text-destructive"
+                  : "text-white",
+              )}
+            />
           </button>
         </div>
       </div>

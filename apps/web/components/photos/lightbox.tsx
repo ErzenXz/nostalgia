@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { cn, formatDate } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePhotoUrl } from "@/hooks/use-photo-url";
 import { useDecryptedBlobUrl } from "@/hooks/use-decrypted-blob-url";
@@ -44,8 +45,12 @@ interface Photo {
   latitude?: number;
   longitude?: number;
   locationName?: string;
+  titleShort?: string;
+  captionShort?: string;
   description?: string;
   aiTags?: string[];
+  aiTagsV2?: string[];
+  hashtags?: string[];
   isFavorite: boolean;
   dominantColors?: string[];
 }
@@ -196,7 +201,10 @@ export function Lightbox({
           >
             <Heart className="h-4.5 w-4.5" />
           </ActionButton>
-          <ActionButton onClick={() => onArchive?.(photo._id)} tooltip="Archive">
+          <ActionButton
+            onClick={() => onArchive?.(photo._id)}
+            tooltip="Archive"
+          >
             <Archive className="h-4.5 w-4.5" />
           </ActionButton>
           <ActionButton tooltip="Share">
@@ -236,16 +244,16 @@ export function Lightbox({
               <ChevronLeft className="h-6 w-6" />
             </button>
           )}
-          
+
           <div className="relative w-full h-full rounded-lg overflow-hidden flex items-center justify-center">
             <LightboxImage
               storageKey={photo.storageKey}
-              alt={photo.description || photo.fileName}
+              alt={photo.titleShort || photo.description || photo.fileName}
               mimeType={photo.mimeType}
               isEncrypted={(photo as any).isEncrypted}
             />
           </div>
-          
+
           {currentIndex < photos.length - 1 && (
             <button
               className="absolute right-4 md:right-8 z-10 flex items-center justify-center h-12 w-12 rounded-full bg-background/80 backdrop-blur-md border border-border text-foreground transition-transform hover:scale-105 shadow-sm"
@@ -260,17 +268,23 @@ export function Lightbox({
         <div
           className={cn(
             "absolute right-0 top-0 bottom-0 w-80 border-l border-border bg-card/95 backdrop-blur-xl overflow-y-auto transition-transform duration-300 shadow-2xl z-20",
-            showInfo ? "translate-x-0" : "translate-x-full"
+            showInfo ? "translate-x-0" : "translate-x-full",
           )}
         >
           <div className="p-6">
             {/* File name */}
             <div className="mb-6">
               <h3 className="text-[15px] font-semibold text-foreground truncate">
-                {photo.fileName}
+                {photo.titleShort || photo.fileName}
               </h3>
+              {photo.captionShort && (
+                <p className="mt-1 text-[12px] text-foreground/80 line-clamp-2">
+                  {photo.captionShort}
+                </p>
+              )}
               <p className="mt-1 text-[12px] font-medium text-muted-foreground">
-                {(photo.sizeBytes / 1024 / 1024).toFixed(1)} MB • {photo.mimeType.split("/").pop()?.toUpperCase()}
+                {(photo.sizeBytes / 1024 / 1024).toFixed(1)} MB •{" "}
+                {photo.mimeType.split("/").pop()?.toUpperCase()}
               </p>
             </div>
 
@@ -281,7 +295,10 @@ export function Lightbox({
 
             {/* Description */}
             {photo.description && (
-              <InfoSection icon={<Sparkles className="h-4.5 w-4.5 text-primary" />} title="Story">
+              <InfoSection
+                icon={<Sparkles className="h-4.5 w-4.5 text-primary" />}
+                title="Story"
+              >
                 <p className="text-[13px] text-foreground leading-relaxed">
                   {photo.description}
                 </p>
@@ -289,10 +306,33 @@ export function Lightbox({
             )}
 
             {/* Tags */}
-            {photo.aiTags && photo.aiTags.length > 0 && (
-              <InfoSection icon={<Tag className="h-4.5 w-4.5 text-muted-foreground" />} title="Tags">
+            {photo.hashtags && photo.hashtags.length > 0 && (
+              <InfoSection
+                icon={<Sparkles className="h-4.5 w-4.5 text-primary" />}
+                title="Hashtags"
+              >
                 <div className="flex flex-wrap gap-1.5">
-                  {photo.aiTags.map((tag) => (
+                  {photo.hashtags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="text-[11px] font-medium px-2 py-0.5"
+                    >
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              </InfoSection>
+            )}
+
+            {(photo.aiTagsV2 && photo.aiTagsV2.length > 0) ||
+            (photo.aiTags && photo.aiTags.length > 0) ? (
+              <InfoSection
+                icon={<Tag className="h-4.5 w-4.5 text-muted-foreground" />}
+                title="Tags"
+              >
+                <div className="flex flex-wrap gap-1.5">
+                  {(photo.aiTagsV2 ?? photo.aiTags ?? []).map((tag) => (
                     <Badge
                       key={tag}
                       variant="secondary"
@@ -303,10 +343,13 @@ export function Lightbox({
                   ))}
                 </div>
               </InfoSection>
-            )}
+            ) : null}
 
             {/* Date */}
-            <InfoSection icon={<Calendar className="h-4.5 w-4.5 text-muted-foreground" />} title="Date">
+            <InfoSection
+              icon={<Calendar className="h-4.5 w-4.5 text-muted-foreground" />}
+              title="Date"
+            >
               <p className="text-[13px] font-medium text-foreground">
                 {formatDate(photo.takenAt ?? photo.uploadedAt)}
               </p>
@@ -314,8 +357,13 @@ export function Lightbox({
 
             {/* Location */}
             {photo.locationName && (
-              <InfoSection icon={<MapPin className="h-4.5 w-4.5 text-muted-foreground" />} title="Location">
-                <p className="text-[13px] font-medium text-foreground">{photo.locationName}</p>
+              <InfoSection
+                icon={<MapPin className="h-4.5 w-4.5 text-muted-foreground" />}
+                title="Location"
+              >
+                <p className="text-[13px] font-medium text-foreground">
+                  {photo.locationName}
+                </p>
                 {photo.latitude && photo.longitude && (
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     {photo.latitude.toFixed(4)}, {photo.longitude.toFixed(4)}
@@ -326,9 +374,14 @@ export function Lightbox({
 
             {/* Camera */}
             {(photo.cameraMake || photo.cameraModel) && (
-              <InfoSection icon={<Camera className="h-4.5 w-4.5 text-muted-foreground" />} title="Camera">
+              <InfoSection
+                icon={<Camera className="h-4.5 w-4.5 text-muted-foreground" />}
+                title="Camera"
+              >
                 <p className="text-[13px] font-medium text-foreground">
-                  {[photo.cameraMake, photo.cameraModel].filter(Boolean).join(" ")}
+                  {[photo.cameraMake, photo.cameraModel]
+                    .filter(Boolean)
+                    .join(" ")}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-medium">
                   {photo.focalLength && <span>{photo.focalLength}</span>}
@@ -356,12 +409,16 @@ export function Lightbox({
 
             {/* File info */}
             <div className="mt-8 pt-5 border-t border-border">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">Technical Details</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                Technical Details
+              </p>
               <div className="space-y-1.5 text-[12px] text-muted-foreground">
                 {photo.width && photo.height && (
                   <p className="flex justify-between">
                     <span>Dimensions</span>
-                    <span className="font-medium text-foreground">{photo.width} × {photo.height} px</span>
+                    <span className="font-medium text-foreground">
+                      {photo.width} × {photo.height} px
+                    </span>
                   </p>
                 )}
               </div>
@@ -376,7 +433,9 @@ export function Lightbox({
           {photo.locationName && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span className="text-[12px] font-medium">{photo.locationName}</span>
+              <span className="text-[12px] font-medium">
+                {photo.locationName}
+              </span>
             </div>
           )}
           <div className="flex items-center gap-2 text-muted-foreground">

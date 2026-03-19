@@ -59,8 +59,23 @@ export default defineSchema({
     embeddingClipV2Dim: v.optional(v.number()),
     embeddingClipV2Model: v.optional(v.string()),
     // OpenAI vision caption + v2 tags.
+    titleShort: v.optional(v.string()),
     captionShort: v.optional(v.string()),
     captionShortV: v.optional(v.number()),
+    peopleSummary: v.optional(v.string()),
+    visibleText: v.optional(v.string()),
+    sceneType: v.optional(v.string()),
+    mood: v.optional(v.string()),
+    indoorOutdoor: v.optional(
+      v.union(
+        v.literal("indoor"),
+        v.literal("outdoor"),
+        v.literal("mixed"),
+        v.literal("unknown"),
+      ),
+    ),
+    activityLabels: v.optional(v.array(v.string())),
+    hashtags: v.optional(v.array(v.string())),
     aiTagsV2: v.optional(v.array(v.string())),
     aiQuality: v.optional(
       v.object({
@@ -221,20 +236,24 @@ export default defineSchema({
   aiProcessingQueue: defineTable({
     photoId: v.id("photos"),
     userId: v.id("users"),
-    kind: v.optional(v.union(v.literal("photo_analysis"), v.literal("video_analysis"))),
+    kind: v.optional(
+      v.union(v.literal("photo_analysis"), v.literal("video_analysis")),
+    ),
     status: v.union(
       v.literal("pending"),
       v.literal("processing"),
       v.literal("completed"),
       v.literal("failed"),
     ),
-    step: v.optional(v.union(
-      v.literal("pending"),
-      v.literal("embedding"),
-      v.literal("caption"),
-      v.literal("tags"),
-      v.literal("done"),
-    )),
+    step: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("embedding"),
+        v.literal("caption"),
+        v.literal("tags"),
+        v.literal("done"),
+      ),
+    ),
     lockedUntil: v.optional(v.number()),
     retryCount: v.number(),
     error: v.optional(v.string()),
@@ -320,11 +339,7 @@ export default defineSchema({
   channelMembers: defineTable({
     channelId: v.id("channels"),
     userId: v.id("users"),
-    role: v.union(
-      v.literal("owner"),
-      v.literal("editor"),
-      v.literal("viewer"),
-    ),
+    role: v.union(v.literal("owner"), v.literal("editor"), v.literal("viewer")),
     joinedAt: v.number(),
   })
     .index("by_channel", ["channelId"])

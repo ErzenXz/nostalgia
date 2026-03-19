@@ -1,10 +1,67 @@
-import { mutation } from "../_generated/server";
+import { internalMutation, mutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { getAuthedUserId } from "./auth_util";
 
 const TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+export const enqueuePhotoAnalysis = internalMutation({
+  args: {
+    userId: v.id("users"),
+    photoId: v.id("photos"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const existingJob = await ctx.db
+      .query("aiProcessingQueue")
+      .withIndex("by_photo", (q) => q.eq("photoId", args.photoId))
+      .unique();
+
+    const now = Date.now();
+    if (existingJob) {
+      if (
+        existingJob.status === "pending" ||
+        existingJob.status === "processing"
+      ) {
+        return null;
+      }
+
+      await ctx.db.patch(existingJob._id, {
+        kind: "photo_analysis",
+        status: "pending",
+        step: "pending",
+        lockedUntil: undefined,
+        retryCount: 0,
+        error: undefined,
+        providerMeta: undefined,
+        processedAt: undefined,
+        createdAt: existingJob.createdAt ?? now,
+      });
+      await ctx.runMutation(internal.users.incrementPendingAiCount, {
+        userId: args.userId,
+      });
+      return null;
+    }
+
+    await ctx.db.insert("aiProcessingQueue", {
+      photoId: args.photoId,
+      userId: args.userId,
+      kind: "photo_analysis",
+      status: "pending",
+      step: "pending",
+      lockedUntil: undefined,
+      retryCount: 0,
+      error: undefined,
+      providerMeta: undefined,
+      createdAt: now,
+    });
+    await ctx.runMutation(internal.users.incrementPendingAiCount, {
+      userId: args.userId,
+    });
+    return null;
+  },
+});
 
 export const generateAnalysisUploadUrl = mutation({
   args: { photoId: v.id("photos") },
@@ -78,49 +135,10 @@ export const attachAnalysisThumbnail = mutation({
       // Optional: keep a human-friendly locationName updated elsewhere; width/height are for originals.
     });
 
-    // Upsert a processing job.
-    const existingJob = await ctx.db
-      .query("aiProcessingQueue")
-      .withIndex("by_photo", (q) => q.eq("photoId", args.photoId))
-      .unique();
-
-    const now = Date.now();
-    if (existingJob) {
-      const shouldIncrementPending =
-        existingJob.status === "completed" || existingJob.status === "failed";
-      await ctx.db.patch(existingJob._id, {
-        kind: "photo_analysis",
-        status: "pending",
-        step: "pending",
-        lockedUntil: undefined,
-        retryCount: 0,
-        error: undefined,
-        providerMeta: undefined,
-        processedAt: undefined,
-        createdAt: existingJob.createdAt ?? now,
-      });
-      if (shouldIncrementPending) {
-        await ctx.runMutation(internal.users.incrementPendingAiCount, {
-          userId,
-        });
-      }
-    } else {
-      await ctx.db.insert("aiProcessingQueue", {
-        photoId: args.photoId,
-        userId,
-        kind: "photo_analysis",
-        status: "pending",
-        step: "pending",
-        lockedUntil: undefined,
-        retryCount: 0,
-        error: undefined,
-        providerMeta: undefined,
-        createdAt: now,
-      });
-      await ctx.runMutation(internal.users.incrementPendingAiCount, {
-        userId,
-      });
-    }
+    await ctx.runMutation(internal.ai.uploads.enqueuePhotoAnalysis, {
+      userId,
+      photoId: args.photoId,
+    });
 
     return null;
   },

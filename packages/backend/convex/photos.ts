@@ -343,13 +343,9 @@ export const deletePermanently = mutation({
     }
 
     // Remove from people associations
-    const photoPeople = await ctx.db
-      .query("photoPeople")
-      .withIndex("by_photo", (q) => q.eq("photoId", args.photoId))
-      .collect();
-    for (const pp of photoPeople) {
-      await ctx.db.delete(pp._id);
-    }
+    await ctx.runMutation(internal.people.removePhotoAssociations, {
+      photoId: args.photoId,
+    });
 
     // Update storage usage
     await ctx.runMutation(internal.users.updateStorageUsage, {
@@ -371,8 +367,23 @@ export const updateAiAnalysis = internalMutation({
     embeddingClipV2: v.optional(v.array(v.float64())),
     embeddingClipV2Dim: v.optional(v.number()),
     embeddingClipV2Model: v.optional(v.string()),
+    titleShort: v.optional(v.string()),
     captionShort: v.optional(v.string()),
     captionShortV: v.optional(v.number()),
+    peopleSummary: v.optional(v.string()),
+    visibleText: v.optional(v.string()),
+    sceneType: v.optional(v.string()),
+    mood: v.optional(v.string()),
+    indoorOutdoor: v.optional(
+      v.union(
+        v.literal("indoor"),
+        v.literal("outdoor"),
+        v.literal("mixed"),
+        v.literal("unknown"),
+      ),
+    ),
+    activityLabels: v.optional(v.array(v.string())),
+    hashtags: v.optional(v.array(v.string())),
     aiTagsV2: v.optional(v.array(v.string())),
     aiQuality: v.optional(v.any()),
     aiSafety: v.optional(v.any()),
@@ -389,7 +400,7 @@ export const updateAiAnalysis = internalMutation({
     const photo = await ctx.db.get(args.photoId);
     const { photoId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, val]) => val !== undefined),
+      Object.entries(updates).filter(([, val]) => val !== undefined),
     );
     if (Object.keys(cleanUpdates).length > 0) {
       await ctx.db.patch(photoId, cleanUpdates);

@@ -43,6 +43,40 @@ function tokenize(query: string) {
   );
 }
 
+function parseQueryIntent(query: string) {
+  const normalized = normalizeText(query);
+  const years = Array.from(
+    new Set(
+      (normalized.match(/\b(19|20)\d{2}\b/g) ?? []).map((value) =>
+        Number.parseInt(value, 10),
+      ),
+    ),
+  );
+  const hashtags = Array.from(
+    new Set(
+      (query.match(/#[a-z0-9_-]+/gi) ?? []).map((value) =>
+        value.toLowerCase().replace(/^#/, ""),
+      ),
+    ),
+  );
+  const wantsVideos =
+    normalized.includes(" video") ||
+    normalized.startsWith("video ") ||
+    normalized.includes(" videos");
+  const wantsPhotos =
+    normalized.includes(" photo") ||
+    normalized.startsWith("photo ") ||
+    normalized.includes(" photos");
+
+  return {
+    normalized,
+    years,
+    hashtags,
+    wantsVideos,
+    wantsPhotos,
+  };
+}
+
 function fieldMatchScore(field: string, query: string, tokens: string[]) {
   if (!field) return 0;
 
@@ -65,10 +99,21 @@ function fieldMatchScore(field: string, query: string, tokens: string[]) {
 
 function keywordScore(photo: any, query: string, tokens: string[]) {
   const fields = [
+    { text: normalizeText(photo.titleShort), weight: 1.2 },
     { text: normalizeText(photo.fileName), weight: 0.9 },
     { text: normalizeText(photo.locationName), weight: 1 },
     { text: normalizeText(photo.captionShort), weight: 1.1 },
     { text: normalizeText(photo.description), weight: 0.95 },
+    { text: normalizeText(photo.peopleSummary), weight: 0.8 },
+    { text: normalizeText(photo.visibleText), weight: 1.05 },
+    { text: normalizeText(photo.sceneType), weight: 0.7 },
+    { text: normalizeText(photo.mood), weight: 0.55 },
+    { text: normalizeText(photo.indoorOutdoor), weight: 0.4 },
+    {
+      text: normalizeText((photo.activityLabels ?? []).join(" ")),
+      weight: 0.9,
+    },
+    { text: normalizeText((photo.hashtags ?? []).join(" ")), weight: 1.15 },
     { text: normalizeText((photo.aiTagsV2 ?? []).join(" ")), weight: 1.1 },
     { text: normalizeText((photo.aiTags ?? []).join(" ")), weight: 0.7 },
   ];
@@ -130,8 +175,14 @@ export const semanticSearch = action({
 
     const limit = Math.max(1, Math.min(args.limit ?? 20, 50));
     const tokens = tokenize(query);
+    const intent = parseQueryIntent(query);
 
-    const [allPhotos, descriptionMatches, semanticResults] = await Promise.all([
+    const [
+      allPhotos,
+      descriptionMatches,
+      semanticResults,
+      personMatchedPhotoIds,
+    ] = await Promise.all([
       ctx
         .runQuery(api.photos.listByDate, { userId })
         .catch(() => []) as Promise<any[]>,
@@ -153,6 +204,12 @@ export const semanticSearch = action({
           return [];
         }
       })(),
+      ctx
+        .runQuery(api.people.searchPhotoIdsByPersonName, {
+          userId,
+          searchQuery: query,
+        })
+        .catch(() => []) as Promise<string[]>,
     ]);
 
     const semanticScores = new Map<string, number>();
@@ -167,6 +224,7 @@ export const semanticSearch = action({
     const descriptionIds = new Set(
       (descriptionMatches ?? []).map((photo: any) => photo._id),
     );
+    const personMatchedIds = new Set(personMatchedPhotoIds ?? []);
     const ranked = new Map<
       string,
       { photo: any; score: number; semantic: number; lexical: number }
@@ -174,12 +232,36 @@ export const semanticSearch = action({
 
     for (const photo of allPhotos) {
       if (!isSearchablePhoto(photo)) continue;
+      if (intent.wantsVideos && !photo.mimeType?.startsWith("video/")) continue;
+      if (intent.wantsPhotos && !photo.mimeType?.startsWith("image/")) continue;
+      if (
+        intent.years.length > 0 &&
+        !intent.years.includes(
+          new Date(
+            photo.takenAt ?? photo.uploadedAt ?? photo._creationTime,
+          ).getFullYear(),
+        )
+      ) {
+        continue;
+      }
+      if (
+        intent.hashtags.length > 0 &&
+        !intent.hashtags.some((tag) => (photo.hashtags ?? []).includes(tag))
+      ) {
+        continue;
+      }
 
       const semantic = semanticScores.get(photo._id) ?? 0;
       const lexical = keywordScore(photo, normalizeText(query), tokens);
       const descriptionBoost = descriptionIds.has(photo._id) ? 0.55 : 0;
+      const personBoost = personMatchedIds.has(photo._id) ? 0.75 : 0;
 
-      if (semantic <= 0 && lexical <= 0 && descriptionBoost <= 0) {
+      if (
+        semantic <= 0 &&
+        lexical <= 0 &&
+        descriptionBoost <= 0 &&
+        personBoost <= 0
+      ) {
         continue;
       }
 
@@ -187,6 +269,7 @@ export const semanticSearch = action({
         semantic * 0.62 +
         lexical * 0.28 +
         descriptionBoost +
+        personBoost +
         (photo.isFavorite ? 0.04 : 0);
 
       ranked.set(photo._id, {
