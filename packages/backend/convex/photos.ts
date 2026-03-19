@@ -60,7 +60,12 @@ export const listVideos = query({
       .paginate({ numItems: limit, cursor: args.cursor ?? null });
 
     return {
-      videos: results.page.filter((p) => !p.isTrashed && typeof p.mimeType === "string" && p.mimeType.startsWith("video/")),
+      videos: results.page.filter(
+        (p) =>
+          !p.isTrashed &&
+          typeof p.mimeType === "string" &&
+          p.mimeType.startsWith("video/"),
+      ),
       continueCursor: results.continueCursor,
       isDone: results.isDone,
     };
@@ -229,23 +234,7 @@ export const create = mutation({
       uploadedAt: Date.now(),
     });
 
-    // Queue for AI processing
-    await ctx.db.insert("aiProcessingQueue", {
-      photoId,
-      userId: args.userId,
-      kind: "photo_analysis",
-      status: "pending",
-      step: "pending",
-      lockedUntil: undefined,
-      retryCount: 0,
-      createdAt: Date.now(),
-      providerMeta: undefined,
-    });
-
     await ctx.runMutation(internal.users.incrementTotalPhotoCount, {
-      userId: args.userId,
-    });
-    await ctx.runMutation(internal.users.incrementPendingAiCount, {
       userId: args.userId,
     });
 
@@ -397,6 +386,7 @@ export const updateAiAnalysis = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const photo = await ctx.db.get(args.photoId);
     const { photoId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, val]) => val !== undefined),
@@ -404,13 +394,10 @@ export const updateAiAnalysis = internalMutation({
     if (Object.keys(cleanUpdates).length > 0) {
       await ctx.db.patch(photoId, cleanUpdates);
     }
-    if (args.aiProcessedAt != null) {
-      const photo = await ctx.db.get(photoId);
-      if (photo) {
-        await ctx.runMutation(internal.users.incrementProcessedPhotoCount, {
-          userId: photo.userId,
-        });
-      }
+    if (args.aiProcessedAt != null && photo && photo.aiProcessedAt == null) {
+      await ctx.runMutation(internal.users.incrementProcessedPhotoCount, {
+        userId: photo.userId,
+      });
     }
     return null;
   },

@@ -37,6 +37,24 @@ export const getByBetterAuthId = query({
   },
 });
 
+export const getCurrentUserId = query({
+  args: {},
+  returns: v.union(v.id("users"), v.null()),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_better_auth_id", (q) =>
+        q.eq("betterAuthUserId", identity.subject),
+      )
+      .unique();
+
+    return user?._id ?? null;
+  },
+});
+
 export const getByEmail = query({
   args: { email: v.string() },
   returns: v.union(

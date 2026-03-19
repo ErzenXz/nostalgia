@@ -42,6 +42,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const { userId, isLoading: userLoading } = useCurrentUser();
@@ -58,14 +59,11 @@ export default function SearchPage() {
         setResults([]);
         setActiveTags(new Set());
         setHasSearched(false);
-        return;
-      }
-      if (aiOptIn !== true) {
-        setResults([]);
-        setHasSearched(true);
+        setSearchError(null);
         return;
       }
       setIsSearching(true);
+      setSearchError(null);
       try {
         const res = await semanticSearch({ query: q.trim(), limit: 30 });
         setResults(res ?? []);
@@ -73,11 +71,12 @@ export default function SearchPage() {
       } catch {
         setResults([]);
         setHasSearched(true);
+        setSearchError("Search is temporarily unavailable. Please try again.");
       } finally {
         setIsSearching(false);
       }
     },
-    [aiOptIn, semanticSearch],
+    [semanticSearch],
   );
 
   const handleSearch = useCallback(
@@ -88,6 +87,7 @@ export default function SearchPage() {
         setResults([]);
         setActiveTags(new Set());
         setHasSearched(false);
+        setSearchError(null);
         return;
       }
       searchTimeoutRef.current = setTimeout(() => doSearch(q), 400);
@@ -110,16 +110,15 @@ export default function SearchPage() {
   }, []);
 
   // Filter results by active tags
-  const filteredResults = activeTags.size > 0
-    ? results.filter((r: any) => {
-        const tags: string[] = r.photo?.aiTagsV2 ?? [];
-        return Array.from(activeTags).some((t) => tags.includes(t));
-      })
-    : results;
+  const filteredResults =
+    activeTags.size > 0
+      ? results.filter((r: any) => {
+          const tags: string[] = r.photo?.aiTagsV2 ?? [];
+          return Array.from(activeTags).some((t) => tags.includes(t));
+        })
+      : results;
 
-  const photos = filteredResults
-    .map((r: any) => r.photo)
-    .filter(Boolean);
+  const photos = filteredResults.map((r: any) => r.photo).filter(Boolean);
 
   if (userLoading || aiOptInLoading) {
     return (
@@ -139,7 +138,11 @@ export default function SearchPage() {
           Search is personalized to your account.
         </p>
         <Link href="/login">
-          <Button variant="outline" size="sm" className="rounded-full px-6 font-medium border-border hover:bg-muted">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full px-6 font-medium border-border hover:bg-muted"
+          >
             Go to Login
           </Button>
         </Link>
@@ -152,8 +155,12 @@ export default function SearchPage() {
       <div className="max-w-[1600px] mx-auto space-y-8">
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="text-center space-y-2 mt-4 md:mt-8 mb-8">
-            <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">Search</h1>
-            <p className="text-[15px] text-muted-foreground">Find any photo with AI</p>
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
+              Search
+            </h1>
+            <p className="text-[15px] text-muted-foreground">
+              Find any photo with AI
+            </p>
           </div>
           <SearchBar onSearch={handleSearch} className="w-full" />
 
@@ -196,7 +203,9 @@ export default function SearchPage() {
                       <Sparkles
                         className={cn(
                           "h-5 w-5",
-                          aiOptIn === true ? "text-primary" : "text-muted-foreground",
+                          aiOptIn === true
+                            ? "text-primary"
+                            : "text-muted-foreground",
                         )}
                       />
                       <h3 className="text-[16px] font-semibold text-foreground">
@@ -209,9 +218,10 @@ export default function SearchPage() {
                       )}
                     </div>
                     <p className="text-[14px] text-muted-foreground leading-relaxed mt-2 max-w-lg">
-                      Search naturally — try &quot;photos of my dog at the
-                      beach&quot; or &quot;birthday party last summer&quot;. AI
-                      understands context, objects, scenes, and emotions.
+                      Search naturally with hybrid intelligence. Semantic
+                      matches work alongside captions, tags, filenames, dates,
+                      and locations, so exact queries and fuzzy memory-based
+                      queries both work better.
                     </p>
                   </div>
                   {aiOptIn !== true && (
@@ -241,7 +251,9 @@ export default function SearchPage() {
                     : hasSearched
                       ? `${photos.length} result${photos.length !== 1 ? "s" : ""} for`
                       : "Results for"}{" "}
-                  <span className="text-foreground font-semibold">"{query}"</span>
+                  <span className="text-foreground font-semibold">
+                    "{query}"
+                  </span>
                 </span>
                 {isSearching && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-2" />
@@ -278,11 +290,15 @@ export default function SearchPage() {
                     )}
                   >
                     {tag}
-                    {activeTags.has(tag) && (
-                      <X className="h-3.5 w-3.5" />
-                    )}
+                    {activeTags.has(tag) && <X className="h-3.5 w-3.5" />}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {searchError && (
+              <div className="mb-6 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[14px] text-destructive">
+                {searchError}
               </div>
             )}
 
@@ -297,8 +313,8 @@ export default function SearchPage() {
                 </p>
                 <p className="text-[15px] text-muted-foreground max-w-md text-center">
                   {aiOptIn
-                    ? "Try different words or check your spelling. AI search works best with descriptive phrases."
-                    : "Enable AI Intelligence in Settings to unlock semantic photo search."}
+                    ? "Try a different phrase, a location, a date, or a filename fragment."
+                    : "Try a location, filename, date, or simple phrase. Enabling AI improves semantic matches even more."}
                 </p>
               </div>
             ) : (

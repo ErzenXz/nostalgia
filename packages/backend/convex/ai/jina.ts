@@ -1,4 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const JINA_EMBEDDINGS_URL = "https://api.jina.ai/v1/embeddings";
+const REQUEST_TIMEOUT_MS = 30_000;
+export const JINA_CLIP_MODEL = "jina-clip-v2";
 
 export type JinaEmbedding = {
   embedding: number[];
@@ -11,20 +14,36 @@ function requireEnv(name: string): string {
 }
 
 async function postJson(url: string, body: unknown) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${requireEnv("JINA_API_KEY")}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${requireEnv("JINA_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("Jina embeddings request timed out");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const json = await res.json().catch(() => null);
   if (!res.ok) {
     const message =
-      (json && typeof json === "object" && (json as any).detail) ||
-      (json && typeof json === "object" && (json as any).error) ||
+      (json &&
+        typeof json === "object" &&
+        ((json as any).detail ||
+          (json as any).error?.message ||
+          (json as any).error)) ||
       `HTTP ${res.status}`;
     const err = new Error(`Jina embeddings failed: ${message}`);
     (err as any).status = res.status;
@@ -36,7 +55,7 @@ async function postJson(url: string, body: unknown) {
 
 export async function embedTextClipV2(text: string): Promise<number[]> {
   const json = await postJson(JINA_EMBEDDINGS_URL, {
-    model: "jina-clip-v2",
+    model: JINA_CLIP_MODEL,
     normalized: true,
     input: [text],
   });
@@ -46,12 +65,14 @@ export async function embedTextClipV2(text: string): Promise<number[]> {
   return vec as number[];
 }
 
-export async function embedImageBytesClipV2(bytes: Uint8Array): Promise<number[]> {
+export async function embedImageBytesClipV2(
+  bytes: Uint8Array,
+): Promise<number[]> {
   // Jina accepts images via `bytes` (base64) in the `input` array.
   const base64 = Buffer.from(bytes).toString("base64");
 
   const json = await postJson(JINA_EMBEDDINGS_URL, {
-    model: "jina-clip-v2",
+    model: JINA_CLIP_MODEL,
     normalized: true,
     input: [{ bytes: base64 }],
   });
@@ -60,4 +81,3 @@ export async function embedImageBytesClipV2(bytes: Uint8Array): Promise<number[]
   if (!Array.isArray(vec)) throw new Error("Jina returned invalid embedding");
   return vec as number[];
 }
-

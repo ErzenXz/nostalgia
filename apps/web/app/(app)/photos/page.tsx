@@ -21,7 +21,6 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PhotoGrid } from "@/components/photos/photo-grid";
 import { TimelineScrubber } from "@/components/photos/timeline-scrubber";
 import { Lightbox } from "@/components/photos/lightbox";
-import { UploadDialog } from "@/components/upload/upload-dialog";
 import { AddToAlbumSheet } from "@/components/albums/add-to-album-sheet";
 import { Button } from "@/components/ui/button";
 import { groupPhotosByDate } from "@/lib/utils";
@@ -169,9 +168,7 @@ const FeedSection = memo(function FeedSection({
         <div>
           <h2 className="text-sm font-semibold text-foreground/90">{title}</h2>
           {subtitle && (
-            <p className="mt-0.5 text-[11px] text-[#9a9a9a]">
-              {subtitle}
-            </p>
+            <p className="mt-0.5 text-[11px] text-[#9a9a9a]">{subtitle}</p>
           )}
         </div>
         {linkHref && (
@@ -293,7 +290,6 @@ function SelectionBar({
 function PhotosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [showUpload, setShowUpload] = useState(false);
   const [showAddToAlbum, setShowAddToAlbum] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -334,7 +330,8 @@ function PhotosContent() {
     () =>
       allPhotos.filter(
         (photo: any) =>
-          typeof photo.mimeType === "string" && photo.mimeType.startsWith("video/"),
+          typeof photo.mimeType === "string" &&
+          photo.mimeType.startsWith("video/"),
       ).length,
     [allPhotos],
   );
@@ -348,14 +345,15 @@ function PhotosContent() {
 
   useEffect(() => {
     if (uploadParam === "true") {
-      setShowUpload(true);
+      router.replace("/upload");
     }
-  }, [uploadParam]);
+  }, [router, uploadParam]);
 
   const scopedPhotos = useMemo(() => {
     if (activeYear == null) return allPhotos;
     return allPhotos.filter((photo: any) => {
-      const timestamp = photo.takenAt ?? photo.uploadedAt ?? photo._creationTime;
+      const timestamp =
+        photo.takenAt ?? photo.uploadedAt ?? photo._creationTime;
       return new Date(timestamp).getFullYear() === activeYear;
     });
   }, [activeYear, allPhotos]);
@@ -545,7 +543,7 @@ function PhotosContent() {
                     "whitespace-nowrap py-4 text-[15px] font-semibold transition-colors relative",
                     active
                       ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground/80"
+                      : "text-muted-foreground hover:text-foreground/80",
                   )}
                 >
                   {chip.label}
@@ -566,14 +564,18 @@ function PhotosContent() {
                   "flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors",
                   selectable
                     ? "bg-foreground text-background"
-                    : "bg-muted text-foreground hover:bg-muted/80"
+                    : "bg-muted text-foreground hover:bg-muted/80",
                 )}
               >
                 <CheckSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">{selectable ? "Done" : "Select"}</span>
+                <span className="hidden sm:inline">
+                  {selectable ? "Done" : "Select"}
+                </span>
               </button>
               <button
-                onClick={() => setViewMode(viewMode === "feed" ? "grid" : "feed")}
+                onClick={() =>
+                  setViewMode(viewMode === "feed" ? "grid" : "feed")
+                }
                 title={viewMode === "feed" ? "Grid view" : "Feed view"}
                 className="flex items-center justify-center h-9 w-9 rounded-full bg-muted text-foreground hover:bg-muted/80 transition-colors"
               >
@@ -586,7 +588,7 @@ function PhotosContent() {
               <Button
                 size="sm"
                 className="h-9 rounded-full px-4 text-[13px]"
-                onClick={() => setShowUpload(true)}
+                onClick={() => router.push("/upload")}
               >
                 <Upload className="h-4 w-4 mr-1.5" />
                 <span className="hidden sm:inline">Upload</span>
@@ -609,7 +611,9 @@ function PhotosContent() {
           <div className="mb-6">
             <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-[14px] font-medium text-foreground">Viewing {activeYear}</p>
+                <p className="text-[14px] font-medium text-foreground">
+                  Viewing {activeYear}
+                </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   This deep link filters the library to a single year.
                 </p>
@@ -643,7 +647,7 @@ function PhotosContent() {
                 <Button
                   size="lg"
                   className="bg-primary text-primary-foreground hover:opacity-90 rounded-full font-semibold px-6"
-                  onClick={() => setShowUpload(true)}
+                  onClick={() => router.push("/upload")}
                 >
                   <Upload className="h-5 w-5 mr-2" />
                   Upload photos
@@ -706,17 +710,19 @@ function PhotosContent() {
                     />
                   </>
                 )}
-                {feedSections.topLocations.map(([location, locPhotos], index) => (
-                  <div key={location} className={cn(index > 0 && "pt-1")}>
-                    <FeedSection
-                      title={location}
-                      subtitle={`${(locPhotos as any[]).length} photos`}
-                      photos={locPhotos as any[]}
-                      linkHref="/map"
-                      linkLabel="Map"
-                    />
-                  </div>
-                ))}
+                {feedSections.topLocations.map(
+                  ([location, locPhotos], index) => (
+                    <div key={location} className={cn(index > 0 && "pt-1")}>
+                      <FeedSection
+                        title={location}
+                        subtitle={`${(locPhotos as any[]).length} photos`}
+                        photos={locPhotos as any[]}
+                        linkHref="/map"
+                        linkLabel="Map"
+                      />
+                    </div>
+                  ),
+                )}
               </>
             ) : null}
 
@@ -804,9 +810,6 @@ function PhotosContent() {
             }}
           />
         )}
-
-        <UploadDialog open={showUpload} onClose={() => setShowUpload(false)} />
-
         <AddToAlbumSheet
           photoIds={Array.from(selectedIds)}
           open={showAddToAlbum}

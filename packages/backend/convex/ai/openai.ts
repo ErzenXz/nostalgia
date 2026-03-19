@@ -2,6 +2,8 @@ import { generateObject, generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 
+const REQUEST_TIMEOUT_MS = 45_000;
+
 function requireEnv(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Missing env var: ${name}`);
@@ -12,6 +14,24 @@ const CAPTION_PROMPT =
   "Describe what's happening in this photo in 1–2 short, concrete sentences. " +
   "Mention people (e.g. 'two people at a table'), place, activity, mood, or objects. " +
   "Use a warm, nostalgic tone when appropriate. Do not guess names. If unclear, say so briefly.\n\nContext: ";
+const DEFAULT_OPENAI_MODELS = ["gpt-5-nano", "gpt-4o-mini"];
+
+function uniqueModelIds(ids: Array<string | undefined>) {
+  return Array.from(new Set(ids.filter((id): id is string => !!id)));
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<T> {
+  return await Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs),
+    ),
+  ]);
+}
 
 export async function captionImageShort({
   imageUrl,
@@ -21,28 +41,35 @@ export async function captionImageShort({
   hintText: string;
 }): Promise<string> {
   requireEnv("OPENAI_API_KEY");
-  const models = ["gpt-5-nano", "gpt-4o-mini"] as const;
+  const models = uniqueModelIds(DEFAULT_OPENAI_MODELS);
   let lastErr: unknown;
   for (const modelId of models) {
     try {
-      const { text } = await generateText({
-        model: openai(modelId),
-        temperature: 0.2,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: CAPTION_PROMPT + hintText,
-              },
-              { type: "image", image: imageUrl },
-            ],
-          },
-        ],
-        experimental_include: { requestBody: false, responseBody: false },
-      });
-      return (text ?? "").trim();
+      const { text } = await withTimeout(
+        generateText({
+          model: openai(modelId),
+          temperature: 0.2,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: CAPTION_PROMPT + hintText,
+                },
+                { type: "image", image: imageUrl },
+              ],
+            },
+          ],
+          experimental_include: { requestBody: false, responseBody: false },
+        }),
+        `Caption generation on ${modelId}`,
+      );
+      const caption = (text ?? "").trim();
+      if (!caption) {
+        throw new Error(`Caption generation on ${modelId} returned empty text`);
+      }
+      return caption;
     } catch (err) {
       lastErr = err;
     }
@@ -66,23 +93,29 @@ export async function generateTags({
   hintText: string;
 }): Promise<string[]> {
   requireEnv("OPENAI_API_KEY");
-  const models = ["gpt-5-nano", "gpt-4o-mini"] as const;
+  const models = uniqueModelIds(DEFAULT_OPENAI_MODELS);
   let lastErr: unknown;
   for (const modelId of models) {
     try {
-      const { object } = await generateObject({
-        model: openai(modelId),
-        temperature: 0,
-        schema: TagsSchema,
-        prompt:
-          "Generate up to 24 short lowercase tags for this photo. " +
-          "Prefer concrete nouns and activities (e.g. beach, birthday, sunset). Avoid duplicates.\n\n" +
-          `Caption: ${captionShort}\n` +
-          `Context: ${hintText}`,
-      });
+      const { object } = await withTimeout(
+        generateObject({
+          model: openai(modelId),
+          temperature: 0,
+          schema: TagsSchema,
+          prompt:
+            "Generate up to 24 short lowercase tags for this photo. " +
+            "Prefer concrete nouns and activities (e.g. beach, birthday, sunset). Avoid duplicates.\n\n" +
+            `Caption: ${captionShort}\n` +
+            `Context: ${hintText}`,
+        }),
+        `Tag generation on ${modelId}`,
+      );
       const normalized = (object.tags ?? [])
         .map((t) => String(t).trim().toLowerCase())
         .filter(Boolean);
+      if (normalized.length === 0) {
+        throw new Error(`Tag generation on ${modelId} returned no tags`);
+      }
       return Array.from(new Set(normalized)).slice(0, 24);
     } catch (err) {
       lastErr = err;

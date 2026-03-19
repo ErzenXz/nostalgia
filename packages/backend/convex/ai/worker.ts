@@ -1,10 +1,12 @@
 "use node";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 import { internal } from "../_generated/api";
-import { embedImageBytesClipV2 } from "./jina";
+import { embedImageBytesClipV2, JINA_CLIP_MODEL } from "./jina";
 import { captionImageShort, generateTags } from "./openai";
 import type { Id } from "../_generated/dataModel";
 
@@ -25,10 +27,62 @@ function isRateLimitError(err: unknown): boolean {
   return msg.includes("429") || msg.toLowerCase().includes("rate limit");
 }
 
+function isTransientError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const anyErr = err as any;
+  const status = anyErr.status ?? anyErr.statusCode;
+  if (
+    typeof status === "number" &&
+    [408, 409, 425, 429, 500, 502, 503, 504].includes(status)
+  ) {
+    return true;
+  }
+  const msg = String(anyErr.message ?? "").toLowerCase();
+  return (
+    msg.includes("rate limit") ||
+    msg.includes("timed out") ||
+    msg.includes("timeout") ||
+    msg.includes("temporarily unavailable") ||
+    msg.includes("network") ||
+    msg.includes("fetch failed")
+  );
+}
+
 function backoffMs(retryCount: number): number {
   const base = 10_000;
   const ms = base * Math.pow(2, Math.min(10, retryCount));
   return Math.min(ms, 30 * 60 * 1000);
+}
+
+function deriveFallbackCaption(photo: any) {
+  const parts = [
+    photo.locationName
+      ? `Photo in ${photo.locationName}`
+      : "Photo from your library",
+    photo.fileName ? `(${photo.fileName})` : null,
+  ].filter(Boolean);
+  return parts.join(" ");
+}
+
+function deriveFallbackTags(photo: any, caption: string) {
+  const seed = [
+    caption,
+    photo.locationName,
+    photo.fileName,
+    photo.mimeType?.startsWith("video/") ? "video" : "photo",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return Array.from(
+    new Set(
+      seed
+        .split(/[^a-z0-9]+/g)
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 3 && token.length <= 24),
+    ),
+  ).slice(0, 16);
 }
 
 export const processPending = internalAction({
@@ -58,7 +112,9 @@ export const processPending = internalAction({
     let deferred = 0;
 
     for (const jobId of leasedIds) {
-      const loaded = await ctx.runQuery(internal.ai.worker_db.loadJobAndPhoto, { jobId });
+      const loaded = await ctx.runQuery(internal.ai.worker_db.loadJobAndPhoto, {
+        jobId,
+      });
       if (!loaded) continue;
       const { job, photo } = loaded as any;
       const now = Date.now();
@@ -123,13 +179,22 @@ export const processPending = internalAction({
         const bytes = new Uint8Array(await blob.arrayBuffer());
 
         // ── Step 1: Embedding ─────────────────────────────────────
-        const embedding = await embedImageBytesClipV2(bytes);
+        let embedding: number[] | null = null;
+        try {
+          embedding = await embedImageBytesClipV2(bytes);
+        } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
+        }
         await ctx.runMutation(internal.ai.worker_db.updateJob, {
           jobId,
           step: "caption",
           lockedUntil: now + LEASE_MS,
           providerMeta: {
-            jina: { model: "jina-clip-v2", dim: embedding.length },
+            jina: embedding
+              ? { model: JINA_CLIP_MODEL, dim: embedding.length }
+              : undefined,
           },
         });
 
@@ -143,7 +208,14 @@ export const processPending = internalAction({
           .filter(Boolean)
           .join(" ");
 
-        const captionShort = await captionImageShort({ imageUrl, hintText });
+        let captionShort = deriveFallbackCaption(photo);
+        try {
+          captionShort = await captionImageShort({ imageUrl, hintText });
+        } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
+        }
         await ctx.runMutation(internal.ai.worker_db.updateJob, {
           jobId,
           step: "tags",
@@ -151,15 +223,23 @@ export const processPending = internalAction({
         });
 
         // ── Step 3: Tags ──────────────────────────────────────────
-        const tags = await generateTags({ captionShort, hintText });
+        let tags = deriveFallbackTags(photo, captionShort);
+        try {
+          tags = await generateTags({ captionShort, hintText });
+        } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
+        }
 
         // ── Persist results ───────────────────────────────────────
         await ctx.runMutation(internal.photos.updateAiAnalysis, {
           photoId: photo._id,
           analysisImageStorageId: photo.analysisImageStorageId,
-          embeddingClipV2: embedding,
-          embeddingClipV2Dim: embedding.length,
-          embeddingClipV2Model: "jina-clip-v2",
+          description: captionShort,
+          embeddingClipV2: embedding ?? undefined,
+          embeddingClipV2Dim: embedding?.length,
+          embeddingClipV2Model: embedding ? JINA_CLIP_MODEL : undefined,
           captionShort,
           captionShortV: 1,
           aiTagsV2: tags,
@@ -180,8 +260,9 @@ export const processPending = internalAction({
       } catch (err) {
         const currentRetry = (job?.retryCount as number | undefined) ?? 0;
         const rateLimited = isRateLimitError(err);
+        const transientError = isTransientError(err);
 
-        if (rateLimited) {
+        if (rateLimited || transientError) {
           // Transient rate limit — back off and retry later
           deferred += 1;
           await ctx.runMutation(internal.ai.worker_db.updateJob, {
@@ -189,7 +270,7 @@ export const processPending = internalAction({
             status: "pending",
             step: "pending",
             lockedUntil: now + backoffMs(currentRetry),
-            error: "rate_limited",
+            error: transientError ? "transient_ai_error" : "rate_limited",
             retryCount: currentRetry + 1,
           });
         } else {

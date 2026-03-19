@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { action, internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
@@ -5,13 +6,43 @@ import { getAuthedUserId } from "../ai/auth_util";
 
 // ─── Types ────────────────────────────────────────────────────────
 
-type Mode = "nostalgia" | "on_this_day" | "deep_dive_year" | "serendipity";
+type ScoreSignals = {
+  nostalgia: number;
+  coherence: number;
+  freshness: number;
+  novelty: number;
+  quality: number;
+  faces: number;
+  favorite: number;
+  anniversary: number;
+  metadata: number;
+  newUpload: number;
+};
+
+type ScoredCandidate = {
+  photo: any;
+  score: number;
+  signals: ScoreSignals;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const HOME_MMR_LAMBDA = 0.62;
+const MIN_UNSEEN_POOL = 6;
+const RECENT_UPLOAD_WINDOW_DAYS = 21;
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 // ─── Maths helpers ────────────────────────────────────────────────
@@ -118,83 +149,72 @@ function timeOfDaySignal(photoHour: number, nowHour: number): number {
   return 0.0;
 }
 
-// ─── Mode-specific scoring weights ────────────────────────────────
-// All weights within a mode sum to ~1.0 (anniversary is additive bonus)
+function uploadFreshnessSignal(
+  uploadedAt: number | undefined,
+  now: number,
+): number {
+  if (!uploadedAt) return 0;
+  const ageDays = Math.max(0, (now - uploadedAt) / DAY_MS);
+  if (ageDays <= 1) return 1;
+  if (ageDays <= 7) return 0.92;
+  if (ageDays <= RECENT_UPLOAD_WINDOW_DAYS)
+    return 0.92 * Math.exp(-(ageDays - 7) / 10);
+  return 0.1 * Math.exp(-(ageDays - RECENT_UPLOAD_WINDOW_DAYS) / 45);
+}
 
-const WEIGHTS: Record<
-  Mode,
-  {
-    nostalgia: number;
-    coherence: number;
-    quality: number;
-    faces: number;
-    seasonal: number;
-    timeOfDay: number;
-    favorite: number;
-    randomness: number; // injected RNG noise, mainly for serendipity
-  }
-> = {
-  nostalgia: {
-    nostalgia: 0.30,
-    coherence: 0.25,
-    quality: 0.15,
-    faces: 0.10,
-    seasonal: 0.08,
-    timeOfDay: 0.04,
-    favorite: 0.08,
-    randomness: 0.00,
-  },
-  on_this_day: {
-    nostalgia: 0.20, // candidates are already date-filtered
-    coherence: 0.25,
-    quality: 0.20,
-    faces: 0.15,
-    seasonal: 0.00, // irrelevant — filtered to today's date in past years
-    timeOfDay: 0.08,
-    favorite: 0.12,
-    randomness: 0.00,
-  },
-  deep_dive_year: {
-    nostalgia: 0.15, // candidates are year-filtered
-    coherence: 0.25,
-    quality: 0.20,
-    faces: 0.15,
-    seasonal: 0.05,
-    timeOfDay: 0.08,
-    favorite: 0.12,
-    randomness: 0.00,
-  },
-  serendipity: {
-    // Low coherence + high randomness = genuine surprise
-    nostalgia: 0.15,
-    coherence: 0.05,
-    quality: 0.15,
-    faces: 0.10,
-    seasonal: 0.05,
-    timeOfDay: 0.02,
-    favorite: 0.05,
-    randomness: 0.43,
-  },
-};
+function anniversarySignal(
+  photoTime: number | null | undefined,
+  now: number,
+): number {
+  if (!photoTime) return 0;
+  const photoDate = new Date(photoTime);
+  const nowDate = new Date(now);
+  return photoDate.getMonth() === nowDate.getMonth() &&
+    photoDate.getDate() === nowDate.getDate() &&
+    photoDate.getFullYear() < nowDate.getFullYear()
+    ? 1
+    : 0;
+}
 
-// MMR lambda: higher = more relevance, lower = more diversity
-const MMR_LAMBDA: Record<Mode, number> = {
-  nostalgia: 0.60,
-  on_this_day: 0.70,
-  deep_dive_year: 0.65,
-  serendipity: 0.35, // maximise surprise — low relevance bias
-};
+function metadataSignal(photo: any): number {
+  const signals = [
+    !!photo.locationName,
+    typeof photo.captionShort === "string" &&
+      photo.captionShort.trim().length > 0,
+    Array.isArray(photo.aiTagsV2) && photo.aiTagsV2.length > 0,
+    typeof photo.description === "string" &&
+      photo.description.trim().length > 0,
+  ];
+  return signals.filter(Boolean).length / signals.length;
+}
+
+function noveltySignal(
+  photoId: string,
+  recentSeenRanks: Map<string, number>,
+): number {
+  const rank = recentSeenRanks.get(photoId);
+  if (!rank) return 1;
+  if (rank <= 6) return 0.04;
+  if (rank <= 18) return 0.18;
+  if (rank <= 36) return 0.4;
+  return 0.65;
+}
+
+function getPhotoVector(photo: any): number[] | null {
+  return Array.isArray(photo?.embeddingClipV2) &&
+    photo.embeddingClipV2.length > 0
+    ? (photo.embeddingClipV2 as number[])
+    : null;
+}
 
 // ─── Scoring ──────────────────────────────────────────────────────
 
 function scorePhoto(
   photo: any,
   topic: number[] | null,
-  rng: () => number,
-  mode: Mode,
+  recentSeenRanks: Map<string, number>,
   now: number,
-): { score: number; nostalgiaScore: number; coherence: number } {
-  const w = WEIGHTS[mode];
+): { score: number; signals: ScoreSignals } {
   const t = photo.takenAt ?? photo.uploadedAt;
   const ageDays = Math.max(0, (now - t) / DAY_MS);
 
@@ -202,12 +222,16 @@ function scorePhoto(
   const qualitySig = qualitySignal(photo.aiQuality?.score);
   const faceSig = faceSignal(photo.detectedFaces);
   const favSig = photo.isFavorite ? 1.0 : 0.0;
-  const rngSig = rng();
+  const freshnessSig = uploadFreshnessSignal(photo.uploadedAt, now);
+  const noveltySig = noveltySignal(photo._id, recentSeenRanks);
+  const anniversarySig = anniversarySignal(photo.takenAt ?? null, now);
+  const metadataSig = metadataSignal(photo);
+  const newUploadSig = freshnessSig > 0.35 && !getPhotoVector(photo) ? 1 : 0;
 
   // Coherence: requires both a topic vector and the photo's CLIP embedding
   const rawCoherence =
-    topic && Array.isArray(photo.embeddingClipV2) && photo.embeddingClipV2.length > 0
-      ? dot(topic, photo.embeddingClipV2 as number[])
+    topic && getPhotoVector(photo)
+      ? dot(topic, getPhotoVector(photo) as number[])
       : 0;
   const coherenceSig = coherenceSignal(rawCoherence);
 
@@ -218,96 +242,151 @@ function scorePhoto(
   const timeSig = timeOfDaySignal(photoDate.getHours(), nowDate.getHours());
 
   const score =
-    w.nostalgia * nostalgiaSig +
-    w.coherence * coherenceSig +
-    w.quality * qualitySig +
-    w.faces * faceSig +
-    w.seasonal * seasonalSig +
-    w.timeOfDay * timeSig +
-    w.favorite * favSig +
-    w.randomness * rngSig;
-
-  // Anniversary bonus (additive on top of weighted score):
-  // If this photo was taken on the same month+day as today, in a previous year,
-  // it gets a strong boost — like Instagram's "1 year ago today"
-  const anniversaryBonus =
-    photo.takenAt &&
-    photoDate.getMonth() === nowDate.getMonth() &&
-    photoDate.getDate() === nowDate.getDate() &&
-    photoDate.getFullYear() < nowDate.getFullYear()
-      ? 0.85
-      : 0.0;
+    0.24 * freshnessSig +
+    0.17 * nostalgiaSig +
+    0.15 * coherenceSig +
+    0.12 * noveltySig +
+    0.1 * qualitySig +
+    0.07 * faceSig +
+    0.05 * favSig +
+    0.04 * metadataSig +
+    0.03 * seasonalSig +
+    0.01 * timeSig +
+    0.12 * anniversarySig +
+    0.08 * newUploadSig;
 
   return {
-    score: score + anniversaryBonus,
-    nostalgiaScore: nostalgiaSig,
-    coherence: rawCoherence,
+    score,
+    signals: {
+      nostalgia: nostalgiaSig,
+      coherence: coherenceSig,
+      freshness: freshnessSig,
+      novelty: noveltySig,
+      quality: qualitySig,
+      faces: faceSig,
+      favorite: favSig,
+      anniversary: anniversarySig,
+      metadata: metadataSig,
+      newUpload: newUploadSig,
+    },
   };
 }
 
 // ─── Contextual reason strings ────────────────────────────────────
 
-function pickReason(mode: Mode, photo: any, now: number): string {
+function pickReason(photo: any, now: number, signals: ScoreSignals): string {
   const t = photo.takenAt ?? photo.uploadedAt;
   const d = new Date(t);
-  const nowDate = new Date(now);
 
   const ageMs = now - t;
   const ageDays = Math.floor(ageMs / DAY_MS);
   const ageYears = Math.round(ageMs / (365.25 * DAY_MS));
 
-  const year = d.getFullYear();
   const month = MONTH_NAMES[d.getMonth()] ?? "";
   const loc = photo.locationName ? photo.locationName : null;
 
-  const isAnniversary =
-    photo.takenAt &&
-    d.getMonth() === nowDate.getMonth() &&
-    d.getDate() === nowDate.getDate() &&
-    d.getFullYear() < nowDate.getFullYear();
-
-  // Anniversary overrides everything
-  if (isAnniversary) {
-    if (ageYears === 1) return loc ? `One year ago in ${loc}` : "One year ago today";
-    return loc ? `${ageYears} years ago in ${loc}` : `${ageYears} years ago today`;
+  if (signals.anniversary > 0) {
+    if (ageYears === 1)
+      return loc ? `One year ago in ${loc}` : "One year ago today";
+    return loc
+      ? `${ageYears} years ago in ${loc}`
+      : `${ageYears} years ago today`;
   }
 
-  if (mode === "on_this_day") {
-    if (ageYears === 1) return loc ? `A year ago in ${loc}` : "This day last year";
-    return loc ? `${ageYears} years ago in ${loc}` : `${ageYears} years ago today`;
+  if (signals.freshness >= 0.9) {
+    return "Just added";
   }
 
-  if (mode === "deep_dive_year") {
-    if (loc) return `${month} ${year} · ${loc}`;
-    return `${month} ${year}`;
+  if (signals.freshness >= 0.45) {
+    return loc ? `Added recently in ${loc}` : "Added recently";
   }
 
-  if (mode === "serendipity") {
-    if (ageDays > 365 * 7) return loc ? `Forgotten since ${year} in ${loc}` : `A forgotten moment from ${year}`;
-    if (ageDays > 365 * 3) return `Rediscovering ${year}`;
-    if (ageDays > 365) return `A surprise from ${year}`;
-    return "Something you haven't seen in a while";
-  }
-
-  // nostalgia mode
   if (photo.isFavorite && ageYears > 0) {
     return ageYears === 1
-      ? loc ? `A favorite from last year in ${loc}` : "A favorite from last year"
-      : loc ? `A favorite from ${ageYears} years ago in ${loc}` : `A favorite from ${ageYears} years ago`;
+      ? loc
+        ? `A favorite from last year in ${loc}`
+        : "A favorite from last year"
+      : loc
+        ? `A favorite from ${ageYears} years ago in ${loc}`
+        : `A favorite from ${ageYears} years ago`;
   }
+
   if (photo.detectedFaces && photo.detectedFaces > 0 && ageYears > 0) {
     return ageYears === 1
-      ? loc ? `Faces from last year in ${loc}` : "Faces from last year"
-      : loc ? `${ageYears} years ago in ${loc}` : `${ageYears} years ago`;
+      ? loc
+        ? `Faces from last year in ${loc}`
+        : "Faces from last year"
+      : loc
+        ? `${ageYears} years ago in ${loc}`
+        : `${ageYears} years ago`;
   }
+
+  if (
+    signals.coherence >= 0.75 &&
+    typeof photo.captionShort === "string" &&
+    photo.captionShort.length > 0
+  ) {
+    return "Matches the moments you revisit most";
+  }
+
   if (loc && ageYears > 0) {
-    return ageYears === 1 ? `Last year in ${loc}` : `${ageYears} years ago in ${loc}`;
+    return ageYears === 1
+      ? `Last year in ${loc}`
+      : `${ageYears} years ago in ${loc}`;
   }
+  if (loc && ageDays > 30) return `${month} in ${loc}`;
   if (ageYears >= 5) return `From ${ageYears} years ago`;
   if (ageYears >= 2) return `${ageYears} years ago`;
   if (ageYears === 1) return "One year ago";
   if (ageDays > 180) return "Earlier this year";
   return "A recent memory";
+}
+
+function selectWithMMR(
+  candidates: ScoredCandidate[],
+  count: number,
+  selectedIds: Set<string>,
+  selectedVecs: number[][],
+  lambda: number,
+): ScoredCandidate[] {
+  const picked: ScoredCandidate[] = [];
+  const maxPool = Math.min(candidates.length, 600);
+
+  for (let k = 0; k < count; k++) {
+    let bestIdx = -1;
+    let bestVal = -Infinity;
+
+    for (let i = 0; i < maxPool; i++) {
+      const candidate = candidates[i];
+      if (!candidate) continue;
+      if (selectedIds.has(candidate.photo._id)) continue;
+
+      let maxSim = 0;
+      const vec = getPhotoVector(candidate.photo);
+      if (vec && selectedVecs.length > 0) {
+        for (const selectedVec of selectedVecs) {
+          const sim = (dot(vec, selectedVec) + 1) / 2;
+          if (sim > maxSim) maxSim = sim;
+        }
+      }
+
+      const mmr = lambda * candidate.score - (1 - lambda) * maxSim;
+      if (mmr > bestVal) {
+        bestVal = mmr;
+        bestIdx = i;
+      }
+    }
+
+    if (bestIdx === -1) break;
+    const chosen = candidates[bestIdx];
+    if (!chosen) break;
+    picked.push(chosen);
+    selectedIds.add(chosen.photo._id);
+    const vec = getPhotoVector(chosen.photo);
+    if (vec) selectedVecs.push(vec);
+  }
+
+  return picked;
 }
 
 // ─── Feed session queries ─────────────────────────────────────────
@@ -385,279 +464,147 @@ export const getNostalgiaFeed = action({
   }),
   handler: async (ctx, args) => {
     const userId = await getAuthedUserId(ctx);
-    const mode = args.mode as Mode;
     const limit = clamp(args.limit ?? 12, 1, 60);
     const now = Date.now();
-    const nowDate = new Date(now);
+    const cursor = args.cursor ?? "0";
+    const cursorNumber = Number.parseInt(cursor, 10);
 
-    // ── Load session (tracks seen photos + taste seed) ────────────
-    const existing: any = await ctx.runQuery(internal.feed.nostalgia.getSession, {
-      userId,
-      mode,
-    });
+    // Keep one durable session regardless of which legacy mode the client asks for.
+    const sessionMode = "home";
+    const existing: any = await ctx.runQuery(
+      internal.feed.nostalgia.getSession,
+      {
+        userId,
+        mode: sessionMode,
+      },
+    );
 
     const seed = args.seed ?? existing?.seed ?? crypto.randomUUID();
-    const cursor = args.cursor ?? "0";
-    const rng = rngFactory(`${seed}:${mode}:${cursor}`);
+    const rng = rngFactory(`${seed}:${cursor}`);
 
     // ── Build taste profile from recent session photos ────────────
-    // We take up to 30 recently-seen photos and average their CLIP embeddings
-    // to form a "topic vector" representing what the user has engaged with.
-    const recentIds: string[] = (existing?.recentPhotoIds ?? []).slice(-30);
+    const recentIds: string[] = (existing?.recentPhotoIds ?? []).slice(-60);
     const recentDocs = await Promise.all(
       recentIds.map((id) =>
-        ctx.runQuery(api.photos.getById, { photoId: id as any }).catch(() => null),
+        ctx
+          .runQuery(api.photos.getById, { photoId: id as any })
+          .catch(() => null),
       ),
     );
-    const recentVecs: number[][] = recentDocs
-      .flatMap((p: any) =>
-        Array.isArray(p?.embeddingClipV2) && p.embeddingClipV2.length > 0
-          ? [p.embeddingClipV2 as number[]]
-          : [],
-      );
-    const topic = meanVec(recentVecs);
+    const favoriteDocs = recentDocs
+      .filter((photo: any) => photo?.isFavorite)
+      .slice(0, 12);
+    const allPhotos = (await ctx.runQuery(api.photos.listByDate, {
+      userId,
+    })) as any[];
 
-    // ── Candidate generation (mode-specific) ─────────────────────
-
-    let candidates: any[] = [];
-
-    if (mode === "deep_dive_year") {
-      // Single year range query
-      const year = args.year ?? nowDate.getFullYear() - 1;
-      const start = new Date(year, 0, 1).getTime();
-      const end = new Date(year + 1, 0, 1).getTime() - 1;
-      candidates = await ctx.runQuery(api.photos.listByDate, {
-        userId,
-        startDate: start,
-        endDate: end,
-      }) as any[];
-
-    } else if (mode === "on_this_day") {
-      // BUG FIX: was 30 sequential awaits — now parallel via Promise.all
-      const month = nowDate.getMonth();
-      const day = nowDate.getDate();
-      const startYear = nowDate.getFullYear() - 1;
-      const endYear = Math.max(1990, nowDate.getFullYear() - 25);
-
-      const yearQueries = Array.from(
-        { length: startYear - endYear + 1 },
-        (_, i) => startYear - i,
-      ).map((y) => {
-        const start = new Date(y, month, day).getTime();
-        const end = start + DAY_MS - 1;
-        return ctx.runQuery(api.photos.listByDate, {
-          userId,
-          startDate: start,
-          endDate: end,
-        }).catch(() => []) as Promise<any[]>;
-      });
-
-      const yearResults = await Promise.all(yearQueries);
-      candidates = yearResults.flat();
-
-    } else if (mode === "serendipity") {
-      // Use MULTIPLE random time anchors spread across the full timeline.
-      // This gives genuinely diverse, surprising results vs. a single window.
-      const NUM_ANCHORS = 5;
-      const minDays = 30;      // include reasonably recent photos
-      const maxDays = 365 * 20; // but also very old ones
-
-      const anchorQueries = Array.from({ length: NUM_ANCHORS }, () => {
-        const u = rng();
-        // Log-uniform distribution: lots of variation from 1 month to 20 years ago
-        const daysAgo = Math.floor(minDays * Math.exp(Math.log(maxDays / minDays) * u));
-        const target = now - daysAgo * DAY_MS;
-        const windowDays = 30; // wide fixed window per anchor
-        return ctx.runQuery(api.photos.listByDate, {
-          userId,
-          startDate: target - windowDays * DAY_MS,
-          endDate: target + windowDays * DAY_MS,
-        }).catch(() => []) as Promise<any[]>;
-      });
-
-      const anchorResults = await Promise.all(anchorQueries);
-      candidates = anchorResults.flat();
-
-      // Fallback: if anchors yielded very little, pull from the full library
-      if (candidates.length < limit * 3) {
-        const fallback = await ctx.runQuery(api.photos.listByUser, {
-          userId,
-          limit: 300,
-        }) as any;
-        candidates.push(...((fallback?.photos ?? []) as any[]));
-      }
-
-    } else {
-      // nostalgia: single log-uniform random time window with adaptive widening
-      const minDays = 365;
-      const maxDays = 365 * 25;
-      const u = rng();
-      const daysAgo = Math.floor(minDays * Math.exp(Math.log(maxDays / minDays) * u));
-      const target = now - daysAgo * DAY_MS;
-
-      let windowDays = 14;
-      for (let attempt = 0; attempt < 4; attempt++) {
-        const start = target - windowDays * DAY_MS;
-        const end = target + windowDays * DAY_MS;
-        candidates = await ctx.runQuery(api.photos.listByDate, {
-          userId,
-          startDate: start,
-          endDate: end,
-        }) as any[];
-        if (candidates.length >= limit * 4) break;
-        windowDays *= 2;
-      }
-
-      if (candidates.length < limit * 2) {
-        const fallback = await ctx.runQuery(api.photos.listByUser, {
-          userId,
-          limit: 400,
-        }) as any;
-        candidates = [...candidates, ...((fallback?.photos ?? []) as any[])];
-      }
-    }
+    // Blend favorite photos and recent interactions into a single taste vector.
+    const topic = meanVec([
+      ...recentDocs.flatMap((photo: any) => {
+        const vec = getPhotoVector(photo);
+        return vec ? [vec] : [];
+      }),
+      ...favoriteDocs.flatMap((photo: any) => {
+        const vec = getPhotoVector(photo);
+        return vec ? [vec, vec] : [];
+      }),
+    ]);
 
     // ── Dedup + filter ────────────────────────────────────────────
-    const seenSet = new Set(recentIds);
     const dedup = new Map<string, any>();
-    for (const p of candidates) {
+    for (const p of allPhotos) {
       if (!p || p.isTrashed || p.isArchived) continue;
-      if (seenSet.has(p._id)) continue;
       dedup.set(p._id, p);
     }
     const pool = Array.from(dedup.values());
+    if (pool.length === 0) {
+      return { items: [], nextCursor: null };
+    }
 
-    // ── Split processed vs unprocessed ───────────────────────────
-    // Prefer photos that have been AI-analysed (have embeddings + captions).
-    const processedPool = pool.filter(
-      (p) => Array.isArray(p.embeddingClipV2) && p.embeddingClipV2.length > 0,
-    );
-    const unprocessedPool = pool.filter(
-      (p) => !Array.isArray(p.embeddingClipV2) || p.embeddingClipV2.length === 0,
-    );
-
-    // ── Score processed photos ────────────────────────────────────
-    const scored = processedPool.map((p) => {
-      const result = scorePhoto(p, topic, rng, mode, now);
-      return { photo: p, ...result };
+    const recentSeenRanks = new Map<string, number>();
+    recentIds.forEach((id, index) => {
+      recentSeenRanks.set(id, recentIds.length - index);
     });
-    scored.sort((a, b) => b.score - a.score);
 
-    // ── MMR selection for diversity ───────────────────────────────
-    // Maximal Marginal Relevance: balances relevance with visual diversity.
-    // Lambda controls the trade-off (high = more relevance, low = more diversity).
-    const lambda = MMR_LAMBDA[mode];
-    const selected: any[] = [];
+    const unseenPool = pool.filter((photo) => !recentSeenRanks.has(photo._id));
+    const rankingPool =
+      unseenPool.length >= Math.max(limit, MIN_UNSEEN_POOL) ? unseenPool : pool;
+
+    // ── Score candidate photos with a single home-ranking algorithm ─────────
+    const scored = rankingPool.map((photo) => ({
+      photo,
+      ...scorePhoto(photo, topic, recentSeenRanks, now),
+      tieBreak: rng(),
+    }));
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.tieBreak - a.tieBreak;
+    });
+
+    const selectedIds = new Set<string>();
     const selectedVecs: number[][] = [];
-    const maxPool = Math.min(scored.length, 600);
+    const recentPool = scored.filter(
+      (candidate) => candidate.signals.freshness >= 0.35,
+    );
+    const recentTarget = Math.min(
+      recentPool.length,
+      Math.max(0, Math.min(4, Math.ceil(limit / 3))),
+    );
 
-    for (let k = 0; k < limit && k < scored.length; k++) {
-      let bestIdx = -1;
-      let bestVal = -Infinity;
+    const selectedScored = [
+      ...selectWithMMR(
+        recentPool,
+        recentTarget,
+        selectedIds,
+        selectedVecs,
+        0.8,
+      ),
+      ...selectWithMMR(
+        scored,
+        limit - recentTarget,
+        selectedIds,
+        selectedVecs,
+        HOME_MMR_LAMBDA,
+      ),
+    ].slice(0, limit);
 
-      for (let i = 0; i < maxPool; i++) {
-        const s = scored[i];
-        if (!s?.photo) continue;
-        if (selected.some((x) => x.photoId === s.photo._id)) continue;
-
-        let maxSim = 0;
-        const vec = Array.isArray(s.photo.embeddingClipV2)
-          ? (s.photo.embeddingClipV2 as number[])
-          : null;
-        if (vec && selectedVecs.length > 0) {
-          for (const sv of selectedVecs) {
-            const sim = (dot(vec, sv) + 1) / 2; // normalise to [0,1]
-            if (sim > maxSim) maxSim = sim;
-          }
-        }
-
-        const mmr = lambda * s.score - (1 - lambda) * maxSim;
-        if (mmr > bestVal) {
-          bestVal = mmr;
-          bestIdx = i;
-        }
-      }
-
-      if (bestIdx === -1) break;
-      const chosen = scored[bestIdx];
-      if (!chosen) break;
-      const p = chosen.photo;
-
-      selected.push({
-        photoId: p._id,
-        takenAt: p.takenAt ?? null,
-        uploadedAt: p.uploadedAt,
-        mimeType: p.mimeType ?? "image/jpeg",
-        reason: pickReason(mode, p, now),
-        score: chosen.score,
+    const selected = selectedScored.map((candidate) => {
+      const photo = candidate.photo;
+      return {
+        photoId: photo._id,
+        takenAt: photo.takenAt ?? null,
+        uploadedAt: photo.uploadedAt,
+        mimeType: photo.mimeType ?? "image/jpeg",
+        reason: pickReason(photo, now, candidate.signals),
+        score: candidate.score,
         scoreBreakdown: {
-          nostalgia: chosen.nostalgiaScore,
-          coherence: chosen.coherence,
+          nostalgia: candidate.signals.nostalgia,
+          coherence: candidate.signals.coherence,
         },
-        captionShort: p.captionShort ?? null,
-        aiTagsV2: p.aiTagsV2 ?? null,
-        locationName: p.locationName ?? null,
-        detectedFaces: p.detectedFaces ?? null,
-      });
-
-      if (Array.isArray(p.embeddingClipV2)) {
-        selectedVecs.push(p.embeddingClipV2 as number[]);
-      }
-    }
-
-    // ── Backfill with unprocessed photos ─────────────────────────
-    // When the AI-analysed pool is exhausted (or empty), fill remaining slots
-    // with unprocessed photos so new uploads appear in the feed immediately.
-    if (selected.length < limit && unprocessedPool.length > 0) {
-      const selectedSet = new Set(selected.map((i) => i.photoId));
-
-      // Score unprocessed photos with basic signals only (no embedding/coherence)
-      const unprocessedScored = unprocessedPool
-        .filter((p) => !selectedSet.has(p._id))
-        .map((p) => {
-          const t = p.takenAt ?? p.uploadedAt;
-          const ageDays = Math.max(0, (now - t) / DAY_MS);
-          const basic =
-            nostalgiaSignal(ageDays) * 0.5 +
-            (p.isFavorite ? 0.3 : 0) +
-            rng() * 0.2;
-          return { photo: p, basic };
-        })
-        .sort((a, b) => b.basic - a.basic);
-
-      for (const s of unprocessedScored) {
-        if (selected.length >= limit) break;
-        const p = s.photo;
-        selected.push({
-          photoId: p._id,
-          takenAt: p.takenAt ?? null,
-          uploadedAt: p.uploadedAt,
-          mimeType: p.mimeType ?? "image/jpeg",
-          reason: pickReason(mode, p, now),
-          score: s.basic,
-          scoreBreakdown: { nostalgia: s.basic, coherence: 0 },
-          captionShort: p.captionShort ?? null,
-          aiTagsV2: p.aiTagsV2 ?? null,
-          locationName: p.locationName ?? null,
-          detectedFaces: p.detectedFaces ?? null,
-        });
-      }
-    }
+        captionShort: photo.captionShort ?? null,
+        aiTagsV2: photo.aiTagsV2 ?? null,
+        locationName: photo.locationName ?? null,
+        detectedFaces: photo.detectedFaces ?? null,
+      };
+    });
 
     // ── Update session with newly-seen photo IDs ──────────────────
     const newRecentIds = [
       ...recentIds,
       ...selected.map((i) => i.photoId),
-    ].slice(-60); // keep the most recent 60 IDs
+    ].slice(-120);
 
     await ctx.runMutation(internal.feed.nostalgia.upsertSession, {
       userId,
-      mode,
+      mode: sessionMode,
       seed,
       recentPhotoIds: newRecentIds,
     });
 
-    const nextCursor = String(parseInt(cursor, 10) + 1);
+    const nextCursor =
+      rankingPool.length > selected.length
+        ? String(Number.isNaN(cursorNumber) ? 1 : cursorNumber + 1)
+        : null;
     return { items: selected, nextCursor };
   },
 });

@@ -86,6 +86,8 @@ export const attachAnalysisThumbnail = mutation({
 
     const now = Date.now();
     if (existingJob) {
+      const shouldIncrementPending =
+        existingJob.status === "completed" || existingJob.status === "failed";
       await ctx.db.patch(existingJob._id, {
         kind: "photo_analysis",
         status: "pending",
@@ -97,6 +99,11 @@ export const attachAnalysisThumbnail = mutation({
         processedAt: undefined,
         createdAt: existingJob.createdAt ?? now,
       });
+      if (shouldIncrementPending) {
+        await ctx.runMutation(internal.users.incrementPendingAiCount, {
+          userId,
+        });
+      }
     } else {
       await ctx.db.insert("aiProcessingQueue", {
         photoId: args.photoId,
@@ -118,4 +125,3 @@ export const attachAnalysisThumbnail = mutation({
     return null;
   },
 });
-

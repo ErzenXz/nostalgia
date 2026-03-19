@@ -58,13 +58,13 @@ const navSections = [
   },
   {
     label: "System",
-    items: [
-      { name: "Trash", href: "/trash", icon: Trash2, mobile: false },
-    ],
+    items: [{ name: "Trash", href: "/trash", icon: Trash2, mobile: false }],
   },
 ];
 
-const mobileNavItems = navSections.flatMap((s) => s.items).filter((i) => i.mobile);
+const mobileNavItems = navSections
+  .flatMap((s) => s.items)
+  .filter((i) => i.mobile);
 
 const interactiveBase =
   "flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-[14px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -73,7 +73,10 @@ const interactiveBase =
 
 function StorageStats({ collapsed }: { collapsed: boolean }) {
   const { userId } = useCurrentUser();
-  const storageStats = useQuery(api.users.getStorageStats, userId ? { userId } : "skip");
+  const storageStats = useQuery(
+    api.users.getStorageStats,
+    userId ? { userId } : "skip",
+  );
 
   const usedBytes = storageStats?.usedStorageBytes ?? 0;
   const quotaBytes = storageStats?.storageQuotaBytes ?? 15 * 1024 * 1024 * 1024;
@@ -85,7 +88,9 @@ function StorageStats({ collapsed }: { collapsed: boolean }) {
         <div className="flex items-center justify-center rounded-lg border border-border bg-muted/30 px-2 py-3">
           <div className="text-center">
             <HardDrive className="mx-auto h-4 w-4 text-muted-foreground" />
-            <p className="mt-1 text-[11px] font-medium text-foreground">{Math.round(percent)}%</p>
+            <p className="mt-1 text-[11px] font-medium text-foreground">
+              {Math.round(percent)}%
+            </p>
           </div>
         </div>
       </div>
@@ -98,9 +103,13 @@ function StorageStats({ collapsed }: { collapsed: boolean }) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <HardDrive className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[12px] font-medium text-foreground">Storage</span>
+            <span className="text-[12px] font-medium text-foreground">
+              Storage
+            </span>
           </div>
-          <span className="text-[12px] text-muted-foreground">{Math.round(percent)}%</span>
+          <span className="text-[12px] text-muted-foreground">
+            {Math.round(percent)}%
+          </span>
         </div>
         <p className="mt-2 text-[12px] leading-5 text-muted-foreground">
           {formatBytes(usedBytes)} of {formatBytes(quotaBytes)} used
@@ -122,7 +131,8 @@ function NavItem({
   onClick?: () => void;
 }) {
   const pathname = usePathname();
-  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+  const isActive =
+    pathname === item.href || pathname.startsWith(item.href + "/");
   const Icon = item.icon;
 
   return (
@@ -143,7 +153,9 @@ function NavItem({
       <Icon
         className={cn(
           "h-[22px] w-[22px] shrink-0 transition-transform group-hover:scale-110 duration-200",
-          isActive ? "text-foreground stroke-[2.5]" : "text-foreground stroke-[1.5]",
+          isActive
+            ? "text-foreground stroke-[2.5]"
+            : "text-foreground stroke-[1.5]",
         )}
       />
       {!collapsed && <span className="leading-none">{item.name}</span>}
@@ -178,7 +190,8 @@ export function TopNavbar() {
 
       <nav className="flex items-center justify-center gap-6 absolute left-1/2 -translate-x-1/2">
         {topNavItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive =
+            pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
           return (
             <Link
@@ -186,11 +199,13 @@ export function TopNavbar() {
               href={item.href}
               className="flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-muted/50 relative group"
             >
-              <Icon 
+              <Icon
                 className={cn(
                   "h-6 w-6 transition-transform group-hover:scale-110 duration-200",
-                  isActive ? "text-foreground stroke-[2.5]" : "text-muted-foreground stroke-[1.5]"
-                )} 
+                  isActive
+                    ? "text-foreground stroke-[2.5]"
+                    : "text-muted-foreground stroke-[1.5]",
+                )}
               />
               {isActive && (
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-foreground" />
@@ -202,7 +217,7 @@ export function TopNavbar() {
 
       <div className="flex items-center gap-4">
         <Link
-          href="/photos?upload=true"
+          href="/upload"
           className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20"
         >
           <Upload className="h-5 w-5" />
@@ -216,7 +231,11 @@ export function TopNavbar() {
         {user && (
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted overflow-hidden">
             {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name || "User"} className="h-full w-full object-cover" />
+              <img
+                src={user.avatarUrl}
+                alt={user.name || "User"}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <span className="text-[12px] font-semibold uppercase text-foreground">
                 {(user.name ?? user.email ?? "U").charAt(0)}
@@ -273,7 +292,11 @@ export function MobileDrawer() {
       />
       <div className="fixed top-0 left-0 bottom-0 z-50 flex w-[280px] max-w-[82vw] flex-col border-r border-border bg-background md:hidden shadow-2xl">
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
-          <Link href="/feed" onClick={close} className="flex items-center gap-2">
+          <Link
+            href="/feed"
+            onClick={close}
+            className="flex items-center gap-2"
+          >
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
               <Lock className="h-3.5 w-3.5" />
             </div>
@@ -298,7 +321,12 @@ export function MobileDrawer() {
                 </p>
               )}
               {section.items.map((item) => (
-                <NavItem key={item.href} item={item} collapsed={false} onClick={close} />
+                <NavItem
+                  key={item.href}
+                  item={item}
+                  collapsed={false}
+                  onClick={close}
+                />
               ))}
             </div>
           ))}
@@ -312,7 +340,7 @@ export function MobileDrawer() {
 
         <div className="shrink-0 border-t border-border p-3">
           <Link
-            href="/photos?upload=true"
+            href="/upload"
             onClick={close}
             className={cn(
               interactiveBase,
@@ -322,7 +350,7 @@ export function MobileDrawer() {
             <Upload className="h-[20px] w-[20px]" />
             <span className="font-semibold">Upload</span>
           </Link>
-          
+
           <Link
             href="/settings"
             onClick={close}
@@ -348,7 +376,8 @@ export function MobileTabBar() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[64px] items-stretch justify-around border-t border-border bg-background/95 backdrop-blur-md safe-area-pb md:hidden">
       {mobileNavItems.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+        const isActive =
+          pathname === item.href || pathname.startsWith(item.href + "/");
         const Icon = item.icon;
         return (
           <Link
@@ -362,11 +391,13 @@ export function MobileTabBar() {
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon 
+            <Icon
               className={cn(
-                "h-6 w-6 transition-transform duration-200", 
-                isActive ? "text-foreground stroke-[2.5] scale-110" : "text-muted-foreground stroke-[1.5]"
-              )} 
+                "h-6 w-6 transition-transform duration-200",
+                isActive
+                  ? "text-foreground stroke-[2.5] scale-110"
+                  : "text-muted-foreground stroke-[1.5]",
+              )}
             />
             {/* Instagram doesn't show text on bottom bar, clean look */}
           </Link>
@@ -382,11 +413,13 @@ export function MobileTabBar() {
             : "text-muted-foreground hover:text-foreground",
         )}
       >
-        <Settings 
+        <Settings
           className={cn(
-            "h-6 w-6 transition-transform duration-200", 
-            pathname === "/settings" ? "text-foreground stroke-[2.5] scale-110" : "text-muted-foreground stroke-[1.5]"
-          )} 
+            "h-6 w-6 transition-transform duration-200",
+            pathname === "/settings"
+              ? "text-foreground stroke-[2.5] scale-110"
+              : "text-muted-foreground stroke-[1.5]",
+          )}
         />
       </Link>
     </nav>

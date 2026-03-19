@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { api } from "@repo/backend/convex/_generated/api";
 import {
-  getPresignedUploadUrl,
   getPresignedDownloadUrl,
+  getPresignedUploadUrl,
   generateStorageKey,
   generateThumbnailKey,
   ensureBuckets,
   THUMBNAIL_BUCKET,
 } from "@/lib/minio";
+import { fetchAuthQuery } from "@/lib/auth-server";
 
 // Get presigned upload URL
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, fileName, contentType } = body;
+    const authedUserId = await fetchAuthQuery(api.users.getCurrentUserId, {});
+    if (!authedUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !fileName) {
+    const body = await request.json();
+    const { fileName } = body;
+
+    if (!fileName) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Ensure buckets exist
     await ensureBuckets();
 
-    const storageKey = generateStorageKey(userId, fileName);
+    const storageKey = generateStorageKey(String(authedUserId), fileName);
     const thumbnailKey = generateThumbnailKey(storageKey);
 
     const uploadUrl = await getPresignedUploadUrl(storageKey);
@@ -42,18 +49,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Storage error:", error);
     return NextResponse.json(
-      {
-        error: "Failed to generate upload URL",
-        details: error instanceof Error ? error.message : String(error),
-        minio: {
-          endPoint: process.env.MINIO_ENDPOINT || "localhost",
-          port: process.env.MINIO_PORT || "",
-          useSSL: process.env.MINIO_USE_SSL === "true",
-          bucket: process.env.MINIO_BUCKET || "nostalgia-photos",
-          thumbnailBucket:
-            process.env.MINIO_THUMBNAIL_BUCKET || "nostalgia-thumbnails",
-        },
-      },
+      { error: "Failed to generate upload URL" },
       { status: 500 },
     );
   }
