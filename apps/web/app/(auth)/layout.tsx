@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { type ReactNode } from "react";
 import { Lock, Shield, Sparkles, Upload } from "lucide-react";
+import { AuthBackground } from "@/components/auth/auth-background";
 
 async function checkAuth() {
   try {
@@ -23,18 +24,16 @@ export default async function AuthLayout({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Abstract halftone pattern background */}
-      <div 
-        className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
-        style={{
-          backgroundImage: `radial-gradient(circle at center, currentColor 1px, transparent 1px)`,
-          backgroundSize: `24px 24px`,
-        }}
-      />
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-0 top-0 h-[28rem] w-[28rem] rounded-full bg-primary/5 blur-[160px]" />
-        <div className="absolute bottom-0 right-0 h-[24rem] w-[24rem] rounded-full bg-primary/5 blur-[140px]" />
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      {/* Dynamic paper.design shader background */}
+      <AuthBackground />
+
+      {/* Opacity mask so the dots are subtle and follow theme colors */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-background/95 dark:bg-background/90" />
+
+      <div className="pointer-events-none absolute inset-0 z-[2]">
+        <div className="absolute left-0 top-0 h-[28rem] w-[28rem] rounded-full bg-primary/10 blur-[160px]" />
+        <div className="absolute bottom-0 right-0 h-[24rem] w-[24rem] rounded-full bg-primary/10 blur-[140px]" />
       </div>
 
       <div className="relative z-10 grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
@@ -72,7 +71,7 @@ export default async function AuthLayout({
               ].map(({ icon: Icon, title }) => (
                 <div
                   key={title}
-                  className="rounded-2xl border border-border bg-card p-5 shadow-sm"
+                  className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-5 shadow-sm"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 shrink-0">
@@ -90,7 +89,7 @@ export default async function AuthLayout({
           </p>
         </section>
 
-        <section className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 bg-muted/30">
+        <section className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 bg-muted/20 backdrop-blur-md">
           <div className="w-full max-w-md">
             <div className="mb-8 flex items-center gap-3 justify-center lg:hidden">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
