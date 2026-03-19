@@ -281,7 +281,9 @@ export default function LoginClient() {
 
       {/* Captcha */}
       {turnstileSiteKey && (
-        <Turnstile siteKey={turnstileSiteKey} onToken={setCaptchaToken} action="login" />
+        <div className="flex justify-center pt-2">
+          <Turnstile siteKey={turnstileSiteKey} onToken={setCaptchaToken} action="login" />
+        </div>
       )}
 
       {/* Footer */}

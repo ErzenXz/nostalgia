@@ -182,7 +182,9 @@ export default function RegisterClient() {
 
       {/* Captcha */}
       {turnstileSiteKey && (
-        <Turnstile siteKey={turnstileSiteKey} onToken={setCaptchaToken} action="register" />
+        <div className="flex justify-center pt-2">
+          <Turnstile siteKey={turnstileSiteKey} onToken={setCaptchaToken} action="register" />
+        </div>
       )}
 
       {/* Footer */}

@@ -139,9 +139,9 @@ export function Turnstile({
   // Dev mode indicator
   if (isDev) {
     return (
-      <div className="flex items-center gap-2 rounded-sm bg-amber-950/30 border border-amber-800/20 px-3 py-2">
-        <div className="h-1.5 w-1.5 rounded-full bg-amber-500/60 shrink-0" />
-        <span className="text-[10px] font-mono text-amber-700/55 uppercase tracking-wider">
+      <div className="flex items-center gap-2 rounded-xl bg-secondary/50 border border-border px-3 py-2.5 shadow-sm">
+        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+        <span className="text-[12px] font-semibold text-foreground tracking-wide uppercase">
           Captcha bypassed · development
         </span>
       </div>
@@ -149,12 +149,12 @@ export function Turnstile({
   }
 
   return (
-    <div className="space-y-2">
-      <div ref={containerRef} />
+    <div className="space-y-2 flex flex-col items-center justify-center pt-2">
+      <div ref={containerRef} className="overflow-hidden rounded-lg" />
       {error ? (
-        <p className="text-xs text-red-400">{error}</p>
+        <p className="text-[13px] font-medium text-destructive">{error}</p>
       ) : (
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground font-medium">
           Protected by Cloudflare Turnstile.
         </p>
       )}
